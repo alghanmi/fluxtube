@@ -1,0 +1,26 @@
+name: release-please
+
+# Opens (and maintains) a release PR aggregating Conventional Commits since
+# the last tag. Merging that PR cuts the tag + GitHub release + CHANGELOG
+# entry, and bumps the version in package.json + workers/sync/package.json
+# (the latter via `extra-files` in release-please-config.json).
+#
+# Merging the release PR fires `release: published` → notify-deploy.yml
+# sends a repository_dispatch to alghanmi/fluxtube-deploy → that workflow
+# runs the actual deploy.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
