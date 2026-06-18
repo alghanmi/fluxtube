@@ -1,0 +1,61 @@
+{
+  "uid": "fluxtube-pass2-not-draining",
+  "title": "FluxTube — Pass 2 not draining",
+  "condition": "C",
+  "data": [
+    {
+      "refId": "A",
+      "datasourceUid": "${DS_PROMETHEUS}",
+      "queryType": "",
+      "relativeTimeRange": {
+        "from": 10800,
+        "to": 0
+      },
+      "model": {
+        "refId": "A",
+        "expr": "sum_over_time(fluxtube_items_marked_read[3h])",
+        "instant": true
+      }
+    },
+    {
+      "refId": "B",
+      "datasourceUid": "${DS_PROMETHEUS}",
+      "queryType": "",
+      "relativeTimeRange": {
+        "from": 10800,
+        "to": 0
+      },
+      "model": {
+        "refId": "B",
+        "expr": "sum_over_time(fluxtube_runs{outcome=\"success\"}[3h])",
+        "instant": true
+      }
+    },
+    {
+      "refId": "C",
+      "datasourceUid": "-100",
+      "queryType": "",
+      "relativeTimeRange": {
+        "from": 0,
+        "to": 0
+      },
+      "model": {
+        "refId": "C",
+        "type": "math",
+        "expression": "$A == 0 && $B > 3"
+      }
+    }
+  ],
+  "noDataState": "OK",
+  "execErrState": "Error",
+  "for": "15m",
+  "annotations": {
+    "summary": "Pass 2 hasn't marked any entries read in 3h, despite 3+ successful runs.",
+    "description": "The cron is running and runs report success, but `fluxtube_items_marked_read` is stuck at zero. Check the audit endpoint (`./scripts/trigger-sync.sh audit | jq`) for `tracked_but_missing_from_playlist` — drift in Miniflux/D1/YouTube that isn't being cleaned up. Likely root causes: Miniflux 5xx on mark-read, D1 outage, or a regression in sync.ts Pass 2."
+  },
+  "labels": {
+    "app": "fluxtube",
+    "severity": "warning"
+  },
+  "isPaused": false
+}

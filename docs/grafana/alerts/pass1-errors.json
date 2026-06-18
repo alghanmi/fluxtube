@@ -1,0 +1,47 @@
+{
+  "uid": "fluxtube-pass1-errors",
+  "title": "FluxTube — sustained Pass 1 errors",
+  "condition": "B",
+  "data": [
+    {
+      "refId": "A",
+      "datasourceUid": "${DS_PROMETHEUS}",
+      "queryType": "",
+      "relativeTimeRange": {
+        "from": 3600,
+        "to": 0
+      },
+      "model": {
+        "refId": "A",
+        "expr": "sum_over_time(fluxtube_errors_entry[1h])",
+        "instant": true
+      }
+    },
+    {
+      "refId": "B",
+      "datasourceUid": "-100",
+      "queryType": "",
+      "relativeTimeRange": {
+        "from": 0,
+        "to": 0
+      },
+      "model": {
+        "refId": "B",
+        "type": "threshold",
+        "expression": "$A > 3"
+      }
+    }
+  ],
+  "noDataState": "OK",
+  "execErrState": "Error",
+  "for": "15m",
+  "annotations": {
+    "summary": "More than 3 per-entry failures in Pass 1 over the last hour.",
+    "description": "Sustained `entry_processing_failed` events. Check Loki: `{app=\"fluxtube\"} |= \"entry_processing_failed\"`. Common causes: YouTube API rate limiting beyond the quota check, Miniflux entry shapes the parser doesn't handle, transient D1 errors."
+  },
+  "labels": {
+    "app": "fluxtube",
+    "severity": "warning"
+  },
+  "isPaused": false
+}

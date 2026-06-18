@@ -1,0 +1,47 @@
+{
+  "uid": "fluxtube-pass2-errors",
+  "title": "FluxTube — sustained Pass 2 errors",
+  "condition": "B",
+  "data": [
+    {
+      "refId": "A",
+      "datasourceUid": "${DS_PROMETHEUS}",
+      "queryType": "",
+      "relativeTimeRange": {
+        "from": 3600,
+        "to": 0
+      },
+      "model": {
+        "refId": "A",
+        "expr": "sum_over_time(fluxtube_errors_removal[1h])",
+        "instant": true
+      }
+    },
+    {
+      "refId": "B",
+      "datasourceUid": "-100",
+      "queryType": "",
+      "relativeTimeRange": {
+        "from": 0,
+        "to": 0
+      },
+      "model": {
+        "refId": "B",
+        "type": "threshold",
+        "expression": "$A > 2"
+      }
+    }
+  ],
+  "noDataState": "OK",
+  "execErrState": "Error",
+  "for": "15m",
+  "annotations": {
+    "summary": "More than 2 per-row failures in Pass 2 over the last hour.",
+    "description": "`removal_processing_failed` events. Check Loki: `{app=\"fluxtube\"} |= \"removal_processing_failed\"`. The mark-read-then-delete order from PR #32 means a transient Miniflux 5xx leaves the D1 row in place; this alert flags when those retries aren't succeeding."
+  },
+  "labels": {
+    "app": "fluxtube",
+    "severity": "warning"
+  },
+  "isPaused": false
+}

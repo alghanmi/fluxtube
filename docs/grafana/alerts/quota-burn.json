@@ -1,0 +1,47 @@
+{
+  "uid": "fluxtube-quota-burn",
+  "title": "FluxTube — quota burn rate too high",
+  "condition": "B",
+  "data": [
+    {
+      "refId": "A",
+      "datasourceUid": "${DS_PROMETHEUS}",
+      "queryType": "",
+      "relativeTimeRange": {
+        "from": 86400,
+        "to": 0
+      },
+      "model": {
+        "refId": "A",
+        "expr": "sum_over_time(fluxtube_quota_used[24h])",
+        "instant": true
+      }
+    },
+    {
+      "refId": "B",
+      "datasourceUid": "-100",
+      "queryType": "",
+      "relativeTimeRange": {
+        "from": 0,
+        "to": 0
+      },
+      "model": {
+        "refId": "B",
+        "type": "threshold",
+        "expression": "$A > 8000"
+      }
+    }
+  ],
+  "noDataState": "OK",
+  "execErrState": "Error",
+  "for": "15m",
+  "annotations": {
+    "summary": "Total YouTube quota burn over the last 24h exceeds 8000 units.",
+    "description": "The Worker aborts a single run at 8000 units, but cumulative burn approaching the 10k/day default cap means a future run could hit the daily limit. Check what's eating quota — usually a flood of new entries triggering many `playlistItems.insert` (50 units each). The `HEARTBEAT_URL_QUOTA` check fires immediately on the actual `FatalError`; this rule is a softer trend warning."
+  },
+  "labels": {
+    "app": "fluxtube",
+    "severity": "warning"
+  },
+  "isPaused": false
+}

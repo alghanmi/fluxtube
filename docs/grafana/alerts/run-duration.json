@@ -1,0 +1,47 @@
+{
+  "uid": "fluxtube-run-duration",
+  "title": "FluxTube — run duration regression",
+  "condition": "B",
+  "data": [
+    {
+      "refId": "A",
+      "datasourceUid": "${DS_PROMETHEUS}",
+      "queryType": "",
+      "relativeTimeRange": {
+        "from": 21600,
+        "to": 0
+      },
+      "model": {
+        "refId": "A",
+        "expr": "quantile_over_time(0.95, fluxtube_run_duration_seconds[6h])",
+        "instant": true
+      }
+    },
+    {
+      "refId": "B",
+      "datasourceUid": "-100",
+      "queryType": "",
+      "relativeTimeRange": {
+        "from": 0,
+        "to": 0
+      },
+      "model": {
+        "refId": "B",
+        "type": "threshold",
+        "expression": "$A > 25"
+      }
+    }
+  ],
+  "noDataState": "OK",
+  "execErrState": "Error",
+  "for": "15m",
+  "annotations": {
+    "summary": "p95 run duration is above 25 seconds in the last 6 hours.",
+    "description": "Worker cron triggers cap at 30 seconds wall time; p95 above 25s means the worker is close to timing out. Investigate upstream slowness (Miniflux/YouTube/D1 latency) or unusually large unread backlogs."
+  },
+  "labels": {
+    "app": "fluxtube",
+    "severity": "warning"
+  },
+  "isPaused": false
+}
