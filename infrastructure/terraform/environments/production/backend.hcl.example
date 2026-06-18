@@ -1,0 +1,20 @@
+# ── Example partial backend config ────────────────────────────────────────────
+#
+# Production applies construct these values inline in the deploy workflow:
+#   terraform init \
+#     -backend-config="bucket=${TF_STATE_BUCKET}" \
+#     -backend-config="key=${TF_STATE_KEY}" \
+#     -backend-config="endpoints={ s3 = \"https://${CF_ACCOUNT_ID}.r2.cloudflarestorage.com\" }"
+#
+# This file documents the shape for local plan/apply against the same backend.
+#
+# To use locally:
+#   cp backend.hcl.example backend.hcl
+#   # edit backend.hcl with real values
+#   terraform init -backend-config=backend.hcl
+#
+# backend.hcl is gitignored — never commit one with real values.
+
+bucket    = "your-r2-bucket-name"
+key       = "fluxtube/production/terraform.tfstate"
+endpoints = { s3 = "https://0123456789abcdef0123456789abcdef.r2.cloudflarestorage.com" }

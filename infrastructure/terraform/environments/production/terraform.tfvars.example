@@ -1,0 +1,37 @@
+# ── Example Terraform variable values ─────────────────────────────────────────
+#
+# Production applies don't read a `terraform.tfvars` file — values come from
+# TF_VAR_* env vars in the deploy workflow, sourced from GitHub secrets and
+# variables. This file documents the shape for local plan/apply experiments.
+#
+# To use locally:
+#   cp terraform.tfvars.example terraform.tfvars
+#   # edit terraform.tfvars with real values
+#   terraform init -backend-config=...
+#   terraform plan
+#
+# terraform.tfvars is gitignored — never commit one with real values.
+
+# ── Cloudflare ──────────────────────────────────────────────────────────────
+cloudflare_api_token  = "cf-api-token-redacted"
+cloudflare_account_id = "0123456789abcdef0123456789abcdef"
+
+# ── Miniflux ────────────────────────────────────────────────────────────────
+miniflux_url = "https://reader.example.com"
+
+# ── Worker config ───────────────────────────────────────────────────────────
+category_playlist_mapping = "[{\"category\":\"YouTube — Tech\",\"playlist_id\":\"PLxxxxxxxxxxxxxxxx\"}]"
+sync_log_level            = "info"
+cron_schedule             = "*/30 * * * *"
+cron_enabled              = true
+
+# ── Healthchecks.io ─────────────────────────────────────────────────────────
+heartbeat_url       = "https://hc-ping.com/00000000-0000-0000-0000-000000000000"
+heartbeat_url_auth  = "https://hc-ping.com/00000000-0000-0000-0000-000000000000"
+heartbeat_url_quota = "https://hc-ping.com/00000000-0000-0000-0000-000000000000"
+
+# ── Grafana Cloud (optional — empty disables) ───────────────────────────────
+grafana_loki_url  = "https://logs-prod-006.grafana.net"
+grafana_loki_user = "123456"
+grafana_otlp_url  = "https://otlp-gateway-prod-us-east-0.grafana.net/otlp"
+grafana_otlp_user = "123456"

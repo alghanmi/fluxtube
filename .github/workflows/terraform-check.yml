@@ -1,0 +1,49 @@
+name: Terraform check
+
+# Format + validation on every PR touching infrastructure/terraform/**.
+# No credentials needed — `terraform validate` doesn't require a backend
+# init when run with `-backend=false`.
+#
+# Actual plan/apply happens in the private deploy companion repo
+# (alghanmi/fluxtube-deploy) where the operational secrets live.
+
+on:
+  pull_request:
+    paths:
+      - 'infrastructure/terraform/**'
+      - '.github/workflows/terraform-check.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terraform-check-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: fmt + validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: '1.9.8'
+          terraform_wrapper: false
+
+      - name: Terraform fmt -check -recursive
+        working-directory: infrastructure/terraform
+        run: terraform fmt -check -recursive
+
+      - name: Terraform validate (module)
+        working-directory: infrastructure/terraform/_modules/fluxtube-environment
+        run: |
+          terraform init -backend=false
+          terraform validate -no-color
+
+      - name: Terraform validate (production env)
+        working-directory: infrastructure/terraform/environments/production
+        run: |
+          terraform init -backend=false
+          terraform validate -no-color
