@@ -66,7 +66,7 @@ async function main(): Promise<void> {
   log(`dashboards: ${dashboards.length} file(s)`);
   for (const { name, json } of dashboards) {
     const substituted = substituteDatasource(json, promUid);
-    await pushDashboard(baseUrl, token, name, substituted);
+    await pushDashboard(baseUrl, token, name, substituted, folderUid);
   }
   log('');
 
@@ -175,15 +175,20 @@ async function pushDashboard(
   token: string,
   filename: string,
   dashboard: unknown,
+  folderUid: string,
 ): Promise<void> {
-  const body = { dashboard, overwrite: true };
+  // folderUid keeps dashboards inside the `fluxtube` folder alongside the
+  // alert rules. Without it, Grafana drops the dashboard into the General
+  // (root) folder by default — visually indistinguishable from "the sync
+  // worked" except via "where is it?" hunting.
+  const body = { dashboard, overwrite: true, folderUid };
   if (DRY_RUN) {
-    log(`  [dry-run] POST /api/dashboards/db ← ${filename}`);
+    log(`  [dry-run] POST /api/dashboards/db ← ${filename} (folder=${folderUid})`);
     return;
   }
   const res = await grafana(baseUrl, token, 'POST', '/api/dashboards/db', body);
   const result = (await res.json()) as { uid?: string; status?: string };
-  log(`  ✓ ${filename} → uid=${result.uid ?? '?'} status=${result.status ?? '?'}`);
+  log(`  ✓ ${filename} → uid=${result.uid ?? '?'} status=${result.status ?? '?'} folder=${folderUid}`);
 }
 
 async function pushAlertRule(
