@@ -2,10 +2,19 @@
 /**
  * One-time YouTube OAuth bootstrap. Local-only — never run in the Worker.
  *
- * Runs the OAuth 2.0 Authorization Code flow for a Desktop app using a local
- * loopback redirect (RFC 8252). On success it prints the long-lived refresh
- * token and runs a smoke-test API call to confirm the token has the required
- * scope.
+ * Runs the OAuth 2.0 Authorization Code flow for a Desktop app, redirecting
+ * through the FluxTube hosted callback at
+ * https://fluxtube.forklabs.cc/oauth/callback. That page reads the `code` and
+ * `state` from the URL and displays them with a Copy button. You paste the
+ * code back into this terminal; this script exchanges it for a refresh token
+ * and prints it.
+ *
+ * Why a hosted callback instead of an http://127.0.0.1 loopback redirect:
+ *   Google's OAuth verification requires Production-state OAuth apps to use a
+ *   redirect URI on a domain you control, not loopback. In return, refresh
+ *   tokens stop expiring at 7 days (Testing-state policy). Hosting the
+ *   callback page on fluxtube.forklabs.cc removes the loopback HTTP server
+ *   from this script and is the prerequisite for Google verification.
  *
  * Usage:
  *   export YOUTUBE_CLIENT_ID="..."
@@ -17,16 +26,22 @@
  * to Cloudflare via your usual sync flow (e.g. `wrangler secret put`).
  */
 
-import { createServer } from 'node:http';
-import type { AddressInfo } from 'node:net';
 import { randomBytes } from 'node:crypto';
-import { URL } from 'node:url';
+import * as readline from 'node:readline/promises';
+import { stdin as input, stdout as output } from 'node:process';
 
 const SCOPE = 'https://www.googleapis.com/auth/youtube';
 const AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const TEST_URL =
   'https://www.googleapis.com/youtube/v3/playlists?part=snippet&mine=true&maxResults=1';
+
+// Hosted callback URL — must be registered as an Authorized redirect URI
+// in Google Cloud Console (APIs & Services → Credentials → OAuth 2.0 Client
+// IDs → Authorized redirect URIs). Overridable via env for local testing
+// against a Pages preview URL.
+const REDIRECT_URI =
+  process.env['OAUTH_REDIRECT_URI'] ?? 'https://fluxtube.forklabs.cc/oauth/callback';
 
 interface TokenResponse {
   access_token: string;
@@ -55,8 +70,13 @@ async function main(): Promise<void> {
   }
 
   const expectedState = randomBytes(16).toString('hex');
-  const { code, redirectUri } = await runLoopbackFlow({ clientId, expectedState, jsonMode });
-  const tokens = await exchangeCodeForTokens({ clientId, clientSecret, code, redirectUri });
+  const code = await runHostedCallbackFlow({ clientId, expectedState, jsonMode });
+  const tokens = await exchangeCodeForTokens({
+    clientId,
+    clientSecret,
+    code,
+    redirectUri: REDIRECT_URI,
+  });
 
   if (!tokens.refresh_token) {
     console.error('');
@@ -99,94 +119,59 @@ async function main(): Promise<void> {
   }
 }
 
-interface LoopbackArgs {
+interface HostedFlowArgs {
   clientId: string;
   expectedState: string;
   jsonMode: boolean;
 }
 
-interface AuthCodeResult {
-  code: string;
-  redirectUri: string;
-}
-
-function runLoopbackFlow(args: LoopbackArgs): Promise<AuthCodeResult> {
-  return new Promise((resolve, reject) => {
-    let redirectUri = '';
-
-    const server = createServer((req, res) => {
-      if (!req.url) {
-        res.writeHead(400).end('missing url');
-        return;
-      }
-      const reqUrl = new URL(req.url, 'http://localhost');
-      if (reqUrl.pathname !== '/callback') {
-        res.writeHead(404).end('not found');
-        return;
-      }
-      const code = reqUrl.searchParams.get('code');
-      const state = reqUrl.searchParams.get('state');
-      const error = reqUrl.searchParams.get('error');
-
-      if (error) {
-        res.writeHead(400, { 'Content-Type': 'text/plain' }).end(`OAuth error: ${error}`);
-        server.close();
-        reject(new Error(`OAuth error: ${error}`));
-        return;
-      }
-      if (!code || state !== args.expectedState) {
-        res.writeHead(400, { 'Content-Type': 'text/plain' }).end('Missing or mismatched code/state.');
-        server.close();
-        reject(new Error('Missing or mismatched code/state'));
-        return;
-      }
-
-      res.writeHead(200, { 'Content-Type': 'text/html' }).end(
-        '<!doctype html><html><body><h1>FluxTube OAuth complete</h1><p>You can close this tab and return to the terminal.</p></body></html>',
-      );
-      server.close();
-      // server.close() only stops accepting new connections; the browser's
-      // keep-alive socket keeps the event loop alive for ~120s and hangs the
-      // process. closeAllConnections() drops it immediately so the script
-      // exits naturally after main() returns. Critical when run under
-      // `$(pnpm ... oauth-bootstrap -- --json)` — the wrapper waits forever
-      // otherwise.
-      server.closeAllConnections();
-      resolve({ code, redirectUri });
-    });
-
-    server.on('error', reject);
-
-    server.listen(0, '127.0.0.1', () => {
-      const address = server.address() as AddressInfo | null;
-      if (address === null || typeof address === 'string') {
-        reject(new Error('failed to bind local server'));
-        return;
-      }
-      redirectUri = `http://127.0.0.1:${address.port}/callback`;
-
-      const params = new URLSearchParams({
-        client_id: args.clientId,
-        redirect_uri: redirectUri,
-        response_type: 'code',
-        scope: SCOPE,
-        access_type: 'offline',
-        prompt: 'consent',
-        state: args.expectedState,
-      });
-      const authUrl = `${AUTH_URL}?${params.toString()}`;
-
-      // In --json mode, send progress to stderr so stdout stays parseable.
-      const log = args.jsonMode ? console.error : console.log;
-      log('');
-      log('Open this URL in a browser, sign in with the Google account that owns');
-      log('your YouTube playlists, and approve the YouTube write scope:');
-      log('');
-      log(`  ${authUrl}`);
-      log('');
-      log(`Listening on ${redirectUri} for the redirect…`);
-    });
+async function runHostedCallbackFlow(args: HostedFlowArgs): Promise<string> {
+  const params = new URLSearchParams({
+    client_id: args.clientId,
+    redirect_uri: REDIRECT_URI,
+    response_type: 'code',
+    scope: SCOPE,
+    access_type: 'offline',
+    prompt: 'consent',
+    state: args.expectedState,
   });
+  const authUrl = `${AUTH_URL}?${params.toString()}`;
+
+  // In --json mode, send progress to stderr so stdout stays parseable.
+  const log = args.jsonMode ? console.error : console.log;
+
+  log('');
+  log('Open this URL in a browser, sign in with the Google account that owns');
+  log('your YouTube playlists, and approve the YouTube write scope:');
+  log('');
+  log(`  ${authUrl}`);
+  log('');
+  log('After consent, Google will redirect you to');
+  log(`  ${REDIRECT_URI}`);
+  log('which displays the code with a Copy button.');
+  log('');
+  log(`Verify the page shows this state value (CSRF check): ${args.expectedState}`);
+  log('');
+
+  // Prompt stays on stdout (interactive use) even in --json mode — readline
+  // needs to talk to the terminal regardless of stdout redirection.
+  const rl = readline.createInterface({ input, output });
+  try {
+    const pastedCode = (await rl.question('Paste the code from the callback page: ')).trim();
+    if (!pastedCode) {
+      throw new Error('No code provided. Aborting.');
+    }
+    if (pastedCode.length < 20) {
+      // Google's authorization codes are ~60-70 chars. Anything substantially
+      // shorter is almost certainly a paste mishap (truncated, partial line).
+      throw new Error(
+        `Code looks too short (${pastedCode.length} chars). Re-run and paste the full code.`,
+      );
+    }
+    return pastedCode;
+  } finally {
+    rl.close();
+  }
 }
 
 interface ExchangeArgs {
