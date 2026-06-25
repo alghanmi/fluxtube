@@ -13,7 +13,7 @@
     "lint": "eslint 'src/**/*.ts' 'test/**/*.ts'"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.16.18",
+    "@cloudflare/vitest-pool-workers": "^0.16.20",
     "@cloudflare/workers-types": "^4.20260621.1",
     "typescript": "^6.0.3",
     "vite": "^8.0.16",
