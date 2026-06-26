@@ -1,28 +1,112 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+
+const today = new Date().toISOString().slice(0, 10);
+const requested = Astro.url.pathname.replace(/^\//, '') || 'index';
 ---
 
-<BaseLayout title="Not Found" description="That page doesn't exist on fluxtube.forklabs.cc.">
+<BaseLayout
+  title="Not Found"
+  description="No man page found for that path on fluxtube.forklabs.cc."
+>
   <main>
-    <div class="container narrow">
-      <p class="label">404</p>
-      <h1>Not here.</h1>
-      <p class="muted">
-        That path doesn't match any page on this site. Maybe you wanted
-        <a href="/">the FluxTube landing</a>, or
-        <a href="https://forklabs.cc">forklabs.cc</a> for the other projects.
-      </p>
+    <div class="container">
+      <div class="manhead">
+        <span class="manhead-left">404(7)</span>
+        <span class="manhead-center">User Commands</span>
+        <span class="manhead-right">{today}</span>
+      </div>
+
+      <div class="nf">
+        <h1>
+          No such<br />
+          <em>page.</em>
+        </h1>
+
+        <pre
+          class="nf-shell"><span class="prompt">$</span> man <span class="hl">{requested}</span>
+<span class="err">No manual entry for {requested}</span></pre>
+
+        <p class="nf-prose">
+          That path doesn't match anything on this domain. Where you might have wanted to be:
+        </p>
+        <ul class="nf-options">
+          <li><a href="/">/</a> — the FluxTube landing</li>
+          <li><a href="https://forklabs.cc">forklabs.cc</a> — the umbrella's project index</li>
+          <li>
+            <a href="https://github.com/alghanmi/fluxtube">github.com/alghanmi/fluxtube</a> — the source
+          </li>
+        </ul>
+      </div>
     </div>
   </main>
 </BaseLayout>
 
 <style>
-  .narrow {
-    padding-block: var(--space-24);
-    max-width: 520px;
+  .nf {
+    padding-block: var(--space-16) var(--space-24);
+    max-width: var(--measure-wide);
   }
 
-  h1 {
-    margin-block-start: var(--space-3);
+  .nf h1 {
+    max-width: 12ch;
+    margin-block-end: var(--space-10);
+  }
+
+  .nf-shell {
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-line);
+    border-radius: 2px;
+    padding: var(--space-5) var(--space-6);
+    margin-block: var(--space-6) var(--space-10);
+    font-family: var(--font-mono);
+    font-size: var(--size-sm);
+    line-height: 1.6;
+    color: var(--color-fg-muted);
+    overflow-x: auto;
+    white-space: pre;
+  }
+
+  .prompt {
+    color: var(--color-accent);
+    font-weight: 600;
+    user-select: none;
+    margin-inline-end: 0.5ch;
+  }
+
+  .hl {
+    color: var(--color-fg);
+    font-weight: 500;
+  }
+
+  .err {
+    color: var(--color-fg-muted);
+    display: block;
+    padding-block-start: 0.4em;
+  }
+
+  .nf-prose {
+    color: var(--color-fg-muted);
+  }
+
+  .nf-options {
+    margin-block-start: var(--space-4);
+    padding-inline-start: var(--space-6);
+    color: var(--color-fg-muted);
+    font-family: var(--font-mono);
+    font-size: var(--size-sm);
+  }
+
+  .nf-options li {
+    margin-block: var(--space-1);
+  }
+
+  .nf-options a {
+    color: var(--color-fg);
+    text-decoration-color: var(--color-line-strong);
+  }
+
+  .nf-options a:hover {
+    color: var(--color-accent);
   }
 </style>

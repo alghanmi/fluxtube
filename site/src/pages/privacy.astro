@@ -2,6 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 
 const lastUpdated = '2026-06-20';
+const today = new Date().toISOString().slice(0, 10);
 ---
 
 <BaseLayout
@@ -10,9 +11,19 @@ const lastUpdated = '2026-06-20';
 >
   <main>
     <div class="container narrow">
-      <p class="label">fluxtube.forklabs.cc</p>
-      <h1>Privacy Policy</h1>
-      <p class="muted updated">Last updated: <time datetime={lastUpdated}>{lastUpdated}</time></p>
+      <div class="manhead">
+        <span class="manhead-left">privacy(7)</span>
+        <span class="manhead-center">Conventions</span>
+        <span class="manhead-right">{today}</span>
+      </div>
+
+      <header class="legal-head">
+        <h1>Privacy <em>policy.</em></h1>
+        <p class="muted updated">
+          <span class="updated-label">Last reviewed</span>
+          <time datetime={lastUpdated}>{lastUpdated}</time>
+        </p>
+      </header>
 
       <section>
         <h2>The short answer</h2>
@@ -169,54 +180,139 @@ const lastUpdated = '2026-06-20';
         </p>
       </section>
 
-      <footer class="footer">
-        <p class="subtle">
-          <a href="/">fluxtube.forklabs.cc</a> · <a href="/terms">terms</a> ·
-          <a href="https://forklabs.cc">forklabs.cc</a>
-        </p>
-      </footer>
+      <section aria-labelledby="see-also-h" class="see-also">
+        <h2 id="see-also-h" class="manh2">See also</h2>
+        <ul class="see-list" role="list">
+          <li>
+            <a href="/">/</a>
+            <span class="see-note subtle">fluxtube landing</span>
+          </li>
+          <li>
+            <a href="/terms">/terms</a>
+            <span class="see-note subtle">terms of service</span>
+          </li>
+          <li>
+            <a href="https://forklabs.cc">forklabs.cc</a>
+            <span class="see-note subtle">the umbrella project</span>
+          </li>
+        </ul>
+      </section>
+
+      <div class="manhead manhead-foot">
+        <span class="manhead-left">privacy(7)</span>
+        <span class="manhead-center">Conventions</span>
+        <span class="manhead-right">{today}</span>
+      </div>
     </div>
   </main>
 </BaseLayout>
 
 <style>
-  .narrow {
+  .legal-head {
     padding-block: var(--space-16) var(--space-12);
   }
 
-  h1 {
-    margin-block-start: var(--space-3);
+  .legal-head h1 {
+    max-width: 14ch;
   }
 
   .updated {
-    font-size: var(--size-sm);
-    margin-block-end: var(--space-10);
+    font-family: var(--font-mono);
+    font-size: var(--size-xs);
+    color: var(--color-fg-subtle);
+    margin-block-start: var(--space-6);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
   }
 
-  section {
-    padding-block: var(--space-8);
-    border-bottom: 1px solid var(--color-line);
+  .updated-label {
+    margin-inline-end: 0.6ch;
   }
 
-  section h2 {
+  section h2:not(.manh2) {
+    font-family: var(--font-display);
     font-size: var(--size-xl);
-    margin-block: 0 var(--space-4);
+    font-weight: 450;
+    font-variation-settings:
+      'SOFT' 100,
+      'WONK' 0,
+      'opsz' 36;
+    letter-spacing: -0.01em;
+    margin-block: var(--space-10) var(--space-4);
   }
 
   section p {
     color: var(--color-fg-muted);
+    margin-block: var(--space-3);
   }
 
   section ul {
     color: var(--color-fg-muted);
+    list-style: none;
+    padding-inline-start: var(--space-6);
   }
 
   section ul li {
     margin-block: var(--space-2);
+    position: relative;
   }
 
-  .footer {
-    padding-block: var(--space-10);
-    border-bottom: 0;
+  section ul li::before {
+    content: '—';
+    position: absolute;
+    inset-inline-start: -1.2em;
+    color: var(--color-fg-subtle);
+  }
+
+  .see-also {
+    padding-block-end: var(--space-8);
+  }
+
+  .see-list {
+    list-style: none;
+    padding: 0;
+    margin: var(--space-6) 0 0;
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: var(--space-2) var(--space-6);
+    font-family: var(--font-mono);
+    font-size: var(--size-sm);
+  }
+
+  .see-list li {
+    display: contents;
+  }
+
+  .see-list li::before {
+    display: none;
+  }
+
+  .see-list li > a {
+    color: var(--color-fg);
+    text-decoration: underline;
+    text-decoration-color: var(--color-line-strong);
+    text-underline-offset: 0.18em;
+  }
+
+  .see-list li > a:hover {
+    color: var(--color-accent);
+    text-decoration-color: var(--color-accent);
+  }
+
+  .see-note {
+    font-size: var(--size-xs);
+    align-self: center;
+  }
+
+  @media (max-width: 540px) {
+    .see-list {
+      grid-template-columns: 1fr;
+      gap: var(--space-3);
+    }
+    .see-list li {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-1);
+    }
   }
 </style>

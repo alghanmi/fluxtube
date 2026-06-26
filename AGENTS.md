@@ -100,7 +100,7 @@ Pinned versions — don't drift without explicit instruction:
 │   ├── public/                       # robots.txt, .well-known/security.txt
 │   └── src/
 │       ├── layouts/BaseLayout.astro  # shared shell, OG + Twitter meta
-│       ├── styles/global.css         # design tokens (warm neutral, muted red accent)
+│       ├── styles/global.css         # design tokens (Fraunces + IBM Plex Mono, ink-red accent)
 │       └── pages/
 │           ├── index.astro           # landing
 │           ├── 404.astro
@@ -144,12 +144,12 @@ Pinned versions — don't drift without explicit instruction:
 
 ## Public-side CI
 
-| Workflow | Trigger | What |
-|---|---|---|
-| `pr-checks.yml` | PR | typecheck + lint + test + audit on the Worker package |
-| `terraform-check.yml` | PR with `infrastructure/terraform/**` changes | `terraform fmt -check` + `validate` (no creds needed) |
-| `release-please.yml` | push to main | Maintains the release PR via Conventional Commits |
-| `notify-deploy.yml` | `release: published` | Fires `repository_dispatch` of type `deploy-release` to the configured deploy companion repo |
+| Workflow              | Trigger                                       | What                                                                                         |
+| --------------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `pr-checks.yml`       | PR                                            | typecheck + lint + test + audit on the Worker package                                        |
+| `terraform-check.yml` | PR with `infrastructure/terraform/**` changes | `terraform fmt -check` + `validate` (no creds needed)                                        |
+| `release-please.yml`  | push to main                                  | Maintains the release PR via Conventional Commits                                            |
+| `notify-deploy.yml`   | `release: published`                          | Fires `repository_dispatch` of type `deploy-release` to the configured deploy companion repo |
 
 Auth surface: this repo holds **exactly one secret**, `DEPLOY_DISPATCH_TOKEN`, a fine-scoped PAT with `repository_dispatch:write` on the deploy companion repo only. Compromise lets an attacker redeploy already-released code — nothing more.
 

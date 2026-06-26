@@ -1,5 +1,8 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+
+const today = new Date().toISOString().slice(0, 10);
+const version = '0.2.0';
 ---
 
 <BaseLayout
@@ -8,147 +11,259 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 >
   <main>
     <div class="container">
+      <div class="manhead">
+        <span class="manhead-left">fluxtube(1)</span>
+        <span class="manhead-center">User Commands</span>
+        <span class="manhead-right">{today}</span>
+      </div>
+
       <header class="hero">
-        <p class="label">fluxtube.forklabs.cc</p>
-        <h1>FluxTube</h1>
-        <p class="lede">
-          A serverless sync job that bridges <a href="https://miniflux.app">Miniflux</a> with YouTube
-          playlists. Reads unread YouTube entries from your configured Miniflux categories, adds them
-          to the playlists you map, and marks them read once you've watched and removed them on YouTube.
-        </p>
+        <h1>
+          fluxtube<span class="hero-section">(1)</span><br />
+          <em>v{version}</em>
+        </h1>
       </header>
 
-      <section class="block" aria-labelledby="what-heading">
-        <h2 id="what-heading"><span class="label">What it does</span></h2>
+      <section aria-labelledby="name-h">
+        <h2 id="name-h" class="manh2">Name</h2>
+        <p class="name-line">
+          <span class="section-ref">fluxtube<span class="section-ref-num">(1)</span></span>
+          <span class="mdash">—</span>
+          sync unread Miniflux entries into YouTube playlists
+        </p>
+      </section>
+
+      <section aria-labelledby="synopsis-h">
+        <h2 id="synopsis-h" class="manh2">Synopsis</h2>
+        <pre
+          class="synopsis"><span class="prompt">$</span> miniflux feed → fluxtube → youtube playlist <span class="op">→</span> you watch <span class="op">→</span> you remove → miniflux marks read</pre>
+      </section>
+
+      <section aria-labelledby="description-h">
+        <h2 id="description-h" class="manh2">Description</h2>
         <p>
           You already use Miniflux for RSS. YouTube channels publish RSS. You watch on YouTube — for
           the offline downloads, the cross-device progress sync, the TV app. The missing piece is
-          getting unread items <em>into</em> a YouTube playlist without copying URLs by hand. That's FluxTube.
+          getting unread items <em>into</em> a YouTube playlist without copying URLs by hand.
         </p>
         <p>
-          Categories map to playlists. The Worker runs on a cron tick (every 30 min by default),
-          adds anything new, and watches the playlist for what you've removed. Removed = watched =
-          marked read in Miniflux. The loop closes.
+          That's all <span class="mono">fluxtube</span> does. Categories map to playlists. A Cloudflare
+          Worker runs on a cron tick (every 30 min by default), adds anything new, and watches the playlist
+          for what you've removed. Removed equals watched equals marked read in Miniflux. <em
+            >The loop closes.</em
+          >
         </p>
       </section>
 
-      <section class="block" aria-labelledby="stack-heading">
-        <h2 id="stack-heading"><span class="label">Stack</span></h2>
-        <ul class="stack">
-          <li><span class="mono">Cloudflare Workers</span> · cron-triggered TypeScript</li>
-          <li><span class="mono">Cloudflare D1</span> · per-entry tracking state</li>
-          <li><span class="mono">YouTube Data API v3</span> · playlist reads + inserts</li>
-          <li><span class="mono">Miniflux REST API</span> · category reads + bulk mark-read</li>
-          <li>
-            <span class="mono">Healthchecks.io</span> · dead-man's-switch + typed failure routing
-          </li>
-          <li>
-            <span class="mono">Grafana Cloud</span> · structured logs (Loki) + metrics (Mimir / OTLP)
-          </li>
-          <li><span class="mono">Terraform</span> · everything; release-please owns versioning</li>
-        </ul>
+      <section aria-labelledby="stack-h">
+        <h2 id="stack-h" class="manh2">Built with</h2>
+        <dl class="stack">
+          <div class="stack-row">
+            <dt>Compute</dt>
+            <dd>Cloudflare Workers, cron-triggered TypeScript</dd>
+          </div>
+          <div class="stack-row">
+            <dt>State</dt>
+            <dd>Cloudflare D1 — per-entry tracking, on the operator's account</dd>
+          </div>
+          <div class="stack-row">
+            <dt>APIs</dt>
+            <dd>YouTube Data API v3 · Miniflux REST</dd>
+          </div>
+          <div class="stack-row">
+            <dt>Observability</dt>
+            <dd>Healthchecks.io (dead-man's-switch + typed alerts) · optional Grafana Cloud</dd>
+          </div>
+          <div class="stack-row">
+            <dt>Deploy</dt>
+            <dd>Terraform · release-please · wrangler</dd>
+          </div>
+        </dl>
       </section>
 
-      <section class="block" aria-labelledby="run-heading">
-        <h2 id="run-heading"><span class="label">Run your own</span></h2>
+      <section aria-labelledby="run-h">
+        <h2 id="run-h" class="manh2">Run your own</h2>
         <p>
-          FluxTube is single-tenant by design — no shared infrastructure, no accounts, no signups.
+          fluxtube is single-tenant by design — no shared infrastructure, no accounts, no signups.
           The whole sync is your Cloudflare Worker running against your YouTube account, your
           Miniflux, your Healthchecks. The repo's <span class="mono">TODO.md</span> walks the bootstrap
           top-to-bottom; about an evening end-to-end.
         </p>
+
         <div class="cta-row">
-          <a class="cta" href="https://github.com/alghanmi/fluxtube">Source on GitHub</a>
-          <a class="cta-secondary" href="https://github.com/alghanmi/fluxtube/blob/main/TODO.md"
-            >Bootstrap checklist</a
+          <a class="cta cta-primary" href="https://github.com/alghanmi/fluxtube">
+            <span class="cta-label">source</span>
+            <span class="cta-target">github.com/alghanmi/fluxtube</span>
+          </a>
+          <a
+            class="cta cta-secondary"
+            href="https://github.com/alghanmi/fluxtube/blob/main/TODO.md"
           >
+            <span class="cta-label">bootstrap</span>
+            <span class="cta-target">TODO.md</span>
+          </a>
         </div>
       </section>
 
-      <footer class="footer">
-        <p class="subtle">
-          A project under <a href="https://forklabs.cc">forklabs.cc</a>. Built by
-          <a href="https://ramialghanmi.com">Rami AlGhanmi</a>.
-        </p>
-        <p class="subtle">
-          <a href="/privacy">privacy</a> · <a href="/terms">terms</a> ·
-          <a href="/.well-known/security.txt">security.txt</a>
-        </p>
-      </footer>
+      <section aria-labelledby="see-also-h" class="see-also">
+        <h2 id="see-also-h" class="manh2">See also</h2>
+        <ul class="see-list" role="list">
+          <li>
+            <a href="https://forklabs.cc">forklabs.cc</a>
+            <span class="see-note subtle">the other tools in the workshop</span>
+          </li>
+          <li>
+            <a href="https://miniflux.app">miniflux.app</a>
+            <span class="see-note subtle">the RSS reader fluxtube reads from</span>
+          </li>
+          <li>
+            <a href="/privacy">/privacy</a>
+            <span class="see-note subtle">what data fluxtube touches (very little)</span>
+          </li>
+          <li>
+            <a href="/terms">/terms</a>
+            <span class="see-note subtle">MIT, you self-host, no warranty</span>
+          </li>
+          <li>
+            <a href="/.well-known/security.txt">.well-known/security.txt</a>
+            <span class="see-note subtle">responsible disclosure</span>
+          </li>
+        </ul>
+      </section>
+
+      <div class="manhead manhead-foot">
+        <span class="manhead-left">fluxtube(1)</span>
+        <span class="manhead-center">User Commands</span>
+        <span class="manhead-right">{today}</span>
+      </div>
     </div>
   </main>
 </BaseLayout>
 
 <style>
   .hero {
-    padding-block: var(--space-24) var(--space-12);
-    border-bottom: 1px solid var(--color-line);
+    padding-block: var(--space-16) var(--space-12);
   }
 
   .hero h1 {
-    margin-block-start: var(--space-3);
-    font-size: var(--size-3xl);
+    max-width: 14ch;
+    line-height: 0.95;
   }
 
-  .lede {
-    margin-block-start: var(--space-6);
-    font-size: var(--size-md);
+  .hero-section {
+    color: var(--color-fg-subtle);
+    font-size: 0.55em;
+    margin-inline-start: 0.05em;
+    vertical-align: 0.2em;
+    font-variation-settings:
+      'SOFT' 0,
+      'opsz' 36;
+  }
+
+  .name-line,
+  .synopsis {
+    font-family: var(--font-mono);
     color: var(--color-fg-muted);
+    max-width: var(--measure-wide);
     line-height: 1.6;
-    max-width: 56ch;
   }
 
-  .block {
-    padding-block: var(--space-12);
-    border-bottom: 1px solid var(--color-line);
+  .mdash {
+    color: var(--color-fg-subtle);
+    margin-inline: 0.25em;
   }
 
-  .block h2 {
-    margin: 0 0 var(--space-5);
-  }
-
-  .stack {
-    list-style: none;
-    padding: 0;
-    display: grid;
-    gap: var(--space-2);
-    color: var(--color-fg-muted);
-  }
-
-  .stack li {
+  .synopsis {
+    margin-block-start: var(--space-4);
+    padding: var(--space-4) var(--space-5);
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-line-subtle);
+    border-radius: 2px;
+    overflow-x: auto;
+    white-space: pre;
     font-size: var(--size-sm);
   }
 
+  .prompt {
+    color: var(--color-accent);
+    font-weight: 600;
+    user-select: none;
+    margin-inline-end: 0.5ch;
+  }
+
+  .op {
+    color: var(--color-fg-subtle);
+  }
+
+  /* Stack list — same shape as the umbrella's project metadata block. */
+  .stack {
+    margin: var(--space-6) 0 0;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+    font-family: var(--font-mono);
+    font-size: var(--size-sm);
+  }
+
+  @media (min-width: 600px) {
+    .stack {
+      grid-template-columns: 9rem 1fr;
+      gap: var(--space-2) var(--space-6);
+    }
+    .stack-row {
+      display: contents;
+    }
+  }
+
+  .stack dt {
+    color: var(--color-fg-subtle);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: var(--size-xs);
+    padding-block-start: 0.2rem;
+  }
+
+  .stack dd {
+    margin: 0;
+    color: var(--color-fg-muted);
+  }
+
+  /* CTAs — two-line cards. Label on top, target underneath. The
+   * primary one shows the accent stamp; secondary is hairline. */
   .cta-row {
     display: flex;
     gap: var(--space-4);
-    margin-block-start: var(--space-6);
+    margin-block-start: var(--space-8);
     flex-wrap: wrap;
   }
 
   .cta {
-    background: var(--color-fg);
-    color: var(--color-bg);
-    padding: var(--space-3) var(--space-6);
-    border-radius: var(--radius);
-    font-weight: 500;
+    display: inline-flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: var(--space-3) var(--space-5);
+    border-radius: 2px;
+    text-decoration: none;
+    font-family: var(--font-mono);
     transition:
       background var(--transition),
-      color var(--transition);
+      color var(--transition),
+      border-color var(--transition);
   }
 
-  .cta:hover {
+  .cta-primary {
     background: var(--color-accent);
     color: var(--color-bg);
   }
 
+  .cta-primary:hover {
+    background: var(--color-accent-hover);
+    color: var(--color-bg);
+  }
+
   .cta-secondary {
-    border: 1px solid var(--color-line);
-    color: var(--color-fg-muted);
-    padding: var(--space-3) var(--space-6);
-    border-radius: var(--radius);
-    font-weight: 500;
-    transition: border-color var(--transition);
+    border: 1px solid var(--color-line-strong);
+    color: var(--color-fg);
   }
 
   .cta-secondary:hover {
@@ -156,16 +271,69 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     color: var(--color-accent);
   }
 
-  .footer {
-    padding-block: var(--space-12) var(--space-16);
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    flex-wrap: wrap;
-    gap: var(--space-4);
+  .cta-label {
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: var(--size-xs);
+    opacity: 0.7;
   }
 
-  .footer p {
+  .cta-target {
+    font-size: var(--size-sm);
+  }
+
+  /* See also — same shape as the umbrella. */
+  .see-also {
+    padding-block-end: var(--space-8);
+  }
+
+  .see-list {
+    list-style: none;
+    padding: 0;
+    margin: var(--space-6) 0 0;
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: var(--space-2) var(--space-6);
+    font-family: var(--font-mono);
+    font-size: var(--size-sm);
+    max-width: none;
+  }
+
+  .see-list li {
+    display: contents;
     margin: 0;
+  }
+
+  .see-list li > a {
+    color: var(--color-fg);
+    text-decoration: underline;
+    text-decoration-color: var(--color-line-strong);
+    text-underline-offset: 0.18em;
+  }
+
+  .see-list li > a:hover {
+    color: var(--color-accent);
+    text-decoration-color: var(--color-accent);
+  }
+
+  .see-note {
+    font-size: var(--size-xs);
+    align-self: center;
+  }
+
+  @media (max-width: 540px) {
+    .manhead {
+      font-size: 0.7rem;
+      letter-spacing: 0.06em;
+    }
+    .see-list {
+      grid-template-columns: 1fr;
+      gap: var(--space-3);
+    }
+    .see-list li {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-1);
+    }
   }
 </style>
