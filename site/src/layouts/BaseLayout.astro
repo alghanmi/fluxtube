@@ -37,11 +37,16 @@ const ogImageUrl = ogImage ? new URL(ogImage, Astro.site).toString() : undefined
     <meta name="theme-color" content="#f5f2eb" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
 
+    {
+      /* Type — Fraunces (display, variable axes) + IBM Plex Mono (dominant
+        body face). Matches the forklabs umbrella's vocabulary so the
+        family resemblance carries across subdomains. */
+    }
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap&subset=latin"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT,WONK@9..144,300..600,0..100,0..1&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
     />
   </head>
   <body>

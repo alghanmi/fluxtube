@@ -1,5 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+
+const today = new Date().toISOString().slice(0, 10);
 ---
 
 <BaseLayout
@@ -8,8 +10,15 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 >
   <main>
     <div class="container narrow">
-      <p class="label">fluxtube.forklabs.cc</p>
-      <h1>OAuth callback</h1>
+      <div class="manhead">
+        <span class="manhead-left">oauth(1)</span>
+        <span class="manhead-center">User Commands</span>
+        <span class="manhead-right">{today}</span>
+      </div>
+
+      <header class="cb-head">
+        <h1>OAuth <em>callback.</em></h1>
+      </header>
 
       <noscript>
         <div class="error">
@@ -97,12 +106,11 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
         </section>
       </div>
 
-      <footer class="footer">
-        <p class="subtle">
-          <a href="/">fluxtube.forklabs.cc</a> · <a href="/privacy">privacy</a> ·
-          <a href="/terms">terms</a>
-        </p>
-      </footer>
+      <div class="manhead manhead-foot">
+        <span class="manhead-left">oauth(1)</span>
+        <span class="manhead-center">User Commands</span>
+        <span class="manhead-right">{today}</span>
+      </div>
     </div>
   </main>
 </BaseLayout>
@@ -166,29 +174,48 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 </script>
 
 <style>
-  .narrow {
+  .cb-head {
     padding-block: var(--space-16) var(--space-12);
   }
 
-  h1 {
-    margin-block-start: var(--space-3);
-    margin-block-end: var(--space-10);
+  .cb-head h1 {
+    max-width: 14ch;
+    margin-block-end: var(--space-4);
   }
 
   section {
-    padding-block: var(--space-6);
+    padding-block: var(--space-4);
   }
 
-  section h2 {
+  section h2:not(.manh2) {
+    font-family: var(--font-display);
     font-size: var(--size-xl);
-    margin: 0 0 var(--space-4);
+    font-weight: 450;
+    font-variation-settings:
+      'SOFT' 100,
+      'WONK' 0,
+      'opsz' 36;
+    letter-spacing: -0.01em;
+    margin-block: var(--space-2) var(--space-4);
   }
 
   section h3 {
-    font-size: var(--size-lg);
+    font-family: var(--font-mono);
+    font-size: var(--size-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--color-fg-muted);
     margin-block: var(--space-8) var(--space-3);
+    font-weight: 600;
   }
 
+  section p {
+    color: var(--color-fg-muted);
+    margin-block: var(--space-3);
+  }
+
+  /* The code-display block. Made to look like a terminal output:
+   * mono prompt, accent-stamped code in the centre, copy on the right. */
   .code-block {
     display: flex;
     align-items: center;
@@ -196,7 +223,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     flex-wrap: wrap;
     background: var(--color-bg-elevated);
     border: 1px solid var(--color-line);
-    border-radius: var(--radius);
+    border-left: 3px solid var(--color-accent);
+    border-radius: 2px;
     padding: var(--space-5);
     margin-block: var(--space-6);
   }
@@ -211,18 +239,21 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     padding: 0;
     color: var(--color-fg);
     user-select: all;
+    letter-spacing: -0.01em;
   }
 
   .copy-btn {
     background: var(--color-fg);
     color: var(--color-bg);
     border: 0;
-    border-radius: var(--radius);
+    border-radius: 2px;
     padding: var(--space-3) var(--space-5);
-    font-family: var(--font-sans);
-    font-size: var(--size-sm);
+    font-family: var(--font-mono);
+    font-size: var(--size-xs);
     font-weight: 500;
     cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
     transition:
       background var(--transition),
       transform 80ms ease;
@@ -249,6 +280,10 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     cursor: pointer;
     color: var(--color-fg-muted);
     padding-block: var(--space-2);
+    font-family: var(--font-mono);
+    font-size: var(--size-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
   }
 
   .state-row code.small {
@@ -259,17 +294,19 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     border: 0;
     padding-inline: 0;
     word-break: break-all;
+    font-size: var(--size-sm);
   }
 
   .small {
     font-size: var(--size-sm);
   }
 
+  /* The error block: red side-stripe like a stamped reject mark. */
   .error {
     border: 1px solid var(--color-line);
     border-left: 3px solid var(--color-accent);
     background: var(--color-bg-elevated);
-    border-radius: var(--radius);
+    border-radius: 2px;
     padding: var(--space-5);
     margin-block: var(--space-4);
   }
@@ -284,13 +321,19 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   ul {
     color: var(--color-fg-muted);
+    list-style: none;
+    padding-inline-start: var(--space-6);
   }
 
   ul li {
     margin-block: var(--space-3);
+    position: relative;
   }
 
-  .footer {
-    padding-block: var(--space-12);
+  ul li::before {
+    content: '—';
+    position: absolute;
+    inset-inline-start: -1.2em;
+    color: var(--color-fg-subtle);
   }
 </style>
