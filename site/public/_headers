@@ -1,0 +1,30 @@
+# Cloudflare Pages security headers for fluxtube.forklabs.cc.
+#
+# Format reference: https://developers.cloudflare.com/pages/configuration/headers/
+#
+# Identical posture to forklabs.cc — both sites are siblings under the
+# same apex, and direct-to-subdomain visitors need each Pages project to
+# emit its own HSTS regardless of whether the apex includeSubDomains is
+# active (HSTS only kicks in after the first HTTPS visit to the domain
+# that emits it).
+#
+# Defaults Pages already sets (don't redeclare):
+#   - x-content-type-options: nosniff
+#   - referrer-policy: strict-origin-when-cross-origin
+#   - HTTP → HTTPS 301 redirect
+#
+# Why each declared header — see forklabs-cc/public/_headers for the
+# full reasoning. Key notes specific to this site:
+#   - CSP allows google fonts + 'unsafe-inline' for both style/script.
+#     Astro's `define:vars` injects inline style attrs; the terminal
+#     type-in and countdown logic ships as small inlined <script> blocks.
+#     Acceptable for a static marketing site with zero user input.
+#   - The hosted OAuth callback page (/oauth/callback) does a JS
+#     window.location.search parse + writes to the DOM, all from the
+#     same origin. `script-src 'self' 'unsafe-inline'` covers it.
+
+/*
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; script-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+  X-Frame-Options: DENY
+  Permissions-Policy: accelerometer=(), camera=(), geolocation=(), gyroscope=(), microphone=(), payment=(), usb=()
