@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/alghanmi/fluxtube/compare/v0.4.1...v0.5.0) (2026-06-28)
+
+
+### Features
+
+* **site:** warm-terminal dark redesign ([#38](https://github.com/alghanmi/fluxtube/issues/38)) ([bd8ef14](https://github.com/alghanmi/fluxtube/commit/bd8ef1484a162989d63c284d48f7c13158adc866))
+
 ## [0.4.1](https://github.com/alghanmi/fluxtube/compare/v0.4.0...v0.4.1) (2026-06-27)
 
 
