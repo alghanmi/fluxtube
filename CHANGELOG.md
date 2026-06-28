@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/alghanmi/fluxtube/compare/v0.5.0...v0.5.1) (2026-06-28)
+
+
+### Bug Fixes
+
+* **site:** live-link cleanup, auto-year, version sync, security headers ([#40](https://github.com/alghanmi/fluxtube/issues/40)) ([a6abb46](https://github.com/alghanmi/fluxtube/commit/a6abb4601ea97932059059d7a33c16a44c345d25))
+
 ## [0.5.0](https://github.com/alghanmi/fluxtube/compare/v0.4.1...v0.5.0) (2026-06-28)
 
 
