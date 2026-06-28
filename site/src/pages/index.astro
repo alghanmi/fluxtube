@@ -3,8 +3,16 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import LogoChip from '../components/LogoChip.astro';
 import SyncedStamp from '../components/SyncedStamp.astro';
 import Terminal from '../components/Terminal.astro';
+// Pull version from the project root package.json so release-please's
+// version bumps and the marketing site display stay in lockstep. Astro
+// resolves this at build time; only the `version` field ends up in the
+// emitted HTML (the rest of package.json is tree-shaken out).
+import pkg from '../../../package.json';
 
-const version = '0.2.0';
+const version = pkg.version;
+// Footer year is stamped at build time — Pages re-builds on every push,
+// so the year always reflects "now" without a calendar-driven edit.
+const year = new Date().getUTCFullYear();
 ---
 
 <BaseLayout
@@ -112,10 +120,6 @@ playlist  = <span class="cfg-string">"PL_rides"</span></pre>
             <span class="see-note subtle">source · MIT license · self-host the whole thing</span>
           </li>
           <li>
-            <a href="https://github.com/alghanmi/fluxtube/blob/main/TODO.md">TODO.md</a>
-            <span class="see-note subtle">bootstrap walk-through, about an evening end-to-end</span>
-          </li>
-          <li>
             <a href="https://miniflux.app">miniflux.app</a>
             <span class="see-note subtle">the RSS reader fluxtube reads from</span>
           </li>
@@ -132,7 +136,7 @@ playlist  = <span class="cfg-string">"PL_rides"</span></pre>
 
       <footer class="site-foot">
         <span class="site-foot-left">fluxtube.forklabs.cc</span>
-        <span class="site-foot-center">© 2026 · v{version}</span>
+        <span class="site-foot-center">© {year} · v{version}</span>
         <a class="site-foot-right" href="https://forklabs.cc">↖ forklabs(7)</a>
       </footer>
     </div>
