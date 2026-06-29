@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/alghanmi/fluxtube/compare/v0.5.1...v0.6.0) (2026-06-29)
+
+
+### Features
+
+* **site/security:** _headers upgrade for A+ on securityheaders.com ([#42](https://github.com/alghanmi/fluxtube/issues/42)) ([978823b](https://github.com/alghanmi/fluxtube/commit/978823b9c8c85c8efb4a4f0890e0ab4d981d18d8))
+
 ## [0.5.1](https://github.com/alghanmi/fluxtube/compare/v0.5.0...v0.5.1) (2026-06-28)
 
 
