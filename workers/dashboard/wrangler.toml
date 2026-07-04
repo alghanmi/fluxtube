@@ -1,0 +1,41 @@
+name = "fluxtube-dashboard"
+main = "src/index.ts"
+compatibility_date = "2025-05-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Enable the workers.dev subdomain for local + preview visibility. Production
+# routes traffic through `fluxtube.alghanmi.cloud/api/*` via a Service Binding
+# from the Pages project — wired up in Phase 7 (Terraform).
+workers_dev = true
+
+# ── Build-time string substitution ────────────────────────────────────────────
+# wrangler replaces the bare identifier `VERSION` in the bundle at build time.
+# The deploy workflow overrides this with the version from the project root
+# `package.json`. The value here is the default for `wrangler dev` and the
+# cloudflare/vitest-pool-workers test bundle.
+[define]
+VERSION = "\"0.0.0-dev\""
+
+# ── Cron trigger (nightly R2 backup) ──────────────────────────────────────────
+# Phase 5 adds the `scheduled` handler + backup logic. Offset from the sync
+# worker's `*/30 * * * *` schedule to avoid CPU contention on tick boundaries.
+[triggers]
+crons = ["15 4 * * *"]
+
+# ── D1 binding (shared with sync worker) ──────────────────────────────────────
+# Same D1 database as workers/sync — Terraform sets the real binding via
+# `d1_database_binding` on this script's `cloudflare_workers_script` resource
+# in Phase 7. The value below is an all-zeros placeholder so wrangler dev
+# parses; production deploys ignore it (real UUID injected by Terraform).
+#
+# `migrations_dir` points at the sync worker's migrations folder so both
+# workers share the same migration ledger.
+[[d1_databases]]
+binding = "DB"
+database_name = "fluxtube"
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "../sync/migrations"
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+[observability]
+enabled = true

@@ -2,3 +2,4 @@ packages:
   - 'workers/*'
   - 'scripts'
   - 'site'
+  - 'dashboard'
