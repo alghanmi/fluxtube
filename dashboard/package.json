@@ -1,0 +1,25 @@
+{
+  "name": "@fluxtube/dashboard-web",
+  "version": "0.0.0",
+  "private": true,
+  "description": "fluxtube.alghanmi.cloud — configuration dashboard PWA (Astro + Preact islands, Service Binding to workers/dashboard).",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "astro": "astro",
+    "typecheck": "astro check",
+    "lint": "echo 'astro check covers it'"
+  },
+  "dependencies": {
+    "astro": "^7.0.6",
+    "@astrojs/check": "^0.9.4",
+    "@astrojs/preact": "^5.0.0",
+    "preact": "^10.24.3",
+    "typescript": "^6.0.3"
+  }
+}
