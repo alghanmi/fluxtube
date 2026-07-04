@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.0](https://github.com/alghanmi/fluxtube/compare/v0.6.0...v0.7.0) (2026-07-04)
+
+
+### Features
+
+* **v1:** scaffold workers/dashboard + dashboard/ workspaces ([1386c1a](https://github.com/alghanmi/fluxtube/commit/1386c1a34a562856b77ce2ef9315ffa426698e49))
+* **v1:** scaffold workers/dashboard + dashboard/ workspaces (Phase 0) ([#50](https://github.com/alghanmi/fluxtube/issues/50)) ([1386c1a](https://github.com/alghanmi/fluxtube/commit/1386c1a34a562856b77ce2ef9315ffa426698e49))
+
 ## [0.6.0](https://github.com/alghanmi/fluxtube/compare/v0.5.1...v0.6.0) (2026-06-29)
 
 
