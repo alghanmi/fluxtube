@@ -33,6 +33,12 @@ export interface Env {
   GRAFANA_OTLP_URL?: string;
   GRAFANA_OTLP_USER?: string;
   GRAFANA_OTLP_TOKEN?: string;
+
+  // v1 dashboard: JSON keychain for AES-GCM encryption of D1 config values.
+  // Optional at the type level — only present in D1-managed mode (Phase 3+).
+  // The env-managed sync path (current production) doesn't reference it.
+  // See workers/sync/src/crypto.ts + docs/encryption-keychain.md.
+  D1_KEYCHAIN?: string;
 }
 
 export interface CategoryPlaylistMapping {

@@ -1,0 +1,11 @@
+# Local dev secrets for workers/dashboard. Copy to `.dev.vars` (gitignored) and
+# fill in real values. Production values come from Bitwarden → GitHub Secrets
+# → `wrangler secret put` via fluxtube-deploy (Phase 8).
+
+# JSON keychain for AES-GCM encryption of D1 config values.
+# See workers/dashboard/src/crypto.ts + docs/encryption-keychain.md.
+# Shape: { "current": 1, "keys": { "1": "<base64 32-byte key>" } }
+# Generate a fresh key with the util helper:
+#   cd workers/dashboard && pnpm exec wrangler d1 execute fluxtube ... etc
+# Or from any Node REPL: `crypto.randomBytes(32).toString('base64')`
+D1_KEYCHAIN='{"current":1,"keys":{"1":"REPLACE_WITH_32_BYTE_BASE64_KEY_QQ=="}}'
