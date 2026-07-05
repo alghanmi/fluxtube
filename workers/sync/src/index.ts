@@ -1,10 +1,10 @@
-import { parseCategoryPlaylistMapping } from './config';
 import { ping } from './heartbeat';
 import { createLogger, parseLogLevel } from './logger';
 import { LokiSink } from './logsink';
 import { emitRunMetrics, OtlpMetricsSink } from './metricsink';
 import { MinifluxClient } from './miniflux';
 import { handleFetch } from './router';
+import { loadRuntimeConfig, type NormalizedRuntimeConfig } from './runtime_config';
 import { QueueState } from './state';
 import { runSync, type SyncDeps } from './sync';
 import { FatalError } from './types';
@@ -14,12 +14,18 @@ import type { MetricsSink } from './metricsink';
 import type { Env } from './types';
 import type { Logger } from './logger';
 
-function buildDeps(env: Env, logger: Logger): SyncDeps {
-  const miniflux = new MinifluxClient(env.MINIFLUX_URL, env.MINIFLUX_API_TOKEN);
+/**
+ * Deps for a single sync run. Miniflux + YouTube refresh token come from
+ * the normalized runtime config so both env-mode and D1-mode work through
+ * the same wiring. YOUTUBE_CLIENT_ID / _SECRET stay platform-level in env
+ * per the plan's config split.
+ */
+function buildDeps(runtime: NormalizedRuntimeConfig, env: Env, logger: Logger): SyncDeps {
+  const miniflux = new MinifluxClient(runtime.minifluxUrl, runtime.minifluxApiToken);
   const youtube = new YouTubeClient({
     clientId: env.YOUTUBE_CLIENT_ID,
     clientSecret: env.YOUTUBE_CLIENT_SECRET,
-    refreshToken: env.YOUTUBE_REFRESH_TOKEN,
+    refreshToken: runtime.youtubeRefreshToken,
   });
   const state = new QueueState(env.DB);
   return { miniflux, youtube, state, logger };
@@ -91,8 +97,29 @@ export default {
     const runId = crypto.randomUUID();
     const sink = buildLokiSink(env, runId);
     const metrics = buildMetricsSink(env, runId);
-    const logger = createLogger(parseLogLevel(env.SYNC_LOG_LEVEL), sink);
     const startedAt = new Date();
+
+    // Dual-mode config load. In D1-managed mode (admin_passkey present)
+    // this reads mappings + credentials from D1; otherwise it falls back
+    // to env vars — exact same shape either way.
+    let runtime: NormalizedRuntimeConfig;
+    try {
+      runtime = await loadRuntimeConfig(env);
+    } catch (err) {
+      // Bootstrap logger uses env-only log level since runtime failed to load.
+      const bootstrapLogger = createLogger(parseLogLevel(env.SYNC_LOG_LEVEL), sink);
+      bootstrapLogger.error('sync_config_load_failed', {
+        message: err instanceof Error ? err.message : String(err),
+      });
+      if (env.HEARTBEAT_URL) {
+        ctx.waitUntil(ping(env.HEARTBEAT_URL, 'fail', bootstrapLogger));
+      }
+      bootstrapLogger.flush(ctx);
+      throw err;
+    }
+
+    // Post-load: log level comes from the resolved runtime (env or D1-derived).
+    const logger = createLogger(parseLogLevel(runtime.syncLogLevel), sink);
 
     // Optional start-ping; fire-and-forget but kept alive past the handler.
     if (env.HEARTBEAT_URL) {
@@ -100,8 +127,7 @@ export default {
     }
 
     try {
-      const mapping = parseCategoryPlaylistMapping(env.CATEGORY_PLAYLIST_MAPPING);
-      const summary = await runSync(mapping, buildDeps(env, logger));
+      const summary = await runSync(runtime.mappings, buildDeps(runtime, env, logger));
 
       if (metrics) {
         emitRunMetrics(metrics, summary, 'success', startedAt);
@@ -166,9 +192,39 @@ export default {
     const runId = crypto.randomUUID();
     const sink = buildLokiSink(env, runId);
     const metrics = buildMetricsSink(env, runId);
-    const logger = createLogger(parseLogLevel(env.SYNC_LOG_LEVEL), sink);
+
+    let runtime: NormalizedRuntimeConfig;
     try {
-      return await handleFetch(request, env, ctx, logger, buildDeps(env, logger), metrics);
+      runtime = await loadRuntimeConfig(env);
+    } catch (err) {
+      // 503 so operator scripts see a clear failure rather than a stale 401.
+      // Body carries the failure detail — safe because /sync + /audit are
+      // Bearer-token-gated in router.ts.
+      const bootstrapLogger = createLogger(parseLogLevel(env.SYNC_LOG_LEVEL), sink);
+      bootstrapLogger.error('sync_config_load_failed', {
+        message: err instanceof Error ? err.message : String(err),
+      });
+      bootstrapLogger.flush(ctx);
+      return new Response(
+        JSON.stringify({
+          error: 'config_unavailable',
+          message: err instanceof Error ? err.message : String(err),
+        }),
+        { status: 503, headers: { 'Content-Type': 'application/json' } },
+      );
+    }
+
+    const logger = createLogger(parseLogLevel(runtime.syncLogLevel), sink);
+    try {
+      return await handleFetch(
+        request,
+        env,
+        ctx,
+        logger,
+        buildDeps(runtime, env, logger),
+        runtime.mappings,
+        metrics,
+      );
     } finally {
       metrics?.flush(ctx);
       logger.flush(ctx);
