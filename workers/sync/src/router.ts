@@ -1,10 +1,9 @@
 import { audit } from './audit';
-import { parseCategoryPlaylistMapping } from './config';
 import { emitRunMetrics } from './metricsink';
 import { runSync } from './sync';
 import { FatalError } from './types';
 import type { MetricsSink } from './metricsink';
-import type { Env } from './types';
+import type { CategoryPlaylistMapping, Env } from './types';
 import type { Logger } from './logger';
 import type { SyncDeps } from './sync';
 
@@ -28,6 +27,7 @@ export async function handleFetch(
   ctx: ExecutionContext,
   logger: Logger,
   deps: RouterDeps,
+  mappings: CategoryPlaylistMapping[],
   metrics?: MetricsSink,
 ): Promise<Response> {
   if (!authorized(request, env.MANUAL_TRIGGER_TOKEN)) {
@@ -43,11 +43,9 @@ export async function handleFetch(
     const startedAt = new Date();
     logger.info('manual_sync_triggered', { request_id: requestId, wait });
 
-    const mapping = parseCategoryPlaylistMapping(env.CATEGORY_PLAYLIST_MAPPING);
-
     if (wait) {
       try {
-        const summary = await runSync(mapping, deps);
+        const summary = await runSync(mappings, deps);
         if (metrics) emitRunMetrics(metrics, summary, 'success', startedAt);
         logger.info('manual_sync_complete', { request_id: requestId, ...summary });
         return jsonResponse(
@@ -82,7 +80,7 @@ export async function handleFetch(
     }
 
     ctx.waitUntil(
-      runSync(mapping, deps)
+      runSync(mappings, deps)
         .then((summary) => {
           if (metrics) emitRunMetrics(metrics, summary, 'success', startedAt);
           logger.info('manual_sync_complete', { request_id: requestId, ...summary });
@@ -109,8 +107,7 @@ export async function handleFetch(
 
   if (url.pathname === '/audit') {
     if (request.method !== 'GET') return methodNotAllowed('GET');
-    const mapping = parseCategoryPlaylistMapping(env.CATEGORY_PLAYLIST_MAPPING);
-    const report = await audit(mapping, deps);
+    const report = await audit(mappings, deps);
     return jsonResponse(report, 200);
   }
 

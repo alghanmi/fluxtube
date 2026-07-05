@@ -1,12 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { handleFetch } from '../src/router';
 import { createLogger } from '../src/logger';
-import type { Env, PlaylistItemRef } from '../src/types';
+import type { CategoryPlaylistMapping, Env, PlaylistItemRef } from '../src/types';
 import type { MinifluxClient } from '../src/miniflux';
 import type { YouTubeClient } from '../src/youtube';
 import type { QueueState } from '../src/state';
 
 const TOKEN = 'super-secret-trigger-token-32-bytes-of-entropy';
+
+// Fixed set of mappings passed to every handleFetch call. Mirrors the
+// pre-refactor CATEGORY_PLAYLIST_MAPPING env var — the loader (index.ts)
+// used to parse this from env, now it comes from either env-mode or
+// D1-mode via runtime_config.ts and gets passed down to the router.
+const MAPPINGS: CategoryPlaylistMapping[] = [{ category: 'X', playlistId: 'PLa' }];
 
 function makeEnv(overrides: Partial<Env> = {}): Env {
   return {
@@ -79,6 +85,7 @@ describe('handleFetch — auth', () => {
       ctx,
       deps.logger,
       deps,
+      MAPPINGS,
     );
     expect(res.status).toBe(401);
   });
@@ -90,6 +97,7 @@ describe('handleFetch — auth', () => {
       ctx,
       deps.logger,
       deps,
+      MAPPINGS,
     );
     expect(res.status).toBe(401);
   });
@@ -101,6 +109,7 @@ describe('handleFetch — auth', () => {
       ctx,
       deps.logger,
       deps,
+      MAPPINGS,
     );
     expect(res.status).toBe(401);
   });
@@ -113,6 +122,7 @@ describe('handleFetch — auth', () => {
       ctx,
       deps.logger,
       deps,
+      MAPPINGS,
     );
     expect(res.status).toBe(401);
   });
@@ -137,24 +147,24 @@ describe('handleFetch — routing', () => {
   }
 
   it('returns 404 on unknown paths', async () => {
-    const res = await handleFetch(req('/nope'), env, ctx, deps.logger, deps);
+    const res = await handleFetch(req('/nope'), env, ctx, deps.logger, deps, MAPPINGS);
     expect(res.status).toBe(404);
   });
 
   it('returns 405 when /sync is called with GET', async () => {
-    const res = await handleFetch(req('/sync', 'GET'), env, ctx, deps.logger, deps);
+    const res = await handleFetch(req('/sync', 'GET'), env, ctx, deps.logger, deps, MAPPINGS);
     expect(res.status).toBe(405);
     expect(res.headers.get('Allow')).toBe('POST');
   });
 
   it('returns 405 when /audit is called with POST', async () => {
-    const res = await handleFetch(req('/audit', 'POST'), env, ctx, deps.logger, deps);
+    const res = await handleFetch(req('/audit', 'POST'), env, ctx, deps.logger, deps, MAPPINGS);
     expect(res.status).toBe(405);
     expect(res.headers.get('Allow')).toBe('GET');
   });
 
   it('POST /sync returns 202 with a request_id and schedules the run', async () => {
-    const res = await handleFetch(req('/sync', 'POST'), env, ctx, deps.logger, deps);
+    const res = await handleFetch(req('/sync', 'POST'), env, ctx, deps.logger, deps, MAPPINGS);
     expect(res.status).toBe(202);
     const body = (await res.json()) as { status: string; request_id: string };
     expect(body.status).toBe('accepted');
@@ -164,7 +174,7 @@ describe('handleFetch — routing', () => {
   });
 
   it('POST /sync?wait=1 runs synchronously and returns 200 with the run summary', async () => {
-    const res = await handleFetch(req('/sync?wait=1', 'POST'), env, ctx, deps.logger, deps);
+    const res = await handleFetch(req('/sync?wait=1', 'POST'), env, ctx, deps.logger, deps, MAPPINGS);
     expect(res.status).toBe(200);
     const body = (await res.json()) as {
       status: string;
@@ -186,7 +196,7 @@ describe('handleFetch — routing', () => {
   });
 
   it('GET /audit returns 200 with the expected shape', async () => {
-    const res = await handleFetch(req('/audit'), env, ctx, deps.logger, deps);
+    const res = await handleFetch(req('/audit'), env, ctx, deps.logger, deps, MAPPINGS);
     expect(res.status).toBe(200);
     expect(res.headers.get('Content-Type')).toContain('application/json');
     const body = (await res.json()) as { pairs: unknown[]; d1_orphan_playlist_ids: unknown[] };
