@@ -54,6 +54,7 @@ export function parseKeychain(source: string): Keychain {
   } catch (err) {
     throw new Error(
       `D1_KEYCHAIN: not valid JSON — ${err instanceof Error ? err.message : String(err)}`,
+      { cause: err },
     );
   }
   if (raw === null || typeof raw !== 'object') {
@@ -85,6 +86,7 @@ export function parseKeychain(source: string): Keychain {
         `D1_KEYCHAIN: key version ${ver} not valid base64 — ${
           err instanceof Error ? err.message : String(err)
         }`,
+        { cause: err },
       );
     }
     if (bytes.byteLength !== KEY_LENGTH_BYTES) {
@@ -102,7 +104,12 @@ export function parseKeychain(source: string): Keychain {
 /** Encrypt under the keychain's `current` key. Fresh IV per call. */
 export async function encrypt(plaintext: string, keychain: Keychain): Promise<EncryptedValue> {
   const kv = keychain.current;
-  const key = await importKey(keychain.keys[String(kv)]!, ['encrypt']);
+  const b64Key = keychain.keys[String(kv)];
+  if (!b64Key) {
+    // Guarded by parseKeychain, but a caller may have hand-crafted the object.
+    throw new Error(`encrypt: current key version ${kv} not present in keychain`);
+  }
+  const key = await importKey(b64Key, ['encrypt']);
   const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH_BYTES));
   const ptBytes = new TextEncoder().encode(plaintext);
   const ctBytes = await crypto.subtle.encrypt({ name: AES_GCM, iv }, key, ptBytes);
