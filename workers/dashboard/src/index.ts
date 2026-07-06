@@ -2,6 +2,10 @@ import { Hono } from 'hono';
 import { requireAuth } from './auth/require_auth';
 import { clearSessionCookieHeader } from './auth/session';
 import { AdminPasskeyRepo } from './repos/admin_passkey';
+import { attachConfigRoutes } from './routes/config';
+import { attachMappingsRoutes } from './routes/mappings';
+import { attachMinifluxInstanceRoutes } from './routes/miniflux_instances';
+import { attachSyncRoutes } from './routes/sync';
 import { attachWebauthnRoutes } from './routes/webauthn';
 
 // Env interface grows across phases:
@@ -47,6 +51,11 @@ interface Env {
    * Defaults to 'FluxTube' when unset.
    */
   RP_NAME?: string;
+  /**
+   * Service Binding to the sync Worker. Wired by Terraform in Phase 7.
+   * Absent locally + in tests; POST /api/sync/trigger 503s when missing.
+   */
+  SYNC?: Fetcher;
 }
 
 const app = new Hono<{ Bindings: Env }>();
@@ -67,6 +76,15 @@ app.get('/api/health', (c) =>
 // Register is gated to admin_passkey being empty.
 
 attachWebauthnRoutes(app);
+
+// ─── Data endpoints (Phase 4c) ───────────────────────────────────────────
+// Mapping CRUD + history, Miniflux instance CRUD, config CRUD, and the
+// service-binding sync trigger. All auth-gated (session or Bearer).
+
+attachMinifluxInstanceRoutes(app);
+attachMappingsRoutes(app);
+attachConfigRoutes(app);
+attachSyncRoutes(app);
 
 // ─── Session-related routes ──────────────────────────────────────────────
 
