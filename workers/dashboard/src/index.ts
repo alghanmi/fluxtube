@@ -2,12 +2,13 @@ import { Hono } from 'hono';
 import { requireAuth } from './auth/require_auth';
 import { clearSessionCookieHeader } from './auth/session';
 import { AdminPasskeyRepo } from './repos/admin_passkey';
+import { attachWebauthnRoutes } from './routes/webauthn';
 
 // Env interface grows across phases:
 //   Phase 0: D1 binding placeholder only
 //   Phase 2: D1_KEYCHAIN secret (present when the crypto util is used)
 //   Phase 4a: SESSION_SIGNING_KEY, MANUAL_TRIGGER_TOKEN
-//   Phase 4b: RP_ID (WebAuthn relying-party ID)
+//   Phase 4b: RP_ID (WebAuthn relying-party ID), RP_NAME (optional)
 //   Phase 4d: YOUTUBE_CLIENT_ID/SECRET
 //   Phase 5: BACKUPS (R2)
 //   Phase 7: SYNC service binding
@@ -22,9 +23,10 @@ interface Env {
   D1_KEYCHAIN?: string;
   /**
    * 32-byte HMAC key, base64-encoded. Used by ./auth/session.ts to sign
-   * session cookies. Optional at the type level so the Phase 0/1 health
-   * probes boot without it; auth routes that need it validate presence
-   * and 500 with a clear operator message when missing.
+   * session cookies AND by ./auth/challenge.ts to sign short-lived
+   * WebAuthn challenge cookies. Optional at the type level so the Phase
+   * 0/1 health probes boot without it; auth routes that need it validate
+   * presence and 500 with a clear operator message when missing.
    */
   SESSION_SIGNING_KEY?: string;
   /**
@@ -33,6 +35,18 @@ interface Env {
    * without a passkey session.
    */
   MANUAL_TRIGGER_TOKEN?: string;
+  /**
+   * WebAuthn relying-party ID — the domain the passkey is bound to. In
+   * production this is `fluxtube.alghanmi.cloud`; injected via Terraform
+   * from `var.dashboard_domain` (Phase 7) so the private hostname never
+   * lives in the public repo.
+   */
+  RP_ID?: string;
+  /**
+   * Human-readable relying-party name shown by some authenticators.
+   * Defaults to 'FluxTube' when unset.
+   */
+  RP_NAME?: string;
 }
 
 const app = new Hono<{ Bindings: Env }>();
@@ -47,6 +61,12 @@ app.get('/api/health', (c) =>
     version: VERSION,
   }),
 );
+
+// ─── WebAuthn passkey ceremonies (Phase 4b) ──────────────────────────────
+// register/begin, register/finish, authenticate/begin, authenticate/finish.
+// Register is gated to admin_passkey being empty.
+
+attachWebauthnRoutes(app);
 
 // ─── Session-related routes ──────────────────────────────────────────────
 
