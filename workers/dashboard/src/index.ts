@@ -4,9 +4,11 @@ import { clearSessionCookieHeader } from './auth/session';
 import { AdminPasskeyRepo } from './repos/admin_passkey';
 import { attachConfigRoutes } from './routes/config';
 import { attachMappingsRoutes } from './routes/mappings';
+import { attachMinifluxCategoriesRoutes } from './routes/miniflux_categories';
 import { attachMinifluxInstanceRoutes } from './routes/miniflux_instances';
 import { attachSyncRoutes } from './routes/sync';
 import { attachWebauthnRoutes } from './routes/webauthn';
+import { attachYouTubeRoutes } from './routes/youtube';
 
 // Env interface grows across phases:
 //   Phase 0: D1 binding placeholder only
@@ -56,6 +58,13 @@ interface Env {
    * Absent locally + in tests; POST /api/sync/trigger 503s when missing.
    */
   SYNC?: Fetcher;
+  /**
+   * Google OAuth 2.0 Web application client id + secret, used by the
+   * YouTube integration routes (Phase 4d). The redirect URI registered on
+   * the client must be `https://<RP_ID>/api/auth/youtube/callback`.
+   */
+  YOUTUBE_CLIENT_ID?: string;
+  YOUTUBE_CLIENT_SECRET?: string;
 }
 
 const app = new Hono<{ Bindings: Env }>();
@@ -82,9 +91,15 @@ attachWebauthnRoutes(app);
 // service-binding sync trigger. All auth-gated (session or Bearer).
 
 attachMinifluxInstanceRoutes(app);
+attachMinifluxCategoriesRoutes(app);
 attachMappingsRoutes(app);
 attachConfigRoutes(app);
 attachSyncRoutes(app);
+
+// ─── External integrations (Phase 4d) ────────────────────────────────────
+// YouTube OAuth begin/callback + owned-playlist listing.
+
+attachYouTubeRoutes(app);
 
 // ─── Session-related routes ──────────────────────────────────────────────
 
