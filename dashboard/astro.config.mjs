@@ -7,10 +7,9 @@ import preact from '@astrojs/preact';
 // via Service Binding (per the plan in
 // ~/.claude/plans/a-few-things-to-expressive-shannon.md).
 //
-// `site` is intentionally left unset in the public source — the real value
-// (`https://fluxtube.alghanmi.cloud`) is injected at build time by the
-// deploy workflow via `ASTRO_SITE` env override, so the private hostname
-// stays out of the public repo.
+// `site` is intentionally left unset in the public source — the deploy
+// companion injects the real value at build time via the `ASTRO_SITE` env
+// override, so the private hostname stays out of the public repo.
 export default defineConfig({
   integrations: [preact()],
   output: 'static',

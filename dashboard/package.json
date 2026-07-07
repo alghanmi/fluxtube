@@ -2,7 +2,7 @@
   "name": "@fluxtube/dashboard-web",
   "version": "0.0.0",
   "private": true,
-  "description": "fluxtube.alghanmi.cloud — configuration dashboard PWA (Astro + Preact islands, Service Binding to workers/dashboard).",
+  "description": "FluxTube configuration dashboard PWA (Astro + Preact islands, Service Binding to workers/dashboard).",
   "license": "MIT",
   "type": "module",
   "scripts": {

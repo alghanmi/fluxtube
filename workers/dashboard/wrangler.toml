@@ -4,8 +4,8 @@ compatibility_date = "2025-05-01"
 compatibility_flags = ["nodejs_compat"]
 
 # Enable the workers.dev subdomain for local + preview visibility. Production
-# routes traffic through `fluxtube.alghanmi.cloud/api/*` via a Service Binding
-# from the Pages project — wired up in Phase 7 (Terraform).
+# routes traffic through the (Terraform-injected) dashboard host's `/api/*`
+# via a Service Binding from the Pages project — wired up in Phase 7.
 workers_dev = true
 
 # ── Build-time string substitution ────────────────────────────────────────────
