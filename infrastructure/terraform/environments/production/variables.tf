@@ -1,5 +1,5 @@
 variable "cloudflare_api_token" {
-  description = "Cloudflare API token scoped to Workers, D1, and R2. Sourced from CLOUDFLARE_API_TOKEN secret."
+  description = "Cloudflare API token scoped to Workers, D1, R2, and Pages. Sourced from CLOUDFLARE_API_TOKEN secret."
   type        = string
   sensitive   = true
 }
@@ -9,14 +9,36 @@ variable "cloudflare_account_id" {
   type        = string
 }
 
-variable "miniflux_url" {
-  description = "Miniflux instance base URL — no trailing slash."
+# ── Multi-instance identity (Phase 7) ────────────────────────────────────────
+
+variable "instance_id" {
+  description = "Multi-instance identifier — becomes the prefix for every resource name."
   type        = string
 }
 
-variable "category_playlist_mapping" {
-  description = "JSON-encoded array of {category, playlist_id} entries."
+variable "dashboard_domain" {
+  description = "Public hostname the dashboard PWA is served from."
   type        = string
+}
+
+variable "history_window" {
+  description = "Default max mapping snapshots kept in mapping_history."
+  type        = number
+  default     = 10
+}
+
+# ── Sync worker (env-managed mode, retained during dual-mode overlap) ────────
+
+variable "miniflux_url" {
+  description = "Miniflux instance base URL — no trailing slash. Only read in env-managed mode."
+  type        = string
+  default     = ""
+}
+
+variable "category_playlist_mapping" {
+  description = "JSON-encoded array of {category, playlist_id} entries. Only read in env-managed mode."
+  type        = string
+  default     = "[]"
 }
 
 variable "sync_log_level" {
@@ -44,16 +66,70 @@ variable "heartbeat_url_quota" {
 }
 
 variable "cron_schedule" {
-  description = "Cron schedule for the Worker scheduled handler."
+  description = "Cron schedule for the sync Worker's scheduled handler."
   type        = string
   default     = "*/30 * * * *"
 }
 
 variable "cron_enabled" {
-  description = "Whether to create the Worker cron trigger. Set to false during cutover or to deploy without a scheduled handler."
+  description = "Whether to create the sync Worker's cron trigger."
   type        = bool
   default     = true
 }
+
+# ── Dashboard worker (Phase 7) ───────────────────────────────────────────────
+
+variable "dashboard_cron_schedule" {
+  description = "Cron schedule for the dashboard Worker's nightly backup."
+  type        = string
+  default     = "15 4 * * *"
+}
+
+variable "dashboard_cron_enabled" {
+  description = "Whether to create the dashboard Worker's cron trigger."
+  type        = bool
+  default     = true
+}
+
+variable "backup_retention_days" {
+  description = "R2 lifecycle rule — delete backups older than this many days."
+  type        = number
+  default     = 120
+}
+
+# ── Dashboard secrets (Phase 7) ──────────────────────────────────────────────
+
+variable "session_signing_key" {
+  description = "32-byte base64 HMAC key. Sourced from Bitwarden via the deploy companion."
+  type        = string
+  sensitive   = true
+}
+
+variable "d1_keychain" {
+  description = "JSON keychain for at-rest column crypto. Sourced from Bitwarden."
+  type        = string
+  sensitive   = true
+}
+
+variable "manual_trigger_token" {
+  description = "Shared bearer token for operator scripts. Sourced from Bitwarden."
+  type        = string
+  sensitive   = true
+}
+
+variable "youtube_client_id" {
+  description = "Google Cloud OAuth 2.0 client id."
+  type        = string
+  sensitive   = true
+}
+
+variable "youtube_client_secret" {
+  description = "Matching OAuth client secret."
+  type        = string
+  sensitive   = true
+}
+
+# ── Observability ───────────────────────────────────────────────────────────
 
 variable "grafana_loki_url" {
   description = "Grafana Cloud Loki base URL. Empty disables log shipping."
