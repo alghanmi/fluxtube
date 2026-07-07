@@ -3,6 +3,8 @@ import { requireAuth } from './auth/require_auth';
 import { clearSessionCookieHeader } from './auth/session';
 import { AdminPasskeyRepo } from './repos/admin_passkey';
 import { generateBackup } from './backup';
+import { OtlpMetricsSink } from './metricsink';
+import type { MetricsSink } from './metricsink';
 import { attachBackupRoutes } from './routes/backup';
 import { attachConfigRoutes } from './routes/config';
 import { attachMappingsRoutes } from './routes/mappings';
@@ -78,6 +80,14 @@ interface Env {
    */
   YOUTUBE_CLIENT_ID?: string;
   YOUTUBE_CLIENT_SECRET?: string;
+  /**
+   * Grafana Cloud OTLP metric shipping (Phase 8). All three must be set to
+   * enable backup outcome metrics; otherwise the metric sink is not
+   * constructed and only the D1 config timestamps are stamped.
+   */
+  GRAFANA_OTLP_URL?: string;
+  GRAFANA_OTLP_USER?: string;
+  GRAFANA_OTLP_TOKEN?: string;
 }
 
 const app = new Hono<{ Bindings: Env }>();
@@ -198,17 +208,82 @@ async function sha256Hex(input: string): Promise<string> {
 export async function scheduledHandler(
   _controller: ScheduledController,
   env: Env,
-  _ctx: ExecutionContext,
+  ctx: ExecutionContext,
 ): Promise<void> {
   const now = Math.floor(Date.now() / 1000);
+  const metrics = buildMetricsSink(env);
   try {
-    await generateBackup(env, new Date());
+    const result = await generateBackup(env, new Date());
     await new ConfigRepo(env.DB).setPlain('backup_last_success_at', String(now), now);
+    emitBackupMetrics(metrics, ctx, {
+      outcome: 'success',
+      sizeBytes: result.sizeBytes,
+      lastSuccessSec: now,
+    });
   } catch (err) {
     await new ConfigRepo(env.DB).setPlain('backup_last_failure_at', String(now), now);
+    emitBackupMetrics(metrics, ctx, { outcome: 'failure' });
     // Re-throw so the cron surfaces the failure to Cloudflare's execution log.
     throw err;
   }
+}
+
+// ─── Metrics helpers ─────────────────────────────────────────────────────
+
+function buildMetricsSink(env: Env): MetricsSink | undefined {
+  if (!env.GRAFANA_OTLP_URL || !env.GRAFANA_OTLP_USER || !env.GRAFANA_OTLP_TOKEN) {
+    return undefined;
+  }
+  return new OtlpMetricsSink(
+    {
+      baseUrl: env.GRAFANA_OTLP_URL,
+      userId: env.GRAFANA_OTLP_USER,
+      apiToken: env.GRAFANA_OTLP_TOKEN,
+      resourceAttributes: {
+        'service.name': 'fluxtube-dashboard',
+        'service.namespace': 'production',
+        'service.version': VERSION,
+        instance_id: env.INSTANCE_ID ?? 'unknown',
+      },
+    },
+    (event, fields) =>
+      console.warn(
+        JSON.stringify({ ts: new Date().toISOString(), level: 'warn', event, ...(fields ?? {}) }),
+      ),
+  );
+}
+
+function emitBackupMetrics(
+  metrics: MetricsSink | undefined,
+  ctx: ExecutionContext,
+  input:
+    | { outcome: 'success'; sizeBytes: number; lastSuccessSec: number }
+    | { outcome: 'failure' },
+): void {
+  if (!metrics) return;
+  const ts = new Date();
+  // Names use dot-style so Mimir's OTLP receiver produces
+  // fluxtube_backup_runs_total / fluxtube_backup_last_success_seconds /
+  // fluxtube_backup_size_bytes on the PromQL side.
+  metrics.push({
+    name: 'fluxtube.backup.runs_total',
+    value: 1,
+    ts,
+    attributes: { outcome: input.outcome },
+  });
+  if (input.outcome === 'success') {
+    metrics.push({
+      name: 'fluxtube.backup.last_success_seconds',
+      value: input.lastSuccessSec,
+      ts,
+    });
+    metrics.push({
+      name: 'fluxtube.backup.size_bytes',
+      value: input.sizeBytes,
+      ts,
+    });
+  }
+  metrics.flush(ctx);
 }
 
 export default {

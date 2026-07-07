@@ -170,7 +170,15 @@ All gauges — Workers are stateless, so cumulative counters would need D1 round
 | `fluxtube_run_duration_seconds` | `summary.duration_ms / 1000` | Wall time |
 | `fluxtube_runs` | `1` per run | Carries `outcome ∈ {success, fatal_invalid_grant, fatal_quota_exhausted, fatal_other}` |
 
-All metrics ship with resource attributes `service.name=fluxtube`, `service.namespace=production`, `service.instance.id=<run_id>` — the same UUID labels the Loki stream, so an operator can pivot from log lines to the run's metric data points.
+Dashboard-Worker-emitted (v1, Phase 8):
+
+| PromQL name | Notes |
+|---|---|
+| `fluxtube_backup_runs_total` | One data point per backup attempt. Carries `outcome ∈ {success, failure}`. |
+| `fluxtube_backup_last_success_seconds` | Unix seconds of the last successful backup. Powers the `backup-missing` alert. |
+| `fluxtube_backup_size_bytes` | Size of the last successful backup payload. |
+
+All metrics ship with resource attributes `service.name` (`fluxtube` for sync, `fluxtube-dashboard` for dashboard), `service.namespace=production`, `service.version=<VERSION>`, `service.instance.id=<run_id>` — plus `instance_id=<var.instance_id>` (Phase 8) so a single Grafana stack can filter by FluxTube instance via the dashboards' `instance_id` template variable. The Loki stream carries the same `instance_id` label.
 
 ### PromQL recipes
 

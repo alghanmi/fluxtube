@@ -41,7 +41,8 @@
   },
   "labels": {
     "app": "fluxtube",
-    "severity": "warning"
+    "severity": "warning",
+    "instance_id": "{{ $labels.instance_id }}"
   },
   "isPaused": false
 }

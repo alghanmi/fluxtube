@@ -1,0 +1,48 @@
+{
+  "uid": "fluxtube-backup-missing",
+  "title": "FluxTube — backup missing > 7 days",
+  "condition": "B",
+  "data": [
+    {
+      "refId": "A",
+      "datasourceUid": "${DS_PROMETHEUS}",
+      "queryType": "",
+      "relativeTimeRange": {
+        "from": 604800,
+        "to": 0
+      },
+      "model": {
+        "refId": "A",
+        "expr": "sum by (instance_id) (sum_over_time(fluxtube_backup_runs_total{outcome=\"success\"}[7d]))",
+        "instant": true
+      }
+    },
+    {
+      "refId": "B",
+      "datasourceUid": "-100",
+      "queryType": "",
+      "relativeTimeRange": {
+        "from": 0,
+        "to": 0
+      },
+      "model": {
+        "refId": "B",
+        "type": "threshold",
+        "expression": "$A == 0"
+      }
+    }
+  ],
+  "noDataState": "OK",
+  "execErrState": "Error",
+  "for": "30m",
+  "annotations": {
+    "summary": "No successful FluxTube backup in the last 7 days.",
+    "description": "The dashboard Worker's nightly cron (default `15 4 * * *` UTC) hasn't recorded a successful backup in the 7-day evaluation window. Check the /dashboard/backup page for the last-attempted timestamp, tail the worker logs (`wrangler tail --name fluxtube-{{ $labels.instance_id }}-dashboard`), and verify the BACKUPS R2 binding is intact via `wrangler r2 object list fluxtube-{{ $labels.instance_id }}-backups`. `noDataState: OK` avoids false alarms during the Phase 9 cutover window when the dashboard Worker's OTLP emission is being wired; flip to `Alerting` once backup metrics are confirmed flowing so a full metric-shipping outage also fires this."
+  },
+  "labels": {
+    "app": "fluxtube",
+    "severity": "critical",
+    "instance_id": "{{ $labels.instance_id }}"
+  },
+  "isPaused": false
+}

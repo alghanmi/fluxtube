@@ -1,5 +1,5 @@
 import { env } from 'cloudflare:test';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import app from '../../src/index';
 import { signSession } from '../../src/auth/session';
 import { ConfigRepo } from '../../src/repos/config';
@@ -336,4 +336,61 @@ describe('scheduled handler', () => {
       (await new ConfigRepo(db).getPlain('backup_last_failure_at'))?.value,
     ).not.toBeNull();
   });
+
+  it('pushes fluxtube.backup metrics via OTLP when GRAFANA_OTLP_* is set', async () => {
+    await seed();
+    const { bucket } = stubBucket();
+
+    // Stub fetch so the OtlpMetricsSink hits an in-memory endpoint. Capture
+    // the request URL + body to assert on the metric shape.
+    const capturedUrls: string[] = [];
+    const capturedBodies: string[] = [];
+    const originalFetch = globalThis.fetch;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+        const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+        if (url.includes('/v1/metrics')) {
+          capturedUrls.push(url);
+          capturedBodies.push(typeof init?.body === 'string' ? init.body : '');
+          return new Response('', { status: 200 });
+        }
+        return originalFetch(input as RequestInfo, init);
+      }),
+    );
+
+    // ExecutionContext needs waitUntil for OtlpMetricsSink.flush().
+    const waited: Promise<unknown>[] = [];
+    const ctx = {
+      waitUntil: (p: Promise<unknown>): void => {
+        waited.push(p);
+      },
+      passThroughOnException: (): void => {},
+    } as unknown as ExecutionContext;
+
+    const { scheduledHandler } = await import('../../src/index');
+    await scheduledHandler(
+      { scheduledTime: Date.now(), cron: '15 4 * * *', noRetry: () => {} } as ScheduledController,
+      testEnv({
+        BACKUPS: bucket,
+        GRAFANA_OTLP_URL: 'https://otlp.example',
+        GRAFANA_OTLP_USER: 'user',
+        GRAFANA_OTLP_TOKEN: 'token',
+      }) as unknown as Parameters<typeof scheduledHandler>[1],
+      ctx,
+    );
+    // Drain the waitUntil'd OTLP push.
+    await Promise.all(waited);
+
+    expect(capturedUrls.length).toBeGreaterThan(0);
+    const body = capturedBodies[0] ?? '';
+    expect(body).toContain('fluxtube.backup.runs_total');
+    expect(body).toContain('success');
+    expect(body).toContain('fluxtube.backup.last_success_seconds');
+    expect(body).toContain('fluxtube.backup.size_bytes');
+  });
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });

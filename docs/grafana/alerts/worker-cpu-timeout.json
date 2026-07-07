@@ -1,0 +1,48 @@
+{
+  "uid": "fluxtube-worker-cpu-timeout",
+  "title": "FluxTube — worker CPU time exceeded",
+  "condition": "B",
+  "data": [
+    {
+      "refId": "A",
+      "datasourceUid": "${DS_PROMETHEUS}",
+      "queryType": "",
+      "relativeTimeRange": {
+        "from": 900,
+        "to": 0
+      },
+      "model": {
+        "refId": "A",
+        "expr": "sum by (instance_id) (rate(workers_cpu_time_exceeded_total[15m]))",
+        "instant": true
+      }
+    },
+    {
+      "refId": "B",
+      "datasourceUid": "-100",
+      "queryType": "",
+      "relativeTimeRange": {
+        "from": 0,
+        "to": 0
+      },
+      "model": {
+        "refId": "B",
+        "type": "threshold",
+        "expression": "$A > 0"
+      }
+    }
+  ],
+  "noDataState": "OK",
+  "execErrState": "Error",
+  "for": "15m",
+  "annotations": {
+    "summary": "Sustained Worker CPU-time-exceeded events over the last 15 minutes.",
+    "description": "Cloudflare Workers cap at 50ms CPU per invocation (default) / 30s wall-clock. Sustained CPU exceptions mean the sync or dashboard worker is being killed mid-invocation — most often because a Miniflux instance is slow or the sync-time backlog has grown too large. Investigate via `wrangler tail`. TODO: confirm the exact upstream metric name once we can query Grafana Cloud's mimir directly — the plan cites `workers_cpu_time_exceeded_total` but that may need adjustment if Cloudflare's Prometheus scrape uses a different name."
+  },
+  "labels": {
+    "app": "fluxtube",
+    "severity": "warning",
+    "instance_id": "{{ $labels.instance_id }}"
+  },
+  "isPaused": false
+}

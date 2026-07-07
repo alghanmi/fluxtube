@@ -20,11 +20,14 @@ locals {
   backup_bucket_name    = format("%s-backups", local.prefix)
   pages_project_name    = format("%s-dashboard", local.prefix)
 
-  # ── Sync worker plain_text (unchanged from v0) ────────────────────────────
+  # ── Sync worker plain_text ────────────────────────────────────────────────
+  # INSTANCE_ID lands as a Loki label + OTLP resource attribute so a single
+  # Grafana stack can filter by instance (Phase 8 dashboards' template var).
   sync_worker_vars = {
     MINIFLUX_URL              = var.miniflux_url
     CATEGORY_PLAYLIST_MAPPING = var.category_playlist_mapping
     SYNC_LOG_LEVEL            = var.sync_log_level
+    INSTANCE_ID               = var.instance_id
     HEARTBEAT_URL             = var.heartbeat_url
     HEARTBEAT_URL_AUTH        = var.heartbeat_url_auth
     HEARTBEAT_URL_QUOTA       = var.heartbeat_url_quota
