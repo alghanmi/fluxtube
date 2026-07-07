@@ -22,6 +22,15 @@ VERSION = "\"0.0.0-dev\""
 [triggers]
 crons = ["15 4 * * *"]
 
+# ── R2 binding (nightly backups, Phase 5) ─────────────────────────────────────
+# Terraform creates the real bucket in Phase 7 with a 120-day lifecycle rule
+# and injects the actual `bucket_name` at deploy time. The placeholder below
+# is a per-project literal that wrangler dev can parse; production overrides
+# via the `r2_bucket_binding` block on `cloudflare_workers_script`.
+[[r2_buckets]]
+binding = "BACKUPS"
+bucket_name = "fluxtube-backups-placeholder"
+
 # ── D1 binding (shared with sync worker) ──────────────────────────────────────
 # Same D1 database as workers/sync — Terraform sets the real binding via
 # `d1_database_binding` on this script's `cloudflare_workers_script` resource

@@ -2,6 +2,8 @@ import { Hono } from 'hono';
 import { requireAuth } from './auth/require_auth';
 import { clearSessionCookieHeader } from './auth/session';
 import { AdminPasskeyRepo } from './repos/admin_passkey';
+import { generateBackup } from './backup';
+import { attachBackupRoutes } from './routes/backup';
 import { attachConfigRoutes } from './routes/config';
 import { attachMappingsRoutes } from './routes/mappings';
 import { attachMinifluxCategoriesRoutes } from './routes/miniflux_categories';
@@ -9,6 +11,7 @@ import { attachMinifluxInstanceRoutes } from './routes/miniflux_instances';
 import { attachSyncRoutes } from './routes/sync';
 import { attachWebauthnRoutes } from './routes/webauthn';
 import { attachYouTubeRoutes } from './routes/youtube';
+import { ConfigRepo } from './repos/config';
 
 // Env interface grows across phases:
 //   Phase 0: D1 binding placeholder only
@@ -58,6 +61,17 @@ interface Env {
    */
   SYNC?: Fetcher;
   /**
+   * R2 bucket for nightly + manual backups. Provisioned by Terraform in
+   * Phase 7 with a 120-day lifecycle rule. Absent locally + in tests.
+   */
+  BACKUPS?: R2Bucket;
+  /**
+   * Multi-instance identifier — becomes part of every backup payload so
+   * a cross-instance restore is disambiguable. Set via Terraform's
+   * `var.instance_id` in Phase 7.
+   */
+  INSTANCE_ID?: string;
+  /**
    * Google OAuth 2.0 Web application client id + secret, used by the
    * YouTube integration routes (Phase 4d). The redirect URI registered on
    * the client must be `https://<RP_ID>/api/auth/youtube/callback`.
@@ -99,6 +113,12 @@ attachSyncRoutes(app);
 // YouTube OAuth begin/callback + owned-playlist listing.
 
 attachYouTubeRoutes(app);
+
+// ─── Backup routes (Phase 5) ─────────────────────────────────────────────
+// Manual backup + list + download + restore. Nightly cron uses the
+// `scheduled` handler below.
+
+attachBackupRoutes(app);
 
 // ─── Session-related routes ──────────────────────────────────────────────
 
@@ -170,4 +190,28 @@ async function sha256Hex(input: string): Promise<string> {
   return s;
 }
 
-export default app;
+// ─── Scheduled (Phase 5) ─────────────────────────────────────────────────
+// The wrangler.toml cron `15 4 * * *` (UTC) invokes this once nightly.
+// Failure paths stamp `backup_last_failure_at` so Grafana can alert on
+// stale backups without needing to parse worker logs.
+
+export async function scheduledHandler(
+  _controller: ScheduledController,
+  env: Env,
+  _ctx: ExecutionContext,
+): Promise<void> {
+  const now = Math.floor(Date.now() / 1000);
+  try {
+    await generateBackup(env, new Date());
+    await new ConfigRepo(env.DB).setPlain('backup_last_success_at', String(now), now);
+  } catch (err) {
+    await new ConfigRepo(env.DB).setPlain('backup_last_failure_at', String(now), now);
+    // Re-throw so the cron surfaces the failure to Cloudflare's execution log.
+    throw err;
+  }
+}
+
+export default {
+  fetch: app.fetch.bind(app),
+  scheduled: scheduledHandler,
+} satisfies ExportedHandler<Env>;
