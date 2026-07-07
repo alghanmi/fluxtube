@@ -1,0 +1,39 @@
+# Cloudflare Pages security headers for the FluxTube dashboard PWA.
+#
+# Format reference: https://developers.cloudflare.com/pages/configuration/headers/
+#
+# Baseline matches site/public/_headers (A+ on securityheaders.com) with
+# adjustments for the dashboard's interactive surface:
+#
+#   - `form-action 'self'` instead of `'none'` — the OAuth-begin
+#     hyperlink is a same-origin GET, but if any future flow adds a
+#     POST form the `'self'` value keeps it working.
+#   - `connect-src 'self'` — the Preact islands hit /api/*, all
+#     same-origin. Cloudflare Pages proxies to the dashboard Worker
+#     via Service Binding, so no cross-origin fetch is required.
+#   - No CSP nonces on inline styles/scripts. Astro emits inline style
+#     attributes via `define:vars` and small IIFEs; nonce-injection
+#     would add build complexity for a private-audience surface with
+#     no user-controlled markup. `'unsafe-inline'` is the pragmatic
+#     choice — same reasoning as the marketing site.
+#   - `Cross-Origin-Embedder-Policy: require-corp` still safe: the
+#     only cross-origin fetches are Google Fonts, which already emit
+#     the correct CORP/CORS headers upstream.
+#   - `X-Robots-Tag: noindex, nofollow` — dashboard is private per
+#     tenant; robots.txt disallow is not enough (some crawlers ignore
+#     it), the response header is authoritative.
+#
+# Defaults Pages already sets (don't redeclare):
+#   - x-content-type-options: nosniff
+#   - referrer-policy: strict-origin-when-cross-origin
+#   - HTTP → HTTPS 301 redirect
+
+/*
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; script-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
+  Cross-Origin-Resource-Policy: same-origin
+  X-Frame-Options: DENY
+  Permissions-Policy: accelerometer=(), camera=(), geolocation=(), gyroscope=(), microphone=(), payment=(), usb=(), interest-cohort=()
+  X-Robots-Tag: noindex, nofollow

@@ -1,0 +1,27 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { History } from '../../components/History';
+---
+
+<BaseLayout title="history" nav={true}>
+  <h2 style="font-family: var(--font-display); font-weight: 400; margin-top: 0;">History</h2>
+  <p class="muted">
+    Recent mapping snapshots. Each save appends a row, capped at your
+    <code>history_window</code> setting.
+  </p>
+
+  <div style="margin-top: var(--space-6);">
+    <History client:load />
+  </div>
+
+  <script is:inline>
+    (async () => {
+      try {
+        const r = await fetch('/api/me', { credentials: 'same-origin' });
+        if (!r.ok) window.location.replace('/login');
+      } catch (_e) {
+        window.location.replace('/login');
+      }
+    })();
+  </script>
+</BaseLayout>

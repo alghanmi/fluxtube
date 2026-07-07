@@ -1,23 +1,51 @@
 ---
-// Phase 0 placeholder. Real UI arrives in Phase 6 (claim / passkey / mapping
-// editor / history / backup pages). Kept minimal so `astro build` succeeds
-// on the feature branch without pulling in the design system yet.
-const version = '0.0.0-dev';
+// Landing page — routes into the correct flow client-side based on
+// session + claim state.
+//
+//   * If no admin_passkey row exists (register/begin returns options
+//     instead of 409): go to /claim.
+//   * If session cookie is valid (/api/me returns 200): go to /dashboard.
+//   * Otherwise: go to /login.
+//
+// Doing this on the client keeps the page static, which keeps the Astro
+// output as pure static assets that Cloudflare Pages can serve directly
+// with API-path proxying to the Worker via Service Binding (Phase 7).
+
+import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="robots" content="noindex" />
-    <title>fluxtube — dashboard</title>
-  </head>
-  <body>
-    <main>
-      <h1>fluxtube dashboard</h1>
-      <p>Phase 0 scaffolding. Real UI lands in Phase 6.</p>
-      <p><code>v{version}</code></p>
-    </main>
-  </body>
-</html>
+<BaseLayout title="loading">
+  <div class="card">
+    <h2 class="card-title">Loading…</h2>
+    <p class="card-subtitle">Checking session.</p>
+  </div>
+
+  <script is:inline>
+    (async function route() {
+      try {
+        // /api/me is the cheapest oracle: 200 = signed-in, 401 = not.
+        const me = await fetch('/api/me', { credentials: 'same-origin' });
+        if (me.ok) {
+          window.location.replace('/dashboard');
+          return;
+        }
+      } catch (_e) { /* fall through */ }
+
+      try {
+        // A GET /api/auth/passkey/authenticate/begin returns 404 when no
+        // passkey is registered (first boot). Any 200/4xx that isn't 404
+        // means at least one exists — send them to /login.
+        const check = await fetch('/api/auth/passkey/authenticate/begin', {
+          method: 'POST',
+          credentials: 'same-origin',
+        });
+        if (check.status === 404) {
+          window.location.replace('/claim');
+          return;
+        }
+      } catch (_e) { /* fall through */ }
+
+      window.location.replace('/login');
+    })();
+  </script>
+</BaseLayout>

@@ -1,0 +1,26 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { Settings } from '../../components/Settings';
+---
+
+<BaseLayout title="settings" nav={true}>
+  <h2 style="font-family: var(--font-display); font-weight: 400; margin-top: 0;">Settings</h2>
+  <p class="muted">
+    Miniflux instances, YouTube connection, and sync configuration.
+  </p>
+
+  <div style="margin-top: var(--space-6);">
+    <Settings client:load />
+  </div>
+
+  <script is:inline>
+    (async () => {
+      try {
+        const r = await fetch('/api/me', { credentials: 'same-origin' });
+        if (!r.ok) window.location.replace('/login');
+      } catch (_e) {
+        window.location.replace('/login');
+      }
+    })();
+  </script>
+</BaseLayout>

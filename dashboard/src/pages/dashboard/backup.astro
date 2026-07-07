@@ -1,0 +1,27 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { BackupPanel } from '../../components/BackupPanel';
+---
+
+<BaseLayout title="backup" nav={true}>
+  <h2 style="font-family: var(--font-display); font-weight: 400; margin-top: 0;">Backup</h2>
+  <p class="muted">
+    Nightly R2 backups. Trigger one on demand, or restore from a prior snapshot. Restore replaces
+    your current configuration — API tokens have to be re-supplied on the settings page.
+  </p>
+
+  <div style="margin-top: var(--space-6);">
+    <BackupPanel client:load />
+  </div>
+
+  <script is:inline>
+    (async () => {
+      try {
+        const r = await fetch('/api/me', { credentials: 'same-origin' });
+        if (!r.ok) window.location.replace('/login');
+      } catch (_e) {
+        window.location.replace('/login');
+      }
+    })();
+  </script>
+</BaseLayout>
