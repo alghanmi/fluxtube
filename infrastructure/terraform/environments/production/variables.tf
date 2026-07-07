@@ -97,37 +97,12 @@ variable "backup_retention_days" {
   default     = 120
 }
 
-# ── Dashboard secrets (Phase 7) ──────────────────────────────────────────────
-
-variable "session_signing_key" {
-  description = "32-byte base64 HMAC key. Sourced from Bitwarden via the deploy companion."
-  type        = string
-  sensitive   = true
-}
-
-variable "d1_keychain" {
-  description = "JSON keychain for at-rest column crypto. Sourced from Bitwarden."
-  type        = string
-  sensitive   = true
-}
-
-variable "manual_trigger_token" {
-  description = "Shared bearer token for operator scripts. Sourced from Bitwarden."
-  type        = string
-  sensitive   = true
-}
-
-variable "youtube_client_id" {
-  description = "Google Cloud OAuth 2.0 client id."
-  type        = string
-  sensitive   = true
-}
-
-variable "youtube_client_secret" {
-  description = "Matching OAuth client secret."
-  type        = string
-  sensitive   = true
-}
+# ── Worker secrets ──────────────────────────────────────────────────────────
+#
+# All Worker runtime secrets live in Bitwarden's `FluxTube / Worker Secrets /
+# Production` item and get pushed to both workers via the deploy companion's
+# scripts/sync-worker-secrets.sh. Terraform's role stops at the D1/R2/KV/
+# service bindings — see the module's variables.tf for the full rationale.
 
 # ── Observability ───────────────────────────────────────────────────────────
 

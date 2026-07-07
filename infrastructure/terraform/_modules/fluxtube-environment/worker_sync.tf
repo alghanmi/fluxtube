@@ -57,18 +57,15 @@ resource "cloudflare_workers_script" "sync" {
         type = "d1"
         id   = cloudflare_d1_database.fluxtube.id
       },
-      # v1: the sync Worker reads config.youtube_refresh_token from D1
-      # (encrypted). Both Workers need the same keychain to decrypt.
-      {
-        name = "D1_KEYCHAIN"
-        type = "secret_text"
-        text = var.d1_keychain
-      },
-      {
-        name = "MANUAL_TRIGGER_TOKEN"
-        type = "secret_text"
-        text = var.manual_trigger_token
-      },
+      # Secrets (D1_KEYCHAIN, MANUAL_TRIGGER_TOKEN, MINIFLUX_API_TOKEN,
+      # YOUTUBE_*, GRAFANA_*_TOKEN, etc.) are wrangler-managed, not
+      # Terraform-managed — pushed via the deploy companion's
+      # scripts/sync-worker-secrets.sh (which iterates Bitwarden's
+      # `FluxTube / Worker Secrets / Production` item). Rationale:
+      # wrangler deploy's interaction with secret_text bindings set
+      # out-of-band via Terraform isn't well-documented; the wrangler
+      # path is well-worn from v0 and single-owns the secret_text
+      # lifecycle.
     ],
   )
 

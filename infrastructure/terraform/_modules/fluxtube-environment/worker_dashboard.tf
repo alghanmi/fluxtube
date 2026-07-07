@@ -77,31 +77,13 @@ resource "cloudflare_workers_script" "dashboard" {
         # is deployed without explicit envs.
         environment = "production"
       },
-      {
-        name = "SESSION_SIGNING_KEY"
-        type = "secret_text"
-        text = var.session_signing_key
-      },
-      {
-        name = "D1_KEYCHAIN"
-        type = "secret_text"
-        text = var.d1_keychain
-      },
-      {
-        name = "MANUAL_TRIGGER_TOKEN"
-        type = "secret_text"
-        text = var.manual_trigger_token
-      },
-      {
-        name = "YOUTUBE_CLIENT_ID"
-        type = "secret_text"
-        text = var.youtube_client_id
-      },
-      {
-        name = "YOUTUBE_CLIENT_SECRET"
-        type = "secret_text"
-        text = var.youtube_client_secret
-      },
+      # Secrets (SESSION_SIGNING_KEY, D1_KEYCHAIN, MANUAL_TRIGGER_TOKEN,
+      # YOUTUBE_CLIENT_ID/SECRET, GRAFANA_*_TOKEN, etc.) are wrangler-
+      # managed, not Terraform-managed — pushed via the deploy
+      # companion's scripts/sync-worker-secrets.sh (which iterates
+      # Bitwarden's `FluxTube / Worker Secrets / Production` item and
+      # loops over both worker names). See worker_sync.tf for the full
+      # rationale.
     ],
   )
 
