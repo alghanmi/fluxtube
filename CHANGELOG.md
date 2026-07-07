@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.8.0](https://github.com/alghanmi/fluxtube/compare/v0.7.0...v0.8.0) (2026-07-07)
+
+
+### Features
+
+* **v1/dashboard-web:** Astro PWA frontend (Phase 6) ([#74](https://github.com/alghanmi/fluxtube/issues/74)) ([bdac224](https://github.com/alghanmi/fluxtube/commit/bdac224c2dba32df7b87419789e78cf7ab0dd657))
+* **v1/dashboard:** auth plumbing — signed sessions + Bearer + /api/me + logout + recovery (Phase 4a) ([#56](https://github.com/alghanmi/fluxtube/issues/56)) ([024128c](https://github.com/alghanmi/fluxtube/commit/024128c8b748f53cebf298fd325f6fcec0064124))
+* **v1/dashboard:** data endpoints — mappings, config, miniflux, sync trigger (Phase 4c) ([#68](https://github.com/alghanmi/fluxtube/issues/68)) ([cca0095](https://github.com/alghanmi/fluxtube/commit/cca00954829ac82a6580487b7701e41210ef4995))
+* **v1/dashboard:** Miniflux categories + YouTube playlists + OAuth (Phase 4d) ([#69](https://github.com/alghanmi/fluxtube/issues/69)) ([5f81d46](https://github.com/alghanmi/fluxtube/commit/5f81d462256e77f890b6c6a7c15d3d8b34678cb8))
+* **v1/dashboard:** Miniflux categories + YouTube playlists + YouTube OAuth (Phase 4d) ([5f81d46](https://github.com/alghanmi/fluxtube/commit/5f81d462256e77f890b6c6a7c15d3d8b34678cb8))
+* **v1/dashboard:** R2 backup module + nightly cron (Phase 5) ([#73](https://github.com/alghanmi/fluxtube/issues/73)) ([5319a9f](https://github.com/alghanmi/fluxtube/commit/5319a9f644be4e4be781a02c5d5393df8ba8412c))
+* **v1/dashboard:** WebAuthn passkey ceremonies (Phase 4b) ([#57](https://github.com/alghanmi/fluxtube/issues/57)) ([f83894c](https://github.com/alghanmi/fluxtube/commit/f83894c38965fc67df29c58716f5a2400e89d351))
+* **v1/observability:** multi-instance Grafana + backup metrics (Phase 8) ([#76](https://github.com/alghanmi/fluxtube/issues/76)) ([c9b880d](https://github.com/alghanmi/fluxtube/commit/c9b880d1cf3acde1c625e6ce04234b9904837295))
+* **v1/terraform:** multi-instance module + dashboard resources (Phase 7) ([#75](https://github.com/alghanmi/fluxtube/issues/75)) ([d0b7e72](https://github.com/alghanmi/fluxtube/commit/d0b7e72ba2e128b0c933fa29dfd9e6fa1c5e8af8))
+* **v1:** AES-GCM crypto util + keychain plumbing (Phase 2) ([#54](https://github.com/alghanmi/fluxtube/issues/54)) ([7a75cde](https://github.com/alghanmi/fluxtube/commit/7a75cdeafbbf3e6515812f093b178af42ca9e262))
+* **v1:** D1 schema migration + repo modules (Phase 1) ([#52](https://github.com/alghanmi/fluxtube/issues/52)) ([d39902c](https://github.com/alghanmi/fluxtube/commit/d39902c032355cdd945f4d3aa455042ca36a5bb6))
+* **v1:** sync Worker dual-mode config loader (Phase 3) ([#55](https://github.com/alghanmi/fluxtube/issues/55)) ([c27539c](https://github.com/alghanmi/fluxtube/commit/c27539c146f20094403ce609a64b95016045085c))
+
 ## [0.7.0](https://github.com/alghanmi/fluxtube/compare/v0.6.0...v0.7.0) (2026-07-04)
 
 
