@@ -45,7 +45,13 @@ function buildLokiSink(env: Env, runId: string): LogSink | undefined {
       baseUrl: env.GRAFANA_LOKI_URL,
       userId: env.GRAFANA_LOKI_USER,
       apiToken: env.GRAFANA_LOKI_TOKEN,
-      labels: { app: 'fluxtube', env: 'production', run_id: runId, version: VERSION },
+      labels: {
+        app: 'fluxtube',
+        env: 'production',
+        instance_id: env.INSTANCE_ID ?? 'unknown',
+        run_id: runId,
+        version: VERSION,
+      },
     },
     warnToStderr,
   );
@@ -70,6 +76,7 @@ function buildMetricsSink(env: Env, runId: string): MetricsSink | undefined {
         'service.namespace': 'production',
         'service.instance.id': runId,
         'service.version': VERSION,
+        instance_id: env.INSTANCE_ID ?? 'unknown',
       },
     },
     warnToStderr,

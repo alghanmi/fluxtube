@@ -16,7 +16,7 @@
         "hide": false,
         "iconColor": "rgba(255, 96, 96, 1)",
         "name": "Deploys",
-        "expr": "fluxtube_deploys",
+        "expr": "fluxtube_deploys{instance_id=~\"$instance_id\"}",
         "step": "1m",
         "titleFormat": "Deploy v{{ version }} ({{ outcome }})",
         "textFormat": "sha {{ sha }} by @{{ actor }}",
@@ -74,7 +74,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
           "editorMode": "code",
-          "expr": "sum by (outcome) (sum_over_time(fluxtube_runs[$__interval]))",
+          "expr": "sum by (outcome) (sum_over_time(fluxtube_runs{instance_id=~\"$instance_id\"}[$__interval]))",
           "legendFormat": "{{outcome}}",
           "range": true,
           "refId": "A"
@@ -119,7 +119,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
           "editorMode": "code",
-          "expr": "quantile_over_time(0.95, fluxtube_run_duration_seconds[$__range])",
+          "expr": "quantile_over_time(0.95, fluxtube_run_duration_seconds{instance_id=~\"$instance_id\"}[$__range])",
           "legendFormat": "p95",
           "range": true,
           "refId": "A"
@@ -170,7 +170,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
           "editorMode": "code",
-          "expr": "sum_over_time(fluxtube_items_added[$__interval])",
+          "expr": "sum_over_time(fluxtube_items_added{instance_id=~\"$instance_id\"}[$__interval])",
           "legendFormat": "added",
           "range": true,
           "refId": "A"
@@ -221,7 +221,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
           "editorMode": "code",
-          "expr": "sum_over_time(fluxtube_items_marked_read[$__interval])",
+          "expr": "sum_over_time(fluxtube_items_marked_read{instance_id=~\"$instance_id\"}[$__interval])",
           "legendFormat": "marked_read",
           "range": true,
           "refId": "A"
@@ -249,6 +249,24 @@
         "regex": "",
         "skipUrlSync": false,
         "type": "datasource"
+      },
+      {
+        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "definition": "label_values(fluxtube_runs, instance_id)",
+        "description": "Filter dashboard panels + annotations to one or more FluxTube instances. Defaults to All so a single-instance operator doesn't have to pick anything.",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Instance",
+        "multi": true,
+        "name": "instance_id",
+        "options": [],
+        "query": { "query": "label_values(fluxtube_runs, instance_id)", "refId": "PrometheusVariableQueryEditor-VariableQuery" },
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
       }
     ]
   },

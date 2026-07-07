@@ -39,6 +39,13 @@ export interface Env {
   // The env-managed sync path (current production) doesn't reference it.
   // See workers/sync/src/crypto.ts + docs/encryption-keychain.md.
   D1_KEYCHAIN?: string;
+
+  // v1 multi-instance: the operator's instance identifier. Emitted as a
+  // Loki label + OTLP resource attribute so a single Grafana stack can
+  // filter observability data by instance via the dashboards' `instance_id`
+  // template variable. Optional so v0 env-managed deploys keep working
+  // without the new binding — falls back to "unknown" downstream.
+  INSTANCE_ID?: string;
 }
 
 export interface CategoryPlaylistMapping {

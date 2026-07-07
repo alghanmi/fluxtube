@@ -12,6 +12,7 @@ locals {
     MINIFLUX_URL              = local.sync_worker_vars.MINIFLUX_URL
     CATEGORY_PLAYLIST_MAPPING = local.sync_worker_vars.CATEGORY_PLAYLIST_MAPPING
     SYNC_LOG_LEVEL            = local.sync_worker_vars.SYNC_LOG_LEVEL
+    INSTANCE_ID               = local.sync_worker_vars.INSTANCE_ID
   }
 
   # Cloudflare's API rejects plain_text bindings whose text is empty, so we

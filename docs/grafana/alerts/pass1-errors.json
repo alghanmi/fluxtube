@@ -13,7 +13,7 @@
       },
       "model": {
         "refId": "A",
-        "expr": "sum_over_time(fluxtube_errors_entry[1h])",
+        "expr": "sum by (instance_id) (sum_over_time(fluxtube_errors_entry[1h]))",
         "instant": true
       }
     },
@@ -41,7 +41,8 @@
   },
   "labels": {
     "app": "fluxtube",
-    "severity": "warning"
+    "severity": "warning",
+    "instance_id": "{{ $labels.instance_id }}"
   },
   "isPaused": false
 }

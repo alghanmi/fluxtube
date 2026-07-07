@@ -13,7 +13,7 @@
       },
       "model": {
         "refId": "A",
-        "expr": "sum_over_time(fluxtube_items_marked_read[3h])",
+        "expr": "sum by (instance_id) (sum_over_time(fluxtube_items_marked_read[3h]))",
         "instant": true
       }
     },
@@ -27,7 +27,7 @@
       },
       "model": {
         "refId": "B",
-        "expr": "sum_over_time(fluxtube_runs{outcome=\"success\"}[3h])",
+        "expr": "sum by (instance_id) (sum_over_time(fluxtube_runs{outcome=\"success\"}[3h]))",
         "instant": true
       }
     },
@@ -55,7 +55,8 @@
   },
   "labels": {
     "app": "fluxtube",
-    "severity": "warning"
+    "severity": "warning",
+    "instance_id": "{{ $labels.instance_id }}"
   },
   "isPaused": false
 }
