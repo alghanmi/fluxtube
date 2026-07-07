@@ -42,10 +42,9 @@ interface Env {
    */
   MANUAL_TRIGGER_TOKEN?: string;
   /**
-   * WebAuthn relying-party ID — the domain the passkey is bound to. In
-   * production this is `fluxtube.alghanmi.cloud`; injected via Terraform
-   * from `var.dashboard_domain` (Phase 7) so the private hostname never
-   * lives in the public repo.
+   * WebAuthn relying-party ID — the domain the passkey is bound to.
+   * Injected via Terraform from `var.dashboard_domain` (Phase 7) so the
+   * private hostname never lives in the public repo.
    */
   RP_ID?: string;
   /**
