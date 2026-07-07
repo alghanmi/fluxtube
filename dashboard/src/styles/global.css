@@ -1,0 +1,348 @@
+/* ─────────────────────────────────────────────────────────────────────────
+ * fluxtube dashboard — design tokens
+ *
+ * Extends the warm-terminal dark theme from the fluxtube marketing site
+ * (site/src/styles/global.css) for an interactive surface. Same family of
+ * colors + type; a few extra tokens for form controls, disabled states,
+ * and destructive actions since the marketing site doesn't need them.
+ *
+ * Depth of visual polish here is deliberately restrained — Phase 10
+ * (design handoff to Claude Design) is where the mapping editor gets
+ * its bespoke iconography + interaction states. What ships in Phase 6
+ * is the working shape, not the finished look.
+ * ──────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --color-bg: #14110d;
+  --color-bg-elevated: #1c1813;
+  --color-bg-card: #211c16;
+  --color-bg-terminal: #100d0a;
+  --color-bg-input: #1a1611;
+
+  --color-fg: #ece4d6;
+  --color-fg-muted: #a89f8d;
+  --color-fg-subtle: #6f6757;
+
+  --color-line: #2c261d;
+  --color-line-strong: #3a3327;
+  --color-line-subtle: #221d15;
+
+  --color-accent: #d65a42;
+  --color-accent-hover: #e8745c;
+  --color-accent-brand: #933325;
+  --color-accent-soft: #2a1c17;
+
+  --color-danger: #d65a42;
+  --color-danger-soft: #2a1c17;
+  --color-green: #9bbf6f;
+  --color-amber: #d8a657;
+
+  --font-display:
+    'Fraunces', 'Iowan Old Style', Charter, 'Source Serif Pro', Cambria, Georgia, serif;
+  --font-mono:
+    'IBM Plex Mono', 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Monaco, Consolas, monospace;
+
+  --size-xs: 0.78rem;
+  --size-sm: 0.875rem;
+  --size-base: 1rem;
+  --size-md: 1.125rem;
+  --size-lg: 1.375rem;
+  --size-xl: 1.75rem;
+  --size-2xl: 2.25rem;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-mono);
+  font-size: var(--size-base);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Layout — outer shell */
+
+.shell {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-6);
+}
+
+.shell-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-6);
+  border-bottom: 1px solid var(--color-line);
+  padding-bottom: var(--space-4);
+  margin-bottom: var(--space-8);
+}
+
+.shell-title {
+  font-family: var(--font-display);
+  font-size: var(--size-2xl);
+  font-weight: 400;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.shell-nav {
+  display: flex;
+  gap: var(--space-4);
+  font-size: var(--size-sm);
+}
+
+.shell-nav a {
+  color: var(--color-fg-muted);
+  text-decoration: none;
+  padding: var(--space-1) 0;
+  border-bottom: 1px solid transparent;
+}
+
+.shell-nav a:hover,
+.shell-nav a[aria-current='page'] {
+  color: var(--color-fg);
+  border-bottom-color: var(--color-accent);
+}
+
+/* Cards + panels */
+
+.card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-line);
+  padding: var(--space-6);
+  margin-bottom: var(--space-4);
+}
+
+.card-title {
+  font-family: var(--font-display);
+  font-size: var(--size-lg);
+  font-weight: 500;
+  margin: 0 0 var(--space-3);
+}
+
+.card-subtitle {
+  font-size: var(--size-sm);
+  color: var(--color-fg-muted);
+  margin: 0 0 var(--space-4);
+}
+
+/* Form controls */
+
+label {
+  display: block;
+  font-size: var(--size-xs);
+  color: var(--color-fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: var(--space-1);
+}
+
+input[type='text'],
+input[type='url'],
+input[type='password'],
+input[type='number'],
+select,
+textarea {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-line);
+  color: var(--color-fg);
+  font-family: var(--font-mono);
+  font-size: var(--size-sm);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.field {
+  margin-bottom: var(--space-4);
+}
+
+.field-row {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: 1fr 1fr;
+}
+
+/* Buttons */
+
+button,
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: transparent;
+  border: 1px solid var(--color-line-strong);
+  color: var(--color-fg);
+  font-family: var(--font-mono);
+  font-size: var(--size-sm);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+button:hover,
+.button:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+button:disabled,
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button.primary,
+.button.primary {
+  background: var(--color-accent);
+  color: var(--color-bg);
+  border-color: var(--color-accent);
+}
+
+button.primary:hover,
+.button.primary:hover {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+  color: var(--color-bg);
+}
+
+button.danger {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+button.danger:hover {
+  background: var(--color-danger-soft);
+}
+
+/* Status pills */
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  font-size: var(--size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border: 1px solid var(--color-line-strong);
+  color: var(--color-fg-muted);
+}
+
+.pill.ok {
+  color: var(--color-green);
+  border-color: var(--color-green);
+}
+.pill.warn {
+  color: var(--color-amber);
+  border-color: var(--color-amber);
+}
+.pill.err {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+/* Terminal / code frame */
+
+.terminal {
+  background: var(--color-bg-terminal);
+  border: 1px solid var(--color-line-strong);
+  padding: var(--space-4);
+  font-family: var(--font-mono);
+  font-size: var(--size-sm);
+  color: var(--color-fg);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* Utility */
+
+.muted {
+  color: var(--color-fg-muted);
+}
+.small {
+  font-size: var(--size-sm);
+}
+.xs {
+  font-size: var(--size-xs);
+}
+.stack > * + * {
+  margin-top: var(--space-3);
+}
+.row {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Toast (used by MappingEditor for save feedback) */
+
+.toast {
+  position: fixed;
+  bottom: var(--space-6);
+  right: var(--space-6);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-line-strong);
+  background: var(--color-bg-elevated);
+  color: var(--color-fg);
+  font-size: var(--size-sm);
+  z-index: 100;
+}
+
+.toast.ok {
+  border-color: var(--color-green);
+}
+.toast.err {
+  border-color: var(--color-danger);
+}
+
+/* Screen reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 720px) {
+  .shell {
+    padding: var(--space-6) var(--space-4);
+  }
+  .field-row {
+    grid-template-columns: 1fr;
+  }
+}

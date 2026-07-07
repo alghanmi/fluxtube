@@ -1,0 +1,87 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  nav?: boolean;
+}
+
+const { title, nav = false } = Astro.props;
+const currentPath = Astro.url.pathname;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta name="theme-color" content="#14110d" />
+    <title>{title} · fluxtube</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..600&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    />
+  </head>
+  <body>
+    <div class="shell">
+      <header class="shell-header">
+        <h1 class="shell-title">fluxtube</h1>
+        {
+          nav && (
+            <nav class="shell-nav" aria-label="Primary">
+              <a href="/dashboard" aria-current={currentPath === '/dashboard' ? 'page' : undefined}>
+                mappings
+              </a>
+              <a
+                href="/dashboard/settings"
+                aria-current={currentPath.startsWith('/dashboard/settings') ? 'page' : undefined}
+              >
+                settings
+              </a>
+              <a
+                href="/dashboard/history"
+                aria-current={currentPath.startsWith('/dashboard/history') ? 'page' : undefined}
+              >
+                history
+              </a>
+              <a
+                href="/dashboard/backup"
+                aria-current={currentPath.startsWith('/dashboard/backup') ? 'page' : undefined}
+              >
+                backup
+              </a>
+              <button
+                type="button"
+                id="logout-btn"
+                style="background: transparent; border: none; color: var(--color-fg-muted); padding: 0; font-family: inherit; font-size: inherit; cursor: pointer;"
+                >logout</button
+              >
+            </nav>
+          )
+        }
+        {
+          nav && (
+            <script is:inline>
+              document.getElementById('logout-btn')?.addEventListener('click', async () => {
+                try {
+                  await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
+                } catch (_e) {
+                  /* ignore */
+                }
+                window.location.replace('/');
+              });
+            </script>
+          )
+        }
+      </header>
+      <main>
+        <slot />
+      </main>
+    </div>
+  </body>
+</html>
