@@ -34,8 +34,14 @@ resource "cloudflare_r2_bucket_lifecycle" "backups" {
       }
       delete_objects_transition = {
         condition = {
-          type            = "Age"
-          max_age_seconds = var.backup_retention_days * 86400
+          # v5.21 schema: `max_age` is the attribute name (value in seconds
+          # per the provider description "after an object reaches an age
+          # in seconds"). Earlier drafts used `max_age_seconds` which the
+          # provider silently accepts as an unknown key and then serializes
+          # into malformed JSON — the API rejects with 400 "The JSON you
+          # provided was not well formed."
+          type    = "Age"
+          max_age = var.backup_retention_days * 86400
         }
       }
     },
