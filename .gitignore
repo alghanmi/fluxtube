@@ -63,3 +63,8 @@ client_secret*.json
 
 # ── Claude Code local state ───────────────────────────────────────────────────
 .claude/
+
+# Terraform plan artifacts (local, transient) — never commit.
+infrastructure/terraform/environments/*/destroy-plan
+infrastructure/terraform/environments/*/destroy-plan.json
+infrastructure/terraform/environments/*/*.tfplan

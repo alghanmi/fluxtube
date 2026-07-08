@@ -158,24 +158,22 @@ export function attachWebauthnRoutes(app: Hono<{ Bindings: WebauthnEnv }>): void
       cfg.signingKey,
     );
 
+    // Two separate Set-Cookie headers via Headers.append. Joining with
+    // ", " looks natural but breaks cookie parsing — cookie values contain
+    // commas (Expires=Wed, 08 Jul...) so browsers read the joined header
+    // as ONE Set-Cookie and only honor the first cookie in the concat.
+    // Silent session-cookie loss; login loops back to /login.
+    const headers = new Headers({ 'Content-Type': 'application/json' });
+    headers.append('Set-Cookie', clearChallengeCookieHeader());
+    headers.append('Set-Cookie', sessionCookieHeader(sessionToken));
+
     return new Response(
       JSON.stringify({
         credentialId: credentialID,
         recoveryCode,
         credentialBackedUp: credentialBackedUp ?? false,
       }),
-      {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          // Clear the challenge cookie; set the session cookie. Set-Cookie
-          // is one of the few headers that Cloudflare allows multiple of.
-          'Set-Cookie': [
-            clearChallengeCookieHeader(),
-            sessionCookieHeader(sessionToken),
-          ].join(', '),
-        },
-      },
+      { status: 200, headers },
     );
   });
 
@@ -271,15 +269,15 @@ export function attachWebauthnRoutes(app: Hono<{ Bindings: WebauthnEnv }>): void
       cfg.signingKey,
     );
 
+    // Two separate Set-Cookie headers — see register/finish for why joining
+    // with ", " is a silent trap.
+    const headers = new Headers({ 'Content-Type': 'application/json' });
+    headers.append('Set-Cookie', clearChallengeCookieHeader());
+    headers.append('Set-Cookie', sessionCookieHeader(sessionToken));
+
     return new Response(JSON.stringify({ credentialId: stored.credentialId }), {
       status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Set-Cookie': [
-          clearChallengeCookieHeader(),
-          sessionCookieHeader(sessionToken),
-        ].join(', '),
-      },
+      headers,
     });
   });
 }
