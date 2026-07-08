@@ -80,13 +80,15 @@ describe('session sign + verify', () => {
 });
 
 describe('cookie headers', () => {
-  it('sessionCookieHeader emits Secure; HttpOnly; SameSite=Strict; Max-Age=86400', () => {
+  it('sessionCookieHeader emits Secure; HttpOnly; SameSite=Lax; Max-Age=86400', () => {
     const header = sessionCookieHeader('abc.def');
     expect(header).toContain('fluxtube_session=abc.def');
     expect(header).toContain('Path=/');
     expect(header).toContain('Secure');
     expect(header).toContain('HttpOnly');
-    expect(header).toContain('SameSite=Strict');
+    // Lax (not Strict) so top-level OAuth callbacks land with the cookie.
+    expect(header).toContain('SameSite=Lax');
+    expect(header).not.toContain('SameSite=Strict');
     expect(header).toContain('Max-Age=86400');
   });
 
@@ -95,7 +97,8 @@ describe('cookie headers', () => {
     expect(header).toContain('fluxtube_session=');
     expect(header).toContain('Max-Age=0');
     expect(header).toContain('HttpOnly');
-    expect(header).toContain('SameSite=Strict');
+    expect(header).toContain('SameSite=Lax');
+    expect(header).not.toContain('SameSite=Strict');
   });
 });
 
