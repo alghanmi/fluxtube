@@ -99,18 +99,24 @@ describe('GET /api/auth/youtube (begin)', () => {
 });
 
 describe('GET /api/auth/youtube/callback', () => {
-  it('400 on invalid state', async () => {
+  // All callback exits are 302 redirects back to /dashboard/settings — the
+  // route is a top-level browser navigation from accounts.google.com, so
+  // raw JSON responses would leave the browser rendering a JSON blob.
+
+  it('redirects with youtube_error=invalid_state on bogus state', async () => {
     const res = await app.fetch(
       new Request('http://d.test/api/auth/youtube/callback?code=abc&state=bogus.deadbeef', {
         headers: { Cookie: await sessionCookie() },
+        redirect: 'manual',
       }),
       testEnv(),
       {} as ExecutionContext,
     );
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(302);
+    expect(res.headers.get('Location')).toBe('/dashboard/settings?youtube_error=invalid_state');
   });
 
-  it('400 on missing code', async () => {
+  it('redirects with youtube_error=missing_code_or_state when code is absent', async () => {
     const beginRes = await app.fetch(
       new Request('http://d.test/api/auth/youtube', {
         headers: { Cookie: await sessionCookie() },
@@ -123,14 +129,16 @@ describe('GET /api/auth/youtube/callback', () => {
     const res = await app.fetch(
       new Request(`http://d.test/api/auth/youtube/callback?state=${state}`, {
         headers: { Cookie: await sessionCookie() },
+        redirect: 'manual',
       }),
       testEnv(),
       {} as ExecutionContext,
     );
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(302);
+    expect(res.headers.get('Location')).toBe('/dashboard/settings?youtube_error=missing_code_or_state');
   });
 
-  it('exchanges code, encrypts and stores the refresh token', async () => {
+  it('exchanges code, encrypts + stores the refresh token, redirects to settings', async () => {
     // Fresh state from begin so verify passes.
     const beginRes = await app.fetch(
       new Request('http://d.test/api/auth/youtube', {
@@ -159,13 +167,13 @@ describe('GET /api/auth/youtube/callback', () => {
     const res = await app.fetch(
       new Request(`http://d.test/api/auth/youtube/callback?code=CODE&state=${state}`, {
         headers: { Cookie: await sessionCookie() },
+        redirect: 'manual',
       }),
       testEnv(),
       {} as ExecutionContext,
     );
-    expect(res.status).toBe(200);
-    const body = (await res.json()) as { ok: boolean; connected: boolean };
-    expect(body).toEqual({ ok: true, connected: true });
+    expect(res.status).toBe(302);
+    expect(res.headers.get('Location')).toBe('/dashboard/settings?youtube=connected');
 
     // Stored + decryptable.
     const stored = await new ConfigRepo(db).getEncrypted('youtube_refresh_token');
@@ -178,7 +186,7 @@ describe('GET /api/auth/youtube/callback', () => {
     expect(decrypted).toBe('rt-xyz-super-secret');
   });
 
-  it('502 when the token exchange fails', async () => {
+  it('redirects with youtube_error=token_exchange_failed when Google rejects the code', async () => {
     const beginRes = await app.fetch(
       new Request('http://d.test/api/auth/youtube', {
         headers: { Cookie: await sessionCookie() },
@@ -203,11 +211,13 @@ describe('GET /api/auth/youtube/callback', () => {
     const res = await app.fetch(
       new Request(`http://d.test/api/auth/youtube/callback?code=CODE&state=${state}`, {
         headers: { Cookie: await sessionCookie() },
+        redirect: 'manual',
       }),
       testEnv(),
       {} as ExecutionContext,
     );
-    expect(res.status).toBe(502);
+    expect(res.status).toBe(302);
+    expect(res.headers.get('Location')).toContain('/dashboard/settings?youtube_error=token_exchange_failed');
   });
 });
 
