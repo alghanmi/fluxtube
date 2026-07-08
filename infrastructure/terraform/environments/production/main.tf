@@ -54,13 +54,6 @@ module "fluxtube" {
   dashboard_cron_enabled  = var.dashboard_cron_enabled
   backup_retention_days   = var.backup_retention_days
 
-  # Dashboard secrets
-  session_signing_key   = var.session_signing_key
-  d1_keychain           = var.d1_keychain
-  manual_trigger_token  = var.manual_trigger_token
-  youtube_client_id     = var.youtube_client_id
-  youtube_client_secret = var.youtube_client_secret
-
   # Observability
   grafana_loki_url  = var.grafana_loki_url
   grafana_loki_user = var.grafana_loki_user

@@ -112,41 +112,25 @@ variable "backup_retention_days" {
   default     = 120
 }
 
-# ── Dashboard secrets (Phase 7) ──────────────────────────────────────────────
+# ── Worker secrets — NOT Terraform-managed ──────────────────────────────────
 #
-# All of these are wired via secret_text bindings, not plain_text — the API
-# response for a bindings list masks their values. They come from Bitwarden
-# via the deploy companion's sync-worker-secrets.sh at rotation time.
-
-variable "session_signing_key" {
-  description = "32-byte base64 HMAC key used by the dashboard Worker for session + challenge cookies."
-  type        = string
-  sensitive   = true
-}
-
-variable "d1_keychain" {
-  description = "JSON keychain: {\"current\":N,\"keys\":{\"N\":\"<b64 32-byte key>\"}}. Used by both the dashboard Worker (encrypt) and sync Worker (decrypt) for at-rest column crypto."
-  type        = string
-  sensitive   = true
-}
-
-variable "manual_trigger_token" {
-  description = "Bearer token accepted by both Workers for operator-script auth (trigger-sync.sh, deploy-time smoke tests)."
-  type        = string
-  sensitive   = true
-}
-
-variable "youtube_client_id" {
-  description = "Google Cloud OAuth 2.0 Web application client id. Redirect URI must be https://{dashboard_domain}/api/auth/youtube/callback."
-  type        = string
-  sensitive   = true
-}
-
-variable "youtube_client_secret" {
-  description = "Matching OAuth client secret."
-  type        = string
-  sensitive   = true
-}
+# SESSION_SIGNING_KEY, D1_KEYCHAIN, MANUAL_TRIGGER_TOKEN,
+# YOUTUBE_CLIENT_ID/SECRET, GRAFANA_LOKI_TOKEN, GRAFANA_OTLP_TOKEN,
+# MINIFLUX_API_TOKEN, YOUTUBE_REFRESH_TOKEN — all live in Bitwarden's
+# `FluxTube / Worker Secrets / Production` item and get pushed to the
+# running Workers via the deploy companion's sync-worker-secrets.sh
+# (which loops over both worker names). This module deliberately does
+# NOT accept them as variables — Terraform's role stops at the D1 /
+# R2 / KV / service bindings; the secret_text lifecycle is single-
+# owned by wrangler.
+#
+# Trade-off documented, not just "removed": Terraform-owned
+# secret_text bindings would put the value under Terraform state (so
+# `terraform plan` shows drift if wrangler clobbers it), which is a
+# real property. The counter-argument that wins for FluxTube: the
+# interaction between `wrangler deploy` and Terraform-set secrets
+# isn't crisp in Cloudflare's docs, and the operator's mental model
+# stays simpler with one channel (wrangler) owning secrets end-to-end.
 
 # ── Observability (unchanged from v0) ────────────────────────────────────────
 

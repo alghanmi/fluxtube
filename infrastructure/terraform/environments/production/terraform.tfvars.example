@@ -39,14 +39,10 @@ dashboard_cron_schedule = "15 4 * * *"
 dashboard_cron_enabled  = true
 backup_retention_days   = 120
 
-# ── Dashboard secrets ───────────────────────────────────────────────────────
-# All base64-encoded / plaintext strings — Terraform's `sensitive = true` on
-# each variable prevents their values from appearing in plan/apply logs.
-session_signing_key   = "base64-encoded-32-byte-hmac-key=="
-d1_keychain           = "{\"current\":1,\"keys\":{\"1\":\"base64-32-byte-key==\"}}"
-manual_trigger_token  = "shared-bearer-token"
-youtube_client_id     = "1234567890.apps.googleusercontent.com"
-youtube_client_secret = "GOCSPX-redacted"
+# ── Worker secrets ──────────────────────────────────────────────────────────
+# Not Terraform-managed. Live in Bitwarden's `FluxTube / Worker Secrets /
+# Production` item and get pushed via the deploy companion's
+# scripts/sync-worker-secrets.sh (which loops over both worker names).
 
 # ── Healthchecks.io ─────────────────────────────────────────────────────────
 heartbeat_url       = "https://hc-ping.com/00000000-0000-0000-0000-000000000000"
