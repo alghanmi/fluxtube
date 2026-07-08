@@ -252,9 +252,19 @@ describe('POST /api/auth/passkey/register/finish', () => {
     expect(body.recoveryCode.length).toBeGreaterThan(30);
     expect(body.credentialBackedUp).toBe(true);
 
-    const setCookie = res.headers.get('Set-Cookie') ?? '';
-    expect(setCookie).toContain('fluxtube_challenge='); // clear
-    expect(setCookie).toContain('fluxtube_session='); // set
+    // Two SEPARATE Set-Cookie headers. res.headers.get('Set-Cookie') only
+    // returns the first; use getSetCookie() to see both. Joining them with
+    // ", " into a single header would silently break — cookie values contain
+    // commas (Expires=Wed, ...), so the browser reads the joined header as
+    // ONE cookie and only honors the first one.
+    const cookies = res.headers.getSetCookie();
+    expect(cookies).toHaveLength(2);
+    expect(cookies.some((c) => c.startsWith('fluxtube_challenge=') && c.includes('Max-Age=0'))).toBe(
+      true,
+    );
+    expect(
+      cookies.some((c) => c.startsWith('fluxtube_session=') && c.includes('Max-Age=')),
+    ).toBe(true);
 
     // Row landed in D1.
     const row = await new AdminPasskeyRepo(db).get('new-cred-id');
@@ -353,9 +363,13 @@ describe('POST /api/auth/passkey/authenticate/finish', () => {
     expect(res.status).toBe(200);
     expect(((await res.json()) as { credentialId: string }).credentialId).toBe('cred-abc');
 
-    const setCookie = res.headers.get('Set-Cookie') ?? '';
-    expect(setCookie).toContain('fluxtube_session=');
-    expect(setCookie).toContain('fluxtube_challenge=');
+    // Two separate Set-Cookie headers — see register/finish for why.
+    const cookies = res.headers.getSetCookie();
+    expect(cookies).toHaveLength(2);
+    expect(cookies.some((c) => c.startsWith('fluxtube_session='))).toBe(true);
+    expect(cookies.some((c) => c.startsWith('fluxtube_challenge=') && c.includes('Max-Age=0'))).toBe(
+      true,
+    );
 
     // sign_count bumped in D1.
     const row = await new AdminPasskeyRepo(db).get('cred-abc');
