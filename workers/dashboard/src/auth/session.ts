@@ -72,26 +72,37 @@ export async function verifySession(
   return payload;
 }
 
-/** Set-Cookie value for a signed token. Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age=24h. */
+/**
+ * Set-Cookie value for a signed session token. Secure; HttpOnly; SameSite=Lax;
+ * Path=/; Max-Age=24h.
+ *
+ * SameSite=Lax (not Strict) so top-level browser navigations from another
+ * origin land with the cookie attached. Concretely: Google's OAuth callback
+ * (accounts.google.com → dashboard) is such a navigation, and with Strict
+ * the browser drops the session cookie → callback returns 401. Lax still
+ * blocks CSRF via cross-site POST forms (the important attack surface); it
+ * only allows same-site cookies on GET-style top-level navigations that
+ * the user explicitly initiated.
+ */
 export function sessionCookieHeader(token: string): string {
   return [
     `${COOKIE_NAME}=${token}`,
     'Path=/',
     'Secure',
     'HttpOnly',
-    'SameSite=Strict',
+    'SameSite=Lax',
     `Max-Age=${MAX_AGE_SECONDS}`,
   ].join('; ');
 }
 
-/** Set-Cookie value that clears the session cookie. */
+/** Set-Cookie value that clears the session cookie. SameSite must match sessionCookieHeader. */
 export function clearSessionCookieHeader(): string {
   return [
     `${COOKIE_NAME}=`,
     'Path=/',
     'Secure',
     'HttpOnly',
-    'SameSite=Strict',
+    'SameSite=Lax',
     'Max-Age=0',
   ].join('; ');
 }
