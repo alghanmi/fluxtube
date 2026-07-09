@@ -215,14 +215,14 @@ export async function scheduledHandler(
   try {
     const result = await generateBackup(env, new Date());
     await new ConfigRepo(env.DB).setPlain('backup_last_success_at', String(now), now);
-    emitBackupMetrics(metrics, ctx, {
+    emitBackupMetrics(metrics, ctx, env, {
       outcome: 'success',
       sizeBytes: result.sizeBytes,
       lastSuccessSec: now,
     });
   } catch (err) {
     await new ConfigRepo(env.DB).setPlain('backup_last_failure_at', String(now), now);
-    emitBackupMetrics(metrics, ctx, { outcome: 'failure' });
+    emitBackupMetrics(metrics, ctx, env, { outcome: 'failure' });
     // Re-throw so the cron surfaces the failure to Cloudflare's execution log.
     throw err;
   }
@@ -256,12 +256,19 @@ function buildMetricsSink(env: Env): MetricsSink | undefined {
 function emitBackupMetrics(
   metrics: MetricsSink | undefined,
   ctx: ExecutionContext,
+  env: Env,
   input:
     | { outcome: 'success'; sizeBytes: number; lastSuccessSec: number }
     | { outcome: 'failure' },
 ): void {
   if (!metrics) return;
   const ts = new Date();
+  // instance_id as a per-sample attribute (Prometheus label) so Grafana's
+  // label_values() dashboard template variable finds it. Resource-attribute-
+  // only labels land on target_info, not on individual metric series.
+  const commonAttributes: Record<string, string> = {
+    instance_id: env.INSTANCE_ID ?? 'unknown',
+  };
   // Names use dot-style so Mimir's OTLP receiver produces
   // fluxtube_backup_runs_total / fluxtube_backup_last_success_seconds /
   // fluxtube_backup_size_bytes on the PromQL side.
@@ -269,18 +276,20 @@ function emitBackupMetrics(
     name: 'fluxtube.backup.runs_total',
     value: 1,
     ts,
-    attributes: { outcome: input.outcome },
+    attributes: { ...commonAttributes, outcome: input.outcome },
   });
   if (input.outcome === 'success') {
     metrics.push({
       name: 'fluxtube.backup.last_success_seconds',
       value: input.lastSuccessSec,
       ts,
+      attributes: commonAttributes,
     });
     metrics.push({
       name: 'fluxtube.backup.size_bytes',
       value: input.sizeBytes,
       ts,
+      attributes: commonAttributes,
     });
   }
   metrics.flush(ctx);

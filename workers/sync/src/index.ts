@@ -128,6 +128,14 @@ export default {
     // Post-load: log level comes from the resolved runtime (env or D1-derived).
     const logger = createLogger(parseLogLevel(runtime.syncLogLevel), sink);
 
+    // Common attributes for every OTLP data point. instance_id lives as a
+    // per-sample attribute (Prometheus label) so Grafana's label_values()
+    // template variable finds it. Resource-attribute-only labels land on
+    // target_info, not on individual metric series.
+    const commonAttributes: Record<string, string> = {
+      instance_id: env.INSTANCE_ID ?? 'unknown',
+    };
+
     // Optional start-ping; fire-and-forget but kept alive past the handler.
     if (env.HEARTBEAT_URL) {
       ctx.waitUntil(ping(env.HEARTBEAT_URL, 'start', logger));
@@ -137,7 +145,7 @@ export default {
       const summary = await runSync(runtime.mappings, buildDeps(runtime, env, logger));
 
       if (metrics) {
-        emitRunMetrics(metrics, summary, 'success', startedAt);
+        emitRunMetrics(metrics, summary, 'success', startedAt, commonAttributes);
         metrics.flush(ctx);
       }
       if (env.HEARTBEAT_URL) {
@@ -179,7 +187,7 @@ export default {
           name: 'fluxtube.runs',
           value: 1,
           ts: startedAt,
-          attributes: { outcome: fatalOutcome(err) },
+          attributes: { ...commonAttributes, outcome: fatalOutcome(err) },
         });
         metrics.flush(ctx);
       }
@@ -222,6 +230,9 @@ export default {
     }
 
     const logger = createLogger(parseLogLevel(runtime.syncLogLevel), sink);
+    const commonAttributes: Record<string, string> = {
+      instance_id: env.INSTANCE_ID ?? 'unknown',
+    };
     try {
       return await handleFetch(
         request,
@@ -231,6 +242,7 @@ export default {
         buildDeps(runtime, env, logger),
         runtime.mappings,
         metrics,
+        commonAttributes,
       );
     } finally {
       metrics?.flush(ctx);

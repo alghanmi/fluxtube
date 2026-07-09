@@ -173,9 +173,19 @@ export function emitRunMetrics(
   summary: RunMetricsInput,
   outcome: 'success' | 'fatal_invalid_grant' | 'fatal_quota_exhausted' | 'fatal_other',
   ts: Date,
+  commonAttributes?: Record<string, string>,
 ): void {
   const push = (name: string, value: number, attributes?: Record<string, string>): void => {
-    sink.push({ name, value, ts, ...(attributes ? { attributes } : {}) });
+    // Merge commonAttributes (e.g. instance_id) with per-metric attributes.
+    // These become series labels on the Prometheus side, which is what a
+    // dashboard's label_values() template variable actually queries.
+    // Resource attributes only land on target_info, not on individual
+    // metric series, so they can't drive template variables.
+    const merged: Record<string, string> | undefined =
+      commonAttributes || attributes
+        ? { ...(commonAttributes ?? {}), ...(attributes ?? {}) }
+        : undefined;
+    sink.push({ name, value, ts, ...(merged ? { attributes: merged } : {}) });
   };
 
   push('fluxtube.items.added', summary.added);

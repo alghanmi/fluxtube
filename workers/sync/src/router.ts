@@ -29,6 +29,7 @@ export async function handleFetch(
   deps: RouterDeps,
   mappings: CategoryPlaylistMapping[],
   metrics?: MetricsSink,
+  metricCommonAttributes?: Record<string, string>,
 ): Promise<Response> {
   if (!authorized(request, env.MANUAL_TRIGGER_TOKEN)) {
     return jsonResponse({ error: 'unauthorized' }, 401);
@@ -46,7 +47,7 @@ export async function handleFetch(
     if (wait) {
       try {
         const summary = await runSync(mappings, deps);
-        if (metrics) emitRunMetrics(metrics, summary, 'success', startedAt);
+        if (metrics) emitRunMetrics(metrics, summary, 'success', startedAt, metricCommonAttributes);
         logger.info('manual_sync_complete', { request_id: requestId, ...summary });
         return jsonResponse(
           { status: 'completed', request_id: requestId, summary },
@@ -64,7 +65,7 @@ export async function handleFetch(
             name: 'fluxtube.runs',
             value: 1,
             ts: startedAt,
-            attributes: { outcome: fatalOutcomeAttr(reason) },
+            attributes: { ...(metricCommonAttributes ?? {}), outcome: fatalOutcomeAttr(reason) },
           });
         }
         return jsonResponse(
@@ -82,7 +83,7 @@ export async function handleFetch(
     ctx.waitUntil(
       runSync(mappings, deps)
         .then((summary) => {
-          if (metrics) emitRunMetrics(metrics, summary, 'success', startedAt);
+          if (metrics) emitRunMetrics(metrics, summary, 'success', startedAt, metricCommonAttributes);
           logger.info('manual_sync_complete', { request_id: requestId, ...summary });
         })
         .catch((err) => {
@@ -92,7 +93,7 @@ export async function handleFetch(
               name: 'fluxtube.runs',
               value: 1,
               ts: startedAt,
-              attributes: { outcome: fatalOutcomeAttr(reason) },
+              attributes: { ...(metricCommonAttributes ?? {}), outcome: fatalOutcomeAttr(reason) },
             });
           }
           logger.error('manual_sync_failed', {
