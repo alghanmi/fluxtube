@@ -72,6 +72,8 @@ interface FakeYouTubeOptions {
   unavailableVideoIds?: Set<string>;
   insertFails?: Set<string>;
   fatalOnList?: boolean;
+  /** Per-playlist FatalError from listPlaylistItems (e.g. simulate a 404 stale playlist). */
+  listFatalByPlaylist?: Map<string, FatalError>;
 }
 
 function fakeYouTube(opts: FakeYouTubeOptions): {
@@ -87,6 +89,8 @@ function fakeYouTube(opts: FakeYouTubeOptions): {
     quotaUsed: 0,
     listPlaylistItems: vi.fn(async (playlistId: string) => {
       if (opts.fatalOnList) throw new FatalError('quota_exhausted', 'simulated');
+      const perPlaylistFatal = opts.listFatalByPlaylist?.get(playlistId);
+      if (perPlaylistFatal) throw perPlaylistFatal;
       return state[playlistId] ?? [];
     }),
     insertPlaylistItem: vi.fn(async (playlistId: string, videoId: string) => {
@@ -485,6 +489,52 @@ describe('runSync — Pass 2: detect removals', () => {
     // Should not throw
     await runSync(mapping, { miniflux, youtube, state, logger });
     expect(await state.exists(100, 'PLa')).toBe(false);
+  });
+
+  it('logs+skips a stale playlist (Pass 2 404) without aborting the whole run (regression)', async () => {
+    // Setup: two playlists have queue rows — PLa is a current mapping, PLstale
+    // is a leftover row from a prior config. YouTube returns
+    // FatalError('playlist_list_failed') for PLstale (simulating a 404).
+    // Pass 2 should log_warn + continue, then process PLa's removals cleanly
+    // — NOT abort with FatalError.
+    const mapping: CategoryPlaylistMapping[] = [{ category: 'X', playlistId: 'PLa' }];
+    const { client: miniflux } = fakeMiniflux({
+      categories: [{ id: 1, title: 'X' }],
+      unreadByCategory: { 1: [] }, // entry 100 is now read on Miniflux; Pass 2 will mark_read entry 200 via removal detection
+    });
+    const { client: youtube } = fakeYouTube({
+      initialItems: { PLa: [] }, // PLa is empty (video was removed)
+      listFatalByPlaylist: new Map([
+        ['PLstale', new FatalError('playlist_list_failed', 'simulated 404')],
+      ]),
+    });
+
+    const state = new QueueState(db);
+    // Row in the current playlist that Pass 2 should process
+    await state.insert({
+      minifluxEntryId: 200,
+      youtubeVideoId: 'bbbbbbbbbbb',
+      youtubePlaylistId: 'PLa',
+      playlistItemId: 'PI1',
+      addedAt: 1,
+    });
+    // Orphan row in the stale playlist that will 404
+    await state.insert({
+      minifluxEntryId: 300,
+      youtubeVideoId: 'cccccccccccc',
+      youtubePlaylistId: 'PLstale',
+      playlistItemId: 'PI2',
+      addedAt: 1,
+    });
+
+    // Should not throw. Regression: pre-fix, this threw FatalError.
+    await runSync(mapping, { miniflux, youtube, state, logger });
+
+    // PLa's removal was processed — row deleted, entry 200 marked read.
+    expect(await state.exists(200, 'PLa')).toBe(false);
+    expect(miniflux.markRead).toHaveBeenCalledWith([200]);
+    // PLstale row is untouched (Pass 2 skipped it entirely).
+    expect(await state.exists(300, 'PLstale')).toBe(true);
   });
 });
 

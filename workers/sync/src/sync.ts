@@ -263,6 +263,22 @@ export async function runSync(
     try {
       playlistItems = await getPlaylistItems(playlistId);
     } catch (err) {
+      // Pass 2 iterates whatever's in D1. Unlike Pass 1 — where playlists
+      // come from operator-configured mappings and a 404 means a real
+      // config error — Pass 2's playlist set can include stale rows from a
+      // previous config (e.g. a v0-era playlist that got removed from
+      // the mapping without deleting its queue rows). A 404 on such a
+      // playlist should log + skip, not abort the whole run.
+      //
+      // Other quota / auth Fatal reasons still propagate — those aren't
+      // per-playlist.
+      if (err instanceof FatalError && err.reason === 'playlist_list_failed') {
+        logger.warn('pass2_playlist_missing', {
+          playlist_id: playlistId,
+          hint: 'Playlist returned 404 — deleted or from a prior config. Consider cleaning the D1 queue rows for this playlist.',
+        });
+        continue;
+      }
       if (err instanceof FatalError) throw err;
       logger.error('youtube_list_playlist_failed', {
         playlist_id: playlistId,
