@@ -68,3 +68,9 @@ client_secret*.json
 infrastructure/terraform/environments/*/destroy-plan
 infrastructure/terraform/environments/*/destroy-plan.json
 infrastructure/terraform/environments/*/*.tfplan
+
+# Local operator env — sources CF/Miniflux/YouTube tokens for wrangler.
+# Never commit.
+env.sh
+.env
+.env.local
