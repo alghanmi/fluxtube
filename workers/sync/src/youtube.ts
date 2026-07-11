@@ -37,8 +37,10 @@ export class YouTubeClient {
    * so this runs once per invocation; the access token mint itself does not
    * count against the 10k quota.
    *
-   * `invalid_grant` is fatal — the refresh token has been revoked and the
-   * user must re-run `oauth-bootstrap`. Caller should ping Healthchecks fail.
+   * `invalid_grant` is fatal — the refresh token has been revoked. Operator
+   * must reconnect YouTube via the dashboard's /dashboard/settings page
+   * (which walks the OAuth flow and writes a fresh token to D1). Caller
+   * should ping Healthchecks fail.
    */
   private async ensureAccessToken(): Promise<string> {
     if (this.accessToken !== null) return this.accessToken;
@@ -76,7 +78,7 @@ export class YouTubeClient {
       if (errCode === 'invalid_grant') {
         throw new FatalError(
           'invalid_grant',
-          'YouTube refresh token has been revoked or is expired. Re-run scripts/oauth-bootstrap.ts.',
+          'YouTube refresh token has been revoked or is expired. Reconnect YouTube at /dashboard/settings.',
         );
       }
       throw new FatalError(

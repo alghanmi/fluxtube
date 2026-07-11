@@ -4,7 +4,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "oauth-bootstrap": "tsx oauth-bootstrap.ts",
     "sync-grafana": "tsx sync-grafana.ts",
     "typecheck": "tsc --noEmit"
   },

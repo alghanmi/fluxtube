@@ -41,7 +41,6 @@ Deployment is automated via a companion deploy repo — see [Deploying your own 
 │   ├── dashboards/
 │   └── alerts/
 ├── scripts/
-│   ├── oauth-bootstrap.ts       # One-time YouTube OAuth flow (local-only)
 │   └── sync-grafana.ts          # Push dashboards + alerts to Grafana Cloud
 └── .github/workflows/
     ├── pr-checks.yml            # typecheck + lint + test + audit

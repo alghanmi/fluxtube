@@ -2,7 +2,7 @@
   "name": "@fluxtube/site",
   "version": "0.0.0",
   "private": true,
-  "description": "fluxtube.forklabs.cc — project landing + OAuth callback widget for FluxTube",
+  "description": "fluxtube.forklabs.cc — project landing page for FluxTube",
   "license": "MIT",
   "type": "module",
   "scripts": {

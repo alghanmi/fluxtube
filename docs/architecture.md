@@ -144,7 +144,7 @@ Two things we explicitly *don't* do:
 
 | Failure | Symptom | Recovery |
 |---|---|---|
-| YouTube refresh token expires (Google's 7-day Testing-mode policy) | `invalid_grant` in logs → `HEARTBEAT_URL_AUTH/fail` fires within one tick | `./scripts/sync-worker-secrets.sh production --refresh-youtube-token` |
+| YouTube refresh token revoked | `invalid_grant` in logs → `HEARTBEAT_URL_AUTH/fail` fires within one tick | Sign into `/dashboard/settings` → **Reconnect YouTube** (walks OAuth, writes fresh token to D1 encrypted). Post-verification the token no longer expires on a fixed cycle. |
 | YouTube quota exhausted | `quota_exhausted` → `HEARTBEAT_URL_QUOTA/fail` | Wait until midnight Pacific; quota resets daily |
 | Miniflux transient 5xx mid-run | One or more `entry_processing_failed` / `removal_processing_failed` log lines; run continues | Next cron tick picks up where this one left off |
 | Video unavailable on YouTube (private / deleted) | `skipped_unavailable` log line; entry marked read | Nothing to do — terminal state |
@@ -209,7 +209,7 @@ The Workers free tier's 10ms CPU limit is irrelevant here — almost all wall ti
 | The deploy companion (private) | The values Terraform consumes (CF account ID, R2 bucket, etc.), the secrets the Worker reads, the deploy workflow that stitches it all together |
 | Terraform HCL (here, applied from the deploy companion) | All Cloudflare resources: D1, Worker script, cron trigger, plain_text bindings |
 | Wrangler (`wrangler deploy --keep-vars`, run by the deploy companion's workflow) | The Worker's JS bundle. `--keep-vars` means Terraform's plain_text bindings survive every deploy |
-| `scripts/oauth-bootstrap.ts` (here, local-only) | Runs the YouTube OAuth flow via the hosted callback at `https://fluxtube.forklabs.cc/oauth/callback`; the operator pastes the code back from that page. Prints the refresh token (or JSON-encodes it via `--json` for an auto-refresh script in the deploy companion to capture). |
+| Dashboard `POST /api/auth/youtube` flow (v1) | Runs the YouTube OAuth handshake in-browser after the operator signs into the dashboard PWA. The dashboard Worker exchanges the code with Google, encrypts the refresh token under the D1 keychain, and writes it to `config.youtube_refresh_token`. |
 
 Nothing sensitive is ever committed to this repository or persisted on disk after a script run completes.
 
