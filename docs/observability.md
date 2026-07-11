@@ -212,7 +212,7 @@ A starter dashboard ships in this repo: `docs/grafana/dashboards/fluxtube-overvi
 | Items added | `sum_over_time(fluxtube_items_added[$__interval])` |
 | Items marked read | `sum_over_time(fluxtube_items_marked_read[$__interval])` |
 
-Installation is automatic via the `sync-grafana.yml` workflow — see the **Grafana sync workflow** section below. You don't import dashboards via the UI; you edit JSON in the repo and merge.
+Installation is automatic via the `sync-grafana.yml` workflow (which lives in the deploy companion, since the Grafana API token is a private-side secret) — see the **Grafana sync workflow** section below. You don't import dashboards via the UI; you edit JSON in this repo and merge.
 
 ### Failure mode
 
@@ -293,7 +293,9 @@ You don't. The `sync-grafana.yml` workflow handles it — every PR touching `doc
 
 ## Grafana sync workflow
 
-`.github/workflows/sync-grafana.yml` pushes everything under `docs/grafana/` to Grafana Cloud. The repo is the source of truth; UI edits are blocked by Grafana (no `X-Disable-Provenance` header is sent), so the dashboard pencil-with-slash icon means "edit the repo, not me."
+`sync-grafana.yml` — a workflow that lives in the **deploy companion** (`fluxtube-deploy/.github/workflows/sync-grafana.yml`) — pushes everything under this repo's `docs/grafana/` to Grafana Cloud. The workflow does a two-checkout dance (deploy companion for the Grafana API token, this repo for the JSON files) and calls `scripts/sync-grafana.ts` from this repo. The public repo is the source of truth for dashboard + alert JSON; UI edits are blocked by Grafana (no `X-Disable-Provenance` header is sent), so the dashboard pencil-with-slash icon means "edit the repo, not me."
+
+The `deploy-on-release.yml` workflow (also on the deploy companion) calls the same script on every release deploy, so a `feat(observability): …` PR that only edits `docs/grafana/**` still lands its changes on the next tag. For dashboard-only iteration between releases, `gh workflow run sync-grafana.yml --repo alghanmi/fluxtube-deploy -f ref=<sha-or-tag>` re-pushes without cutting a release.
 
 ### What it manages
 
