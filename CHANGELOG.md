@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.0.0](https://github.com/alghanmi/fluxtube/compare/v0.8.0...v1.0.0) (2026-07-11)
+
+
+### Bug Fixes
+
+* **dashboard/session:** SameSite=Lax on session cookie so OAuth callbacks work ([#81](https://github.com/alghanmi/fluxtube/issues/81)) ([f33647a](https://github.com/alghanmi/fluxtube/commit/f33647ae1f9e1c914004d2317f9667fb3cec87da))
+* **dashboard/webauthn:** send two separate Set-Cookie headers, not join with comma ([#80](https://github.com/alghanmi/fluxtube/issues/80)) ([531c00d](https://github.com/alghanmi/fluxtube/commit/531c00dde19358b64b383409d29a9ce872cbf454))
+* **dashboard/youtube:** OAuth callback redirects instead of returning raw JSON ([#82](https://github.com/alghanmi/fluxtube/issues/82)) ([2834f3b](https://github.com/alghanmi/fluxtube/commit/2834f3b248a61369188b7b326d57e2b4fdc7460d))
+* **observability:** emit instance_id as a per-sample OTLP attribute, not just a resource attribute ([f37b2a1](https://github.com/alghanmi/fluxtube/commit/f37b2a1dc70eaf75c7ce81e3567f717f85ea24f1))
+* **observability:** emit instance_id as per-sample OTLP attribute, not just resource attribute ([#83](https://github.com/alghanmi/fluxtube/issues/83)) ([f37b2a1](https://github.com/alghanmi/fluxtube/commit/f37b2a1dc70eaf75c7ce81e3567f717f85ea24f1))
+* **sync/pass2:** stale/deleted playlist should log+skip, not throw FatalError ([#84](https://github.com/alghanmi/fluxtube/issues/84)) ([2da967b](https://github.com/alghanmi/fluxtube/commit/2da967b04ddeb7211d8a5e8218227a0e0f33831f))
+* **terraform:** drop secret_text bindings — wrangler-authoritative for worker secrets (Path C) ([#77](https://github.com/alghanmi/fluxtube/issues/77)) ([d8fd934](https://github.com/alghanmi/fluxtube/commit/d8fd93423f8998a9cd5892ac9f564b758535025a))
+* **terraform:** r2 lifecycle rule — max_age not max_age_seconds (v5.21 schema) ([#79](https://github.com/alghanmi/fluxtube/issues/79)) ([9ae5960](https://github.com/alghanmi/fluxtube/commit/9ae5960573f1a7c3d0f0980971dd7e30e5f34276))
+
+
+### Miscellaneous Chores
+
+* **release:** drop bump-minor-pre-major + pin v1.0.0 ([9449b60](https://github.com/alghanmi/fluxtube/commit/9449b60869ae0ed00166e7889f567f6ed07df852))
+
 ## [0.8.0](https://github.com/alghanmi/fluxtube/compare/v0.7.0...v0.8.0) (2026-07-07)
 
 
