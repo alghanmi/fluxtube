@@ -22,41 +22,43 @@ That's it for read-only / development. The lockfile is committed; `pnpm install 
 ## Running tests
 
 ```sh
-# Worker tests (vitest with @cloudflare/vitest-pool-workers)
+# Sync Worker tests (vitest with @cloudflare/vitest-pool-workers)
 pnpm --filter @fluxtube/sync test
+
+# Dashboard Worker tests (Hono routes, WebAuthn ceremonies, R2 backup shape)
+pnpm --filter @fluxtube/dashboard test
 
 # Watch mode
 pnpm --filter @fluxtube/sync test:watch
 
-# Full CI parity
-pnpm --filter @fluxtube/sync typecheck
-pnpm --filter @fluxtube/sync lint
-pnpm --filter @fluxtube/sync test
+# Full CI parity — all workspaces
+pnpm typecheck
+pnpm lint
+pnpm test
 pnpm audit --audit-level=high
 ```
 
-99 tests in 11 files, runs in ~2s.
+The `pr-checks.yml` workflow runs typecheck + lint + test + audit across every workspace (sync, dashboard-worker, dashboard-web, site, scripts) on every PR.
 
-## Running the Worker locally
+## Running a Worker locally
 
-`wrangler dev --remote` runs the Worker in Cloudflare's edge network, hitting your account's resources. Useful for end-to-end testing against real D1 / real Miniflux / real YouTube API.
+`wrangler dev --remote` runs the Worker in Cloudflare's edge network, hitting your account's resources. Useful for end-to-end testing against real D1 / real Miniflux / real YouTube API. Applies to both `workers/sync` and `workers/dashboard`.
 
-**Important:** the `wrangler.toml` checked into this repo has a **placeholder** D1 UUID:
-
-```toml
-database_id = "00000000-0000-0000-0000-000000000000"
-```
-
-For `wrangler dev --remote` to actually connect to a database, you need a D1 of your own. Two ways:
+**Important:** both Workers' `wrangler.toml` checked into this repo carry **placeholders** — D1 UUID (both), R2 bucket name (dashboard). For `wrangler dev --remote` to actually connect, you need real IDs from your own account. Two ways:
 
 ### Option A — personal `wrangler.local.toml` (recommended)
 
-Make a gitignored copy with your real values:
+Make a gitignored copy per Worker with your real values:
 
 ```sh
 cp workers/sync/wrangler.toml workers/sync/wrangler.local.toml
-# edit workers/sync/wrangler.local.toml: replace the 0000 UUID with your D1
+# edit workers/sync/wrangler.local.toml: replace the 0000 UUID with your D1 ID
 echo 'workers/sync/wrangler.local.toml' >> .git/info/exclude
+
+# and separately for the dashboard Worker:
+cp workers/dashboard/wrangler.toml workers/dashboard/wrangler.local.toml
+# edit: replace the 0000 D1 UUID + the fluxtube-placeholder-* R2 bucket name
+echo 'workers/dashboard/wrangler.local.toml' >> .git/info/exclude
 ```
 
 Then point wrangler at it:
@@ -74,8 +76,10 @@ For testing the sync algorithm without touching real D1, use a local SQLite file
 cd workers/sync
 pnpm dlx wrangler dev --persist-to .wrangler/state
 # Run migrations against the local DB once:
-pnpm dlx wrangler d1 migrations apply fluxtube --local
+pnpm dlx wrangler d1 migrations apply fluxtube-<instance_id> --local
 ```
+
+The D1 name at runtime is `fluxtube-<instance_id>` (Terraform composes it from `var.instance_id`). Use the same name locally so migrations land in the right database.
 
 ## Local secrets
 
