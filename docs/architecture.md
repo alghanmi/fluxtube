@@ -12,9 +12,9 @@ Deep-dive on the design. README.md has the elevator pitch; CLAUDE.md is the cano
 
 - Downloading or re-hosting videos.
 - Modifying / uploading videos.
-- Multi-user support.
-- A UI beyond `wrangler tail`, D1 inspection, Healthchecks.io, the `/audit` JSON dump, and Grafana Cloud Loki.
-- Custom alerting channels beyond Healthchecks.io and Loki.
+- Multi-user support within a single instance (multi-instance IS supported — `var.instance_id` prefixes every Terraform-managed resource so a single Cloudflare account can host N independent FluxTube deployments).
+- A general-purpose UI. The v1 dashboard PWA at `dashboard/` handles operator configuration + backups only; anything richer is out of scope.
+- Custom alerting channels beyond Healthchecks.io and Grafana.
 - Watch Later (`WL`) — not API-accessible since August 2016.
 - Migration tooling between RSS readers.
 - Handling non-YouTube video URLs.
@@ -24,25 +24,39 @@ Deep-dive on the design. README.md has the elevator pitch; CLAUDE.md is the cano
 ## Composition
 
 ```
-                     ┌──────────────────────────────────────┐
-                     │       Cloudflare Worker              │
-                     │       (TypeScript, V8 isolate)       │
-                     │                                      │
-                     │  scheduled(cron */30)  ──── runSync  │
-                     │  fetch(POST /sync)     ──── runSync  │
-                     │  fetch(GET  /audit)    ──── audit    │
-                     └─────────────┬────────────────────────┘
+                    ┌───────────────────────────────────────┐
+                    │  Sync Worker (workers/sync)           │
+                    │  scheduled(*/30)  ──── runSync        │
+                    │  fetch(POST /sync)                    │
+                    │  fetch(GET  /audit)                   │
+                    └──────────────┬────────────────────────┘
                                    │
-        ┌──────────────┬───────────┼─────────┬─────────────┐
-        ▼              ▼           ▼         ▼             ▼
-   ┌─────────┐  ┌─────────────┐  ┌────┐  ┌──────────┐  ┌──────────┐
-   │ Miniflux│  │   YouTube   │  │ D1 │  │   HC.io  │  │  Grafana │
-   │  REST   │  │  Data API   │  │SQL │  │ (×3 chk) │  │   Loki   │
-   │         │  │   (OAuth)   │  │    │  │          │  │ (optional)│
-   └─────────┘  └─────────────┘  └────┘  └──────────┘  └──────────┘
+                    ┌──────────────┴────────────────────────┐
+                    │                                       │
+                    ▼                                       ▼
+   ┌─────────┐  ┌─────────────┐  ┌─────────────────────┐  ┌──────────┐  ┌──────────┐
+   │ Miniflux│  │   YouTube   │  │ D1 (fluxtube-<inst>)│  │  HC.io   │  │  Grafana │
+   │  REST   │  │  Data API   │  │  queue + v1 tables  │  │ (×3 chk) │  │  Loki +  │
+   │         │  │   (OAuth)   │  │                     │  │          │  │  OTLP    │
+   └─────────┘  └─────────────┘  └──────────┬──────────┘  └──────────┘  └──────────┘
+                                            │
+                    ┌───────────────────────┴──────────────┐
+                    │  Dashboard Worker (workers/dashboard)│
+                    │  fetch  → Hono routes /api/*         │
+                    │  scheduled(15 4) → R2 backup         │
+                    └──────────────┬───────────────────────┘
+                                   │
+                    ┌──────────────┴─────────┐
+                    ▼                        ▼
+       ┌─────────────────────────┐  ┌────────────────────┐
+       │ Pages (dashboard PWA)   │  │  R2 backups bucket │
+       │  Service Binding →      │  │ fluxtube-<inst>-   │
+       │  Dashboard Worker.fetch │  │ backups            │
+       └─────────────────────────┘  │ (120-day lifecycle)│
+                                    └────────────────────┘
 ```
 
-Every component except D1 is external; D1 is the only state FluxTube owns.
+Every component except D1 + R2 is external; D1 + R2 are the only state FluxTube owns. Both Workers share the D1 database. Terraform-managed resource names are prefixed with `var.instance_id` — a single Cloudflare account can host N independent instances.
 
 ---
 
@@ -119,6 +133,72 @@ Every external write is safe to retry:
 - `D1` `INSERT` uses `ON CONFLICT(...) DO NOTHING` so a re-run is a no-op.
 
 The only externally visible side-effect FluxTube can produce in error is a video the user already removed from the playlist getting re-added on the next tick. That happens only if Pass 1 sees an unread entry that has no D1 row and whose video is not in the playlist — and Pass 2 only deletes D1 rows on user-removal, so this path is narrow.
+
+---
+
+## v1 additions — dashboard, dual-mode config, encryption, backups
+
+### Dual-mode runtime config
+
+The sync Worker's `runtime_config.ts` picks between two config sources based on a single guard:
+
+```ts
+async function isD1Managed(env: Env): Promise<boolean> {
+  const r = await env.DB.prepare("SELECT COUNT(*) AS n FROM admin_passkey").first<{n:number}>();
+  return (r?.n ?? 0) > 0;
+}
+```
+
+- **D1-managed** (a passkey has been claimed): mappings + Miniflux instances + the YouTube refresh token all read from D1 (`mappings`, `miniflux_instances`, `config.youtube_refresh_token` decrypted). Multiple Miniflux instances supported. Env bindings for legacy fields are **ignored**.
+- **Env-managed** (no passkey row): fall back to `CATEGORY_PLAYLIST_MAPPING` + `MINIFLUX_*` env bindings. Single-Miniflux only. Same shape as v0.x.
+
+The env-managed path exists for cold-start / recovery — the first cron tick after `terraform apply` on a fresh instance is env-managed until the operator claims the passkey via the dashboard.
+
+### Encryption at rest
+
+Every sensitive D1 column carries a `_ct` / `_iv` / `_kv` triple:
+
+- `_ct` — base64 AES-GCM ciphertext
+- `_iv` — base64 12-byte IV, fresh per write
+- `_kv` — integer key version
+
+The `D1_KEYCHAIN` Worker secret is a JSON object shaped `{ "current": 2, "keys": { "1": "<b64 key>", "2": "<b64 key>" } }`. Encryption uses `current`; decryption accepts any listed version. Rotation:
+
+1. Add key `n+1` to the keychain via Bitwarden → wrangler secret put.
+2. Bump `current` to `n+1`; redeploy.
+3. `POST /api/config/rotate-keys` — the dashboard Worker walks every encrypted row, re-encrypts under `n+1`, writes back.
+4. Once the next backup confirms no rows still reference the old key version, remove key `n` from the keychain.
+
+`workers/dashboard/src/crypto.ts` owns encrypt + decrypt. `workers/sync/src/crypto.ts` mirrors the decrypt half for read-side use.
+
+### R2 backups
+
+`workers/dashboard/src/backup.ts` runs on the dashboard Worker's `15 4 * * *` cron (offset from the sync Worker's `*/30 * * * *` to avoid CPU contention on tick boundaries) and on `POST /api/backup/now`.
+
+- **Bucket** — `fluxtube-<instance_id>-backups`, 120-day lifecycle expiration (Terraform-managed).
+- **Object key** — `fluxtube-state_YYYY-MM-DD_HH-MM-SS.json` (UTC).
+- **Payload** — zod-validated on write AND read. Schema version 1 includes `miniflux_instances` (URLs only; **api tokens excluded**), `mappings`, `mapping_history`, and non-sensitive `config` rows.
+- **Explicit exclusions** — `admin_passkey` (WebAuthn state corruption risk on restore), `config.youtube_refresh_token` (ephemeral; re-auth via the dashboard), `miniflux_instances.api_token_*` (re-prompt on restore, symmetric with YouTube).
+- **Restore** — `POST /api/backup/restore/:filename` runs a D1 transaction: wipe replaceable tables → re-insert from payload → resolve foreign-key IDs → commit. The UI then walks the operator through re-supplying every Miniflux + YouTube token.
+- **Metrics** — `fluxtube_backup_runs_total{outcome}`, `fluxtube_backup_last_success_seconds`, `fluxtube_backup_size_bytes` ship via the same OTLP path as the sync Worker's metrics.
+
+### Dashboard Worker route surface
+
+The dashboard Worker uses Hono. Full route map in `workers/dashboard/src/routes/`. Auth on every `/api/*` route is either a signed session cookie (from a passkey ceremony) or `Authorization: Bearer <MANUAL_TRIGGER_TOKEN>`.
+
+- **Auth**: `/api/auth/passkey/{register,authenticate}/{begin,finish}`, `/api/auth/recovery` (single-use hashed recovery code wipes `admin_passkey`), `/api/auth/logout`, `/api/me`
+- **YouTube OAuth**: `/api/auth/youtube` (302 to Google), `/api/auth/youtube/callback` (exchange + persist encrypted refresh_token, 302 back to `/dashboard/settings`)
+- **Config**: `/api/miniflux/instances` (CRUD), `/api/miniflux/categories?instance_id=N` (live via decrypted token), `/api/youtube/playlists` (live), `/api/mappings` (grouped view + full-replace save), `/api/mappings/history` (last N snapshots + restore), `/api/config/rotate-keys`
+- **Ops**: `/api/sync/trigger` (invokes sync Worker via Service Binding), `/api/backup/{now,restore/:file,list}`, `/api/backup/:filename` (download)
+
+### Cross-instance dedup
+
+The v1 sync algorithm treats YouTube as the source of truth for "already added":
+
+- Pass 1's `playlistItems.insert` catching a 409 → "already added"; mark the Miniflux entry read on **every** instance that included it.
+- Pass 2 walking a playlist's contents → for any tracked video not in the playlist, mark-read the entry on every instance that has it.
+
+The mapping table's compound uniqueness (`miniflux_instance_id, miniflux_category, youtube_playlist_id`) makes "which instances included this?" a straight join.
 
 ---
 

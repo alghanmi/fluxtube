@@ -1,6 +1,6 @@
 # FluxTube
 
-A Cloudflare Worker that syncs unread YouTube entries from [Miniflux](https://miniflux.app) into YouTube playlists, then marks Miniflux entries as read once you've watched and removed them from the playlist.
+A pair of Cloudflare Workers that sync unread YouTube entries from [Miniflux](https://miniflux.app) into YouTube playlists, then mark Miniflux entries as read once you've watched and removed them from the playlist. Since v1.0.0 (2026-07-11) FluxTube ships with a passkey-gated dashboard PWA for runtime configuration + nightly R2 backups.
 
 The goal: keep YouTube as the native viewing surface (offline downloads, cross-device progress sync) while eliminating the manual step of copying RSS-discovered links into a playlist.
 
@@ -11,7 +11,7 @@ On a cron tick (every 30 minutes by default):
 1. For each configured `(category, playlist)` pair, fetch unread Miniflux entries; for each one whose URL is a YouTube video that isn't already in the playlist, call `playlistItems.insert` and record a row in D1.
 2. For each tracked row, check whether the video is still in its playlist; if you've removed it, mark the Miniflux entry read and delete the D1 row.
 
-Pass 1 only adds, Pass 2 only removes. See [`docs/architecture.md`](./docs/architecture.md) for the algorithm in detail.
+Pass 1 only adds, Pass 2 only removes. See [`docs/architecture.md`](./docs/architecture.md) for the algorithm in detail, plus the v1 additions (dual-mode config, encryption at rest, R2 backups).
 
 ## Quick start (local development)
 
@@ -20,13 +20,15 @@ git clone https://github.com/alghanmi/fluxtube.git
 cd fluxtube
 pnpm install
 pnpm --filter @fluxtube/sync test
+pnpm --filter @fluxtube/dashboard test
 ```
 
-For running the Worker against your own Cloudflare account, you'll need:
-- A Cloudflare account with Workers + D1
+For running the Workers against your own Cloudflare account, you'll need:
+- A Cloudflare account with Workers + D1 + R2 + Pages
 - A Miniflux instance (self-hosted or [reader.miniflux.app](https://reader.miniflux.app))
 - YouTube playlists (PL... — Watch Later is API-disabled)
-- A Google Cloud project with YouTube Data API v3 enabled, OAuth 2.0 Desktop client
+- A Google Cloud project with YouTube Data API v3 enabled, OAuth 2.0 Web application client
+- A registrable domain for the dashboard (WebAuthn RP ID)
 - Optional: [Healthchecks.io](https://healthchecks.io/), [Grafana Cloud](https://grafana.com/products/cloud/) for observability
 
 Deployment is automated via a companion deploy repo — see [Deploying your own instance](#deploying-your-own-instance) below.
@@ -35,15 +37,19 @@ Deployment is automated via a companion deploy repo — see [Deploying your own 
 
 ```
 .
-├── workers/sync/                # The Worker — TypeScript, vitest, wrangler
-├── infrastructure/terraform/    # IaC: Worker + D1 + cron trigger + bindings
+├── workers/
+│   ├── sync/                    # Cron-driven sync Worker — TypeScript, vitest, wrangler
+│   └── dashboard/               # HTTP API Worker (Hono + WebAuthn + R2 backups)
+├── dashboard/                   # Astro PWA served via Cloudflare Pages → dashboard Worker
+├── site/                        # fluxtube.forklabs.cc marketing site (Astro)
+├── infrastructure/terraform/    # IaC: two Workers + D1 + R2 + Pages + cron triggers
 ├── docs/grafana/                # Dashboards + alert rules as code
 │   ├── dashboards/
 │   └── alerts/
 ├── scripts/
 │   └── sync-grafana.ts          # Push dashboards + alerts to Grafana Cloud
 └── .github/workflows/
-    ├── pr-checks.yml            # typecheck + lint + test + audit
+    ├── pr-checks.yml            # typecheck + lint + test + audit (all workspaces)
     ├── terraform-check.yml      # fmt + validate on PR
     ├── release-please.yml       # version + CHANGELOG management
     └── notify-deploy.yml        # fires on release → dispatches to deploy repo
