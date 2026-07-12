@@ -1,0 +1,17 @@
+{
+  "name": "FluxTube",
+  "short_name": "FluxTube",
+  "description": "Route RSS categories to YouTube playlists.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#14110d",
+  "theme_color": "#14110d",
+  "icons": [
+    { "src": "/assets/fluxtube-favicon-16.png", "sizes": "16x16", "type": "image/png" },
+    { "src": "/assets/fluxtube-favicon-32.png", "sizes": "32x32", "type": "image/png" },
+    { "src": "/assets/fluxtube-favicon-48.png", "sizes": "48x48", "type": "image/png" },
+    { "src": "/assets/fluxtube-icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/assets/fluxtube-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/fluxtube-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
