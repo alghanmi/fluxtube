@@ -955,6 +955,722 @@ button.danger:hover {
   }
 }
 
+/* ─────────────────────────────────────────────────────────────────────
+ * BackupPanel + RestoreWizard (Phase 10)
+ *
+ * BackupPanel is the default surface: run-now + list. Clicking Preview
+ * & restore on a row replaces the panel body with the RestoreWizard,
+ * which is the ONE flow in the product that legitimately uses numbered
+ * markers (brief-sanctioned exception to the general no-numbering rule
+ * because this really is a sequence).
+ * ──────────────────────────────────────────────────────────────────── */
+
+/* Backup panel — trigger + list. */
+
+.bp {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.bp-trigger {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-6);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-line);
+}
+
+.bp-trigger-copy {
+  min-width: 0;
+}
+
+.bp-title {
+  font-family: var(--font-display);
+  font-size: var(--size-xl);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  margin: 0 0 var(--space-1);
+}
+
+.bp-lede {
+  color: var(--color-fg-muted);
+  font-size: var(--size-sm);
+  margin: 0;
+}
+
+.bp-lede code {
+  font-family: var(--font-mono);
+  color: var(--color-fg);
+}
+
+.bp-run {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-accent);
+  color: var(--color-bg);
+  border: 1px solid var(--color-accent);
+  font-family: var(--font-mono);
+  font-size: var(--size-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.bp-run:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+}
+
+.bp-run--pending {
+  background: var(--color-accent-glow);
+  border-color: var(--color-accent-glow);
+  animation: me-save-pulse 1s ease-in-out infinite;
+  cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bp-run--pending {
+    animation: none;
+  }
+}
+
+.bp-error,
+.bp-load-error {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-danger-strong);
+  background: var(--color-danger-soft);
+  color: var(--color-fg);
+  font-family: var(--font-mono);
+  font-size: var(--size-sm);
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.bp-list-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-line);
+  margin-bottom: var(--space-3);
+}
+
+.bp-list-title {
+  font-family: var(--font-display);
+  font-size: var(--size-xl);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.bp-list-hint {
+  color: var(--color-fg-subtle);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.bp-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-10);
+  border: 1px dashed var(--color-line-strong);
+  color: var(--color-fg-muted);
+  text-align: center;
+}
+
+.bp-empty p {
+  max-width: 40ch;
+  margin: 0;
+}
+
+.bp-items {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.bp-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-line);
+}
+
+.bp-item--newest {
+  background: var(--color-bg-card);
+  border-color: var(--color-line-strong);
+}
+
+.bp-item-body {
+  min-width: 0;
+}
+
+.bp-item-key {
+  font-family: var(--font-mono);
+  font-size: var(--size-sm);
+  color: var(--color-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bp-item-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-fg-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-top: 2px;
+}
+
+.bp-item-actions {
+  display: inline-flex;
+  gap: var(--space-2);
+}
+
+.bp-item-download,
+.bp-item-restore {
+  padding: var(--space-2) var(--space-3);
+  background: transparent;
+  border: 1px solid var(--color-line-strong);
+  color: var(--color-fg-muted);
+  font-family: var(--font-mono);
+  font-size: var(--size-sm);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.bp-item-download:hover {
+  border-color: var(--color-fg-muted);
+  color: var(--color-fg);
+}
+
+.bp-item-restore:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+/* Restore wizard — 5-step sequence. */
+
+.wz {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.wz-rail {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--space-2);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.wz-rail-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  color: var(--color-fg-subtle);
+  border-top: 2px solid var(--color-line);
+}
+
+.wz-rail-marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid var(--color-line-strong);
+  color: var(--color-fg-subtle);
+  font-family: var(--font-mono);
+  font-size: var(--size-sm);
+  font-weight: 500;
+}
+
+.wz-rail-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.wz-rail-item--past .wz-rail-marker {
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.wz-rail-item--past {
+  border-top-color: var(--color-accent);
+  color: var(--color-fg-muted);
+}
+
+.wz-rail-item--now .wz-rail-marker {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-bg);
+}
+
+.wz-rail-item--now {
+  border-top-color: var(--color-accent);
+  color: var(--color-fg);
+}
+
+.wz-rail-item--done .wz-rail-marker {
+  background: var(--color-success);
+  border-color: var(--color-success);
+  color: var(--color-bg);
+}
+
+.wz-rail-item--done {
+  border-top-color: var(--color-success);
+  color: var(--color-success);
+}
+
+.wz-step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.wz-step--done {
+  align-items: center;
+  text-align: center;
+  padding: var(--space-8) 0;
+}
+
+.wz-step-title {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.wz-step-title--done {
+  color: var(--color-success);
+}
+
+.wz-step-lede {
+  color: var(--color-fg-muted);
+  font-family: var(--font-display);
+  font-size: var(--size-md);
+  line-height: 1.6;
+  max-width: 68ch;
+  margin: 0;
+}
+
+.wz-step-lede code {
+  font-family: var(--font-mono);
+  color: var(--color-fg);
+}
+
+.wz-error {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-fg);
+  border: 1px solid var(--color-danger-strong);
+  background: var(--color-danger-soft);
+  font-family: var(--font-mono);
+  font-size: var(--size-sm);
+  margin: 0;
+}
+
+.wz-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  margin-top: var(--space-2);
+}
+
+.wz-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: transparent;
+  border: 1px solid var(--color-line-strong);
+  color: var(--color-fg);
+  font-family: var(--font-mono);
+  font-size: var(--size-sm);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.wz-btn:hover:not(:disabled) {
+  border-color: var(--color-fg-muted);
+}
+
+.wz-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.wz-btn--primary {
+  background: var(--color-accent);
+  color: var(--color-bg);
+  border-color: var(--color-accent);
+}
+
+.wz-btn--primary:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+}
+
+.wz-btn--danger {
+  background: transparent;
+  color: var(--color-danger-strong);
+  border-color: var(--color-danger-strong);
+}
+
+/* Hold-to-restore button — the fill grows from 0% to 100% width as the
+   operator holds. Text stays on top of the fill via z-index / positioning. */
+
+.wz-hold {
+  position: relative;
+  overflow: hidden;
+  padding-inline: var(--space-5);
+  --hold-pct: 0%;
+}
+
+.wz-hold-fill {
+  position: absolute;
+  inset: 0;
+  right: auto;
+  width: var(--hold-pct);
+  background: var(--color-danger-strong);
+  transition: width 40ms linear;
+  pointer-events: none;
+}
+
+.wz-hold-label {
+  position: relative;
+  z-index: 1;
+  mix-blend-mode: difference;
+  color: var(--color-fg);
+}
+
+/* Table (step 1). */
+
+.wz-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: var(--size-sm);
+}
+
+.wz-table th,
+.wz-table td {
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.wz-table th {
+  color: var(--color-fg-subtle);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 11px;
+}
+
+.wz-row {
+  cursor: pointer;
+}
+
+.wz-row:hover {
+  background: var(--color-bg-elevated);
+}
+
+.wz-row--selected {
+  background: var(--color-bg-card);
+}
+
+.wz-row--newest .wz-row-key::after {
+  content: 'NEWEST';
+  display: inline-block;
+  margin-inline-start: var(--space-2);
+  padding: 1px var(--space-2);
+  border: 1px solid var(--color-line-strong);
+  color: var(--color-accent-glow);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+}
+
+.wz-row-key {
+  color: var(--color-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 30rem;
+}
+
+/* Preview block (step 2). */
+
+.wz-preview-meta {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-line);
+}
+
+.wz-preview-meta > div {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.wz-preview-meta label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-fg-subtle);
+  margin: 0;
+}
+
+.wz-preview-meta span {
+  font-family: var(--font-mono);
+  font-size: var(--size-sm);
+  color: var(--color-fg);
+}
+
+.wz-preview-block {
+  padding: var(--space-4);
+  border: 1px solid var(--color-line);
+}
+
+.wz-preview-block h3 {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-fg-muted);
+  margin: 0 0 var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.wz-preview-block ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.wz-preview-block li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--size-sm);
+}
+
+.wz-mappings li {
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.wz-mono {
+  font-family: var(--font-mono);
+  color: var(--color-fg);
+}
+
+.wz-muted {
+  color: var(--color-fg-muted);
+  font-size: var(--size-xs);
+}
+
+.wz-arrow {
+  color: var(--color-fg-subtle);
+}
+
+.wz-tag {
+  padding: 1px var(--space-2);
+  border: 1px solid var(--color-line-strong);
+  color: var(--color-amber);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.wz-note {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-fg-muted);
+  font-size: var(--size-sm);
+  margin: 0;
+}
+
+.wz-note strong {
+  color: var(--color-fg);
+}
+
+/* Danger card (step 3). */
+
+.wz-danger-card {
+  padding: var(--space-5);
+  border: 1px solid var(--color-danger-strong);
+  background: var(--color-danger-soft);
+}
+
+.wz-danger-card h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--size-base);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-danger-strong);
+  margin: 0 0 var(--space-3);
+}
+
+.wz-danger-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  color: var(--color-fg);
+  font-family: var(--font-display);
+  font-size: var(--size-base);
+  line-height: 1.6;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.wz-danger-card li::before {
+  content: '— ';
+  color: var(--color-danger-strong);
+}
+
+/* Re-auth checklist (step 4). */
+
+.wz-summary {
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-line);
+  font-family: var(--font-mono);
+  font-size: var(--size-sm);
+  color: var(--color-fg-muted);
+}
+
+.wz-summary strong {
+  color: var(--color-fg);
+}
+
+.wz-summary .wz-warn {
+  color: var(--color-amber);
+}
+
+.wz-reauth {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.wz-reauth-item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-line);
+  align-items: start;
+}
+
+.wz-reauth-body h3 {
+  font-family: var(--font-display);
+  font-size: var(--size-lg);
+  font-weight: 400;
+  margin: 0 0 var(--space-1);
+}
+
+.wz-reauth-body p {
+  color: var(--color-fg-muted);
+  font-size: var(--size-sm);
+  margin: 0 0 var(--space-3);
+}
+
+.wz-reauth-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-line-strong);
+  color: var(--color-fg);
+  font-family: var(--font-mono);
+  font-size: var(--size-sm);
+  text-decoration: none;
+}
+
+.wz-reauth-cta:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+@media (max-width: 720px) {
+  .bp-trigger {
+    grid-template-columns: 1fr;
+  }
+  .bp-item {
+    grid-template-columns: auto 1fr;
+    row-gap: var(--space-2);
+  }
+  .bp-item-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+  .wz-rail {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: var(--space-1);
+  }
+  .wz-rail-label {
+    display: none;
+  }
+  .wz-preview-meta {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* TubeIcon — the live-fetch glyph's pulse ring. `prefers-reduced-motion`
    collapses the animation to a static muted state per the design brief. */
 @keyframes ti-pulse-ring {
