@@ -371,6 +371,31 @@ button.danger:hover {
   border-color: var(--color-danger);
 }
 
+/* TubeIcon — the live-fetch glyph's pulse ring. `prefers-reduced-motion`
+   collapses the animation to a static muted state per the design brief. */
+@keyframes ti-pulse-ring {
+  0% {
+    r: 3;
+    opacity: 0.9;
+  }
+  100% {
+    r: 9;
+    opacity: 0;
+  }
+}
+
+.ti-pulse {
+  animation: ti-pulse-ring 1.4s ease-out infinite;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ti-pulse {
+    animation: none;
+    opacity: 0.4;
+  }
+}
+
 /* Screen reader only */
 .sr-only {
   position: absolute;
