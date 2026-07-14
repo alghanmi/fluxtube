@@ -371,6 +371,590 @@ button.danger:hover {
   border-color: var(--color-danger);
 }
 
+/* ─────────────────────────────────────────────────────────────────────
+ * Mapping editor (Phase 10)
+ *
+ * One section per Miniflux instance. Rows collapse to a summary line
+ * and expand in-place to an edit card. A floating action bar pins to
+ * the viewport bottom during dirty / saving / errored states. Save-
+ * pulse animation on the amber "Saving…" button IS the loading
+ * indicator (no spinners anywhere in the product).
+ * ──────────────────────────────────────────────────────────────────── */
+
+.me {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  padding-bottom: 120px; /* keep the bottom row above the floating bar */
+}
+
+.me-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.me-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.me-section-url {
+  font-family: var(--font-mono);
+  font-size: var(--size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-fg-muted);
+}
+
+.me-section-retry {
+  font-size: var(--size-xs);
+  padding: 2px var(--space-2);
+}
+
+.me-inline-err {
+  padding: var(--space-3);
+  background: var(--color-bg-terminal);
+  border: 1px solid var(--color-danger-strong);
+  color: var(--color-fg);
+  font-family: var(--font-mono);
+  font-size: var(--size-sm);
+}
+
+/* Instance-empty state — the design's "route your first" moment. */
+
+.me-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-10) var(--space-6);
+  border: 1px dashed var(--color-line-strong);
+  text-align: center;
+}
+
+.me-empty-headline {
+  font-family: var(--font-display);
+  font-size: var(--size-xl);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  margin: var(--space-2) 0 0;
+  max-width: 22ch;
+}
+
+.me-empty-body {
+  color: var(--color-fg-muted);
+  font-family: var(--font-display);
+  font-size: var(--size-base);
+  line-height: 1.6;
+  max-width: 56ch;
+  margin: 0;
+}
+
+.me-empty-hint {
+  color: var(--color-fg-subtle);
+  font-family: var(--font-mono);
+  font-size: var(--size-xs);
+  margin: 0;
+}
+
+.me-empty-cta,
+.me-noinstances-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  background: transparent;
+  border: 1px solid var(--color-line-strong);
+  color: var(--color-fg);
+  font-family: var(--font-mono);
+  font-size: var(--size-sm);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.me-empty-cta:hover,
+.me-noinstances-cta:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+/* Top-level "no Miniflux instances yet" — different shape from per-
+   instance empty because there's no section header to sit under. */
+
+.me-noinstances {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-12) var(--space-6);
+  border: 1px solid var(--color-line);
+  text-align: center;
+}
+
+.me-noinstances-title {
+  font-family: var(--font-display);
+  font-size: var(--size-2xl);
+  font-weight: 400;
+  margin: var(--space-2) 0 0;
+}
+
+.me-noinstances-body {
+  color: var(--color-fg-muted);
+  max-width: 46ch;
+  margin: 0;
+}
+
+/* Banners — YouTube-not-connected and YouTube-list-failed. */
+
+.me-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--color-line-strong);
+  background: var(--color-bg-elevated);
+}
+
+.me-banner--warn {
+  border-color: var(--color-amber);
+}
+
+.me-banner--err {
+  border-color: var(--color-danger-strong);
+  color: var(--color-fg);
+  font-family: var(--font-mono);
+  font-size: var(--size-sm);
+}
+
+.me-banner-title {
+  font-family: var(--font-display);
+  font-size: var(--size-lg);
+  font-weight: 400;
+  margin: 0 0 var(--space-1);
+}
+
+.me-banner-body {
+  color: var(--color-fg-muted);
+  margin: 0;
+  font-size: var(--size-sm);
+}
+
+.me-banner-cta {
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-accent);
+  color: var(--color-bg);
+  border: 1px solid var(--color-accent);
+  font-family: var(--font-mono);
+  font-size: var(--size-sm);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.me-banner-cta:hover {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+}
+
+/* Row list. */
+
+.me-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.me-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-line);
+  transition: border-color 100ms ease;
+}
+
+.me-row:hover {
+  border-color: var(--color-line-strong);
+}
+
+.me-row--err {
+  border-color: var(--color-danger-strong);
+}
+
+.me-row-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto auto;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.me-row-node {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.me-row-label {
+  font-family: var(--font-mono);
+  font-size: var(--size-sm);
+  color: var(--color-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.me-row-flow {
+  display: flex;
+  align-items: center;
+  color: var(--color-fg-muted);
+}
+
+.me-row-status {
+  display: flex;
+  align-items: center;
+}
+
+.me-row-actions {
+  display: inline-flex;
+  gap: var(--space-1);
+  opacity: 0;
+  transition: opacity 100ms ease;
+}
+
+.me-row:hover .me-row-actions,
+.me-row:focus-within .me-row-actions {
+  opacity: 1;
+}
+
+.me-row-btn {
+  padding: var(--space-1);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  color: var(--color-fg-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.me-row-btn:hover {
+  border-color: var(--color-line-strong);
+  color: var(--color-fg);
+}
+
+.me-row-caption {
+  display: flex;
+  gap: var(--space-2);
+  color: var(--color-fg-subtle);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.me-row-caption-tag {
+  padding: 1px var(--space-2);
+  border: 1px solid var(--color-line-strong);
+  color: var(--color-amber);
+}
+
+.me-row-inline-err {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-danger-strong);
+  background: var(--color-danger-soft);
+  color: var(--color-fg);
+  font-family: var(--font-mono);
+  font-size: var(--size-sm);
+}
+
+.me-row-inline-err p {
+  margin: 0;
+}
+
+.me-row-inline-err-fix {
+  margin-top: var(--space-1);
+  color: var(--color-fg-muted);
+  font-size: var(--size-xs);
+}
+
+.me-row-inline-err a {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
+/* Row: expanded editor. */
+
+.me-row--edit {
+  background: var(--color-bg-card);
+  border-color: var(--color-line-strong);
+  padding: var(--space-5);
+  gap: var(--space-4);
+}
+
+.me-edit-grid {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: 1fr 1fr;
+}
+
+.me-edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.me-edit-hint {
+  margin: 0;
+  color: var(--color-fg-muted);
+  font-family: var(--font-mono);
+  font-size: var(--size-xs);
+}
+
+.me-edit-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.me-edit-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  text-transform: none;
+  letter-spacing: 0;
+  font-family: var(--font-mono);
+  font-size: var(--size-sm);
+  color: var(--color-fg);
+  margin: 0;
+}
+
+.me-edit-toggle input {
+  width: auto;
+  cursor: pointer;
+}
+
+.me-edit-actions {
+  display: inline-flex;
+  gap: var(--space-2);
+}
+
+.me-edit-remove {
+  color: var(--color-fg-muted);
+  border-color: var(--color-line-strong);
+}
+
+.me-edit-remove:hover {
+  color: var(--color-danger-strong);
+  border-color: var(--color-danger-strong);
+  background: transparent;
+}
+
+.me-edit-done {
+  color: var(--color-fg);
+}
+
+/* Section footer — add-mapping button. */
+
+.me-section-foot {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.me-add-row {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: transparent;
+  border: 1px dashed var(--color-line-strong);
+  color: var(--color-fg-muted);
+  font-family: var(--font-mono);
+  font-size: var(--size-sm);
+  cursor: pointer;
+}
+
+.me-add-row:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  border-style: solid;
+}
+
+/* Floating action bar. Slides up from viewport bottom whenever anything
+   is dirty or a save is in flight. Three variants: default (ink-red
+   Save), pending (amber pulse, no Save), error (danger + Retry). */
+
+.me-actionbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-6);
+  background: var(--color-bg-elevated);
+  border-top: 1px solid var(--color-line-strong);
+  z-index: 50;
+  font-family: var(--font-mono);
+  font-size: var(--size-sm);
+}
+
+.me-actionbar-msg {
+  color: var(--color-fg-muted);
+}
+
+.me-actionbar-msg strong {
+  color: var(--color-fg);
+  font-weight: 500;
+}
+
+.me-actionbar-detail {
+  color: var(--color-fg-subtle);
+  font-size: var(--size-xs);
+}
+
+.me-actionbar-actions {
+  display: inline-flex;
+  gap: var(--space-3);
+}
+
+.me-actionbar-discard {
+  padding: var(--space-2) var(--space-4);
+  background: transparent;
+  border: 1px solid var(--color-line-strong);
+  color: var(--color-fg-muted);
+  font-family: var(--font-mono);
+  font-size: var(--size-sm);
+  cursor: pointer;
+}
+
+.me-actionbar-discard:hover:not(:disabled) {
+  color: var(--color-fg);
+  border-color: var(--color-fg-muted);
+}
+
+.me-actionbar-save {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid transparent;
+  font-family: var(--font-mono);
+  font-size: var(--size-sm);
+  cursor: pointer;
+}
+
+.me-actionbar-save--primary {
+  background: var(--color-accent);
+  color: var(--color-bg);
+  border-color: var(--color-accent);
+}
+
+.me-actionbar-save--primary:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+}
+
+.me-actionbar-save--primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.me-actionbar-save--pending {
+  background: var(--color-accent-glow);
+  color: var(--color-bg);
+  border-color: var(--color-accent-glow);
+  cursor: default;
+  animation: me-save-pulse 1s ease-in-out infinite;
+}
+
+.me-actionbar-save--error {
+  background: var(--color-danger-strong);
+  color: var(--color-fg);
+  border-color: var(--color-danger-strong);
+}
+
+.me-actionbar-save--error:hover {
+  background: var(--color-danger);
+}
+
+.me-actionbar--pending {
+  border-top-color: var(--color-accent-glow);
+}
+
+.me-actionbar--error {
+  border-top-color: var(--color-danger-strong);
+}
+
+/* Save-pulse: opacity cycles 0.55 ↔ 1.0 over 1s. This IS the loading
+   indicator — no spinner used anywhere. */
+@keyframes me-save-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .me-actionbar-save--pending {
+    animation: none;
+  }
+}
+
+/* Editing area dims to 0.7 opacity during in-flight save (per the brief:
+   "the editing area drops to 0.7 opacity"). Selects rows via CSS by
+   using an ancestor state class the component adds when saveState is
+   'pending' — kept simple here by dimming ALL rows since a save applies
+   across the whole editor. */
+.me:has(.me-actionbar--pending) .me-rows,
+.me:has(.me-actionbar--pending) .me-section-head,
+.me:has(.me-actionbar--pending) .me-section-foot,
+.me:has(.me-actionbar--pending) .me-empty {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+@media (max-width: 720px) {
+  .me-row-main {
+    grid-template-columns: 1fr;
+    grid-auto-flow: row;
+  }
+  .me-row-flow {
+    justify-self: start;
+  }
+  .me-row-status,
+  .me-row-actions {
+    justify-self: end;
+  }
+  .me-actionbar {
+    padding: var(--space-3) var(--space-4);
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+  }
+  .me-edit-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* TubeIcon — the live-fetch glyph's pulse ring. `prefers-reduced-motion`
    collapses the animation to a static muted state per the design brief. */
 @keyframes ti-pulse-ring {
