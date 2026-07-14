@@ -3,6 +3,7 @@
 
 import { useState } from 'preact/hooks';
 import * as api from '../lib/api';
+import { TubeIcon } from './icon/TubeIcon';
 
 type Phase =
   | { kind: 'idle' }
@@ -31,13 +32,13 @@ export function Recovery(): preact.JSX.Element {
 
   if (phase.kind === 'done') {
     return (
-      <div class="card">
-        <h2 class="card-title">Recovery complete</h2>
-        <p class="card-subtitle">
+      <div class="claim">
+        <h1 class="claim-hero">Recovery complete.</h1>
+        <p class="claim-lede">
           Your old passkey is invalidated. Register a new one to regain access.
         </p>
-        <div class="row">
-          <a href="/claim" class="button primary">
+        <div class="claim-actions">
+          <a href="/claim" class="claim-primary">
             Register a new passkey
           </a>
         </div>
@@ -46,14 +47,14 @@ export function Recovery(): preact.JSX.Element {
   }
 
   return (
-    <div class="card">
-      <h2 class="card-title">Redeem recovery code</h2>
-      <p class="card-subtitle">
+    <div class="claim">
+      <h1 class="claim-hero">Redeem recovery code.</h1>
+      <p class="claim-lede">
         Paste the recovery code you saved when claiming this instance. Redeeming it wipes the
         registered passkey — you'll register a new one immediately after.
       </p>
-      <form onSubmit={onSubmit} class="stack">
-        <div class="field">
+      <form onSubmit={onSubmit} class="rc-form">
+        <div class="rc-form-field">
           <label for="recovery">Recovery code</label>
           <input
             id="recovery"
@@ -64,19 +65,20 @@ export function Recovery(): preact.JSX.Element {
           />
         </div>
         {phase.kind === 'error' && (
-          <div class="terminal" style="border-color: var(--color-danger); color: var(--color-danger);">
-            {phase.message}
+          <div class="claim-error" role="alert">
+            <TubeIcon name="filament-error" size={18} />
+            <span>{phase.message}</span>
           </div>
         )}
-        <div class="row">
+        <div class="claim-actions">
           <button
-            class="primary"
+            class="claim-primary"
             type="submit"
             disabled={phase.kind === 'submitting' || !code.trim()}
           >
-            {phase.kind === 'submitting' ? 'Redeeming…' : 'Redeem'}
+            {phase.kind === 'submitting' ? 'Redeeming…' : 'Redeem code'}
           </button>
-          <a href="/" class="button">
+          <a href="/" class="claim-secondary">
             Cancel
           </a>
         </div>

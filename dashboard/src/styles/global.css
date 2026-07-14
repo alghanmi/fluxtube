@@ -980,6 +980,316 @@ button.danger:hover {
   }
 }
 
+/* ─────────────────────────────────────────────────────────────────────
+ * Claim / Recovery / Recovery-code screens (Phase 10)
+ *
+ * The recovery-code display is the safety-critical hero moment in the
+ * whole product. Fraunces headline, 40px amber code in a bordered
+ * surface, Bitwarden hint by item-name convention, Copy button with
+ * 1.8s green-text feedback, and a Continue button that CONDITIONALLY
+ * MOUNTS (not just disables) once the trust checkbox is ticked.
+ * ──────────────────────────────────────────────────────────────────── */
+
+.claim {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  max-width: 44rem;
+  margin: var(--space-12) auto 0;
+  text-align: center;
+}
+
+.claim-hero {
+  font-family: var(--font-display);
+  font-size: 44px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 0;
+  font-variation-settings:
+    'SOFT' 15,
+    'opsz' 144,
+    'WONK' 0;
+}
+
+.claim-lede {
+  color: var(--color-fg-muted);
+  font-family: var(--font-display);
+  font-size: var(--size-md);
+  line-height: 1.6;
+  max-width: 56ch;
+  margin: 0;
+}
+
+.claim-error {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-danger-strong);
+  background: var(--color-danger-soft);
+  color: var(--color-fg);
+  font-family: var(--font-mono);
+  font-size: var(--size-sm);
+}
+
+.claim-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: var(--space-4);
+}
+
+.claim-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-5);
+  background: var(--color-accent);
+  color: var(--color-bg);
+  border: 1px solid var(--color-accent);
+  font-family: var(--font-mono);
+  font-size: var(--size-sm);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.claim-primary:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+}
+
+.claim-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.claim-secondary {
+  color: var(--color-fg-muted);
+  font-family: var(--font-mono);
+  font-size: var(--size-sm);
+  text-decoration: underline;
+  text-decoration-color: var(--color-line-strong);
+  text-underline-offset: 0.2em;
+}
+
+.claim-secondary:hover {
+  color: var(--color-fg);
+  text-decoration-color: var(--color-accent);
+}
+
+/* Recovery-code display — the one-time hero screen. */
+
+.rc {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-5);
+  max-width: 44rem;
+  margin: var(--space-10) auto 0;
+  padding-bottom: var(--space-12);
+  text-align: center;
+}
+
+.rc-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--color-fg-subtle);
+}
+
+.rc-hero {
+  font-family: var(--font-display);
+  font-size: 44px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 0;
+  font-variation-settings:
+    'SOFT' 15,
+    'opsz' 144,
+    'WONK' 0;
+}
+
+.rc-code-block {
+  width: 100%;
+  padding: var(--space-6) var(--space-4);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-line-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rc-code {
+  font-family: var(--font-mono);
+  font-size: 40px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  color: var(--color-accent-glow);
+  user-select: all;
+  word-break: break-all;
+  line-height: 1.2;
+}
+
+.rc-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.rc-copy {
+  padding: var(--space-2) var(--space-4);
+  background: transparent;
+  border: 1px solid var(--color-line-strong);
+  color: var(--color-fg);
+  font-family: var(--font-mono);
+  font-size: var(--size-sm);
+  cursor: pointer;
+  transition:
+    color 100ms ease,
+    border-color 100ms ease;
+}
+
+.rc-copy:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.rc-copy--done,
+.rc-copy--done:hover {
+  color: var(--color-success);
+  border-color: var(--color-success);
+  cursor: default;
+}
+
+.rc-synced {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-fg-muted);
+  font-family: var(--font-mono);
+  font-size: var(--size-xs);
+}
+
+.rc-context {
+  color: var(--color-fg-muted);
+  font-family: var(--font-display);
+  font-size: var(--size-base);
+  line-height: 1.7;
+  max-width: 58ch;
+  text-align: left;
+}
+
+.rc-context p {
+  margin: 0 0 var(--space-3);
+}
+
+.rc-context p:last-child {
+  margin-bottom: 0;
+}
+
+.rc-context code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  color: var(--color-fg);
+  padding: 1px 4px;
+  border: 1px solid var(--color-line);
+  background: var(--color-bg-elevated);
+}
+
+.rc-trust {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-line-strong);
+  background: var(--color-bg-elevated);
+  font-family: var(--font-mono);
+  font-size: var(--size-sm);
+  color: var(--color-fg);
+  text-transform: none;
+  letter-spacing: 0;
+  cursor: pointer;
+}
+
+.rc-trust input {
+  width: auto;
+  cursor: pointer;
+}
+
+.rc-continue {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-6);
+  background: var(--color-accent);
+  color: var(--color-bg);
+  border: 1px solid var(--color-accent);
+  font-family: var(--font-mono);
+  font-size: var(--size-base);
+  text-decoration: none;
+}
+
+.rc-continue:hover {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+}
+
+/* Redeem-recovery form (Recovery.tsx) — reuses .claim layout for the
+   surrounding shell, adds one field. */
+
+.rc-form {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-4);
+  width: 100%;
+  max-width: 32rem;
+  margin: var(--space-4) auto 0;
+  text-align: left;
+}
+
+.rc-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+/* Mobile: condense the hero + code type. */
+
+@media (max-width: 640px) {
+  .rc {
+    padding-inline: var(--space-4);
+    gap: var(--space-4);
+  }
+  .rc-hero,
+  .claim-hero {
+    font-size: 28px;
+  }
+  .rc-code {
+    font-size: 24px;
+    letter-spacing: 0.1em;
+  }
+  .rc-code-block {
+    padding: var(--space-4) var(--space-3);
+  }
+  .rc-context {
+    font-size: var(--size-sm);
+  }
+}
+
 /* Screen reader only */
 .sr-only {
   position: absolute;
