@@ -32,9 +32,17 @@
   --color-accent-brand: #933325;
   --color-accent-soft: #2a1c17;
 
+  /* Filament amber — the load-bearing motif per the Phase 10 design.
+     Reserved for "in progress" states and the filament connection glyph.
+     Do not repurpose as a general accent. */
+  --color-accent-glow: #f2b45c;
+  --color-accent-glow-dim: #8a6a3d;
+
   --color-danger: #d65a42;
+  --color-danger-strong: #9c2f1f;
   --color-danger-soft: #2a1c17;
-  --color-green: #9bbf6f;
+  --color-success: #9bbf6f;
+  --color-green: #9bbf6f; /* alias of --color-success, kept for existing consumers */
   --color-amber: #d8a657;
 
   --font-display:
@@ -106,6 +114,43 @@ body {
   font-weight: 400;
   margin: 0;
   letter-spacing: -0.01em;
+}
+
+/* Brand lockup — glyph + Fraunces wordmark. Direction B from the Phase 10
+   design: the "u" in "FluxTube" carries the SOFT axis at 100 (the visual
+   thesis of the mark). The trailing "e" wonks slightly (WONK 1) for
+   character. Everything else stays quiet. */
+.shell-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  text-decoration: none;
+  color: var(--color-fg);
+}
+
+.shell-brand-glyph {
+  display: block;
+  height: 26px;
+  width: 26px;
+  flex-shrink: 0;
+}
+
+.shell-brand-wordmark {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  line-height: 1;
+  font-variation-settings:
+    'SOFT' 15,
+    'opsz' 144,
+    'WONK' 0;
+}
+
+/* Emphasize the "u" letterform per the design brief. */
+.shell-brand-wordmark::first-letter {
+  /* keep default; the SOFT axis is applied uniformly for now. Round 2 will
+     split into per-glyph runs if the design pass wants literal axis-per-char. */
 }
 
 .shell-nav {
