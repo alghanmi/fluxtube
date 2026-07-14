@@ -1,16 +1,23 @@
-// Backup control panel — list, download, restore, trigger.
+// Backup control panel — list, download, trigger, and hand off to the
+// RestoreWizard when the operator picks a backup to restore. The default
+// surface here is browse + trigger; restore takes over the whole panel
+// as its own 5-step flow (see RestoreWizard).
 
 import { useEffect, useState } from 'preact/hooks';
 import * as api from '../lib/api';
+import { TubeIcon } from './icon/TubeIcon';
+import { RestoreWizard } from './RestoreWizard';
 
-type Toast = { kind: 'ok' | 'err'; message: string } | null;
+type Trigger =
+  | { kind: 'idle' }
+  | { kind: 'running' }
+  | { kind: 'error'; message: string };
 
 export function BackupPanel(): preact.JSX.Element {
   const [items, setItems] = useState<api.BackupObject[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [triggering, setTriggering] = useState(false);
-  const [restoring, setRestoring] = useState<string | null>(null);
-  const [toast, setToast] = useState<Toast>(null);
+  const [trigger, setTrigger] = useState<Trigger>({ kind: 'idle' });
+  const [restoreFilename, setRestoreFilename] = useState<string | null>(null);
 
   useEffect(() => {
     void refresh();
@@ -26,103 +33,107 @@ export function BackupPanel(): preact.JSX.Element {
   }
 
   async function onBackupNow(): Promise<void> {
-    setTriggering(true);
-    setToast(null);
+    setTrigger({ kind: 'running' });
     try {
-      const r = await api.backupNow();
-      setToast({ kind: 'ok', message: `Wrote ${r.key} (${formatSize(r.sizeBytes)})` });
+      await api.backupNow();
       await refresh();
+      setTrigger({ kind: 'idle' });
     } catch (err) {
-      setToast({
-        kind: 'err',
+      setTrigger({
+        kind: 'error',
         message: err instanceof Error ? err.message : String(err),
       });
-    } finally {
-      setTriggering(false);
-      setTimeout(() => setToast(null), 4000);
     }
   }
 
-  async function onRestore(filename: string): Promise<void> {
-    if (
-      !confirm(
-        `Restore from ${filename}? Current mappings + Miniflux instances are replaced. You'll need to re-supply API tokens.`,
-      )
-    ) {
-      return;
-    }
-    setRestoring(filename);
-    setToast(null);
-    try {
-      const r = await api.restoreFromBackup(filename);
-      setToast({
-        kind: 'ok',
-        message: `Restored: ${r.restoredInstances} instances, ${r.restoredMappings} mappings, ${r.restoredHistory} history rows`,
-      });
-    } catch (err) {
-      setToast({
-        kind: 'err',
-        message: err instanceof Error ? err.message : String(err),
-      });
-    } finally {
-      setRestoring(null);
-      setTimeout(() => setToast(null), 6000);
-    }
+  // While the wizard is active, replace the panel body with it.
+  if (restoreFilename !== null && items !== null) {
+    return (
+      <RestoreWizard
+        backups={items}
+        initialFilename={restoreFilename}
+        onExit={() => {
+          setRestoreFilename(null);
+          void refresh();
+        }}
+      />
+    );
   }
 
   return (
-    <div class="stack">
-      <section class="card">
-        <h2 class="card-title">Trigger backup now</h2>
-        <p class="card-subtitle">
-          Writes a new backup to R2. The nightly cron does this automatically at 04:15 UTC.
-        </p>
-        <button class="primary" onClick={onBackupNow} disabled={triggering}>
-          {triggering ? 'Running…' : 'Run backup'}
+    <div class="bp">
+      <section class="bp-trigger">
+        <div class="bp-trigger-copy">
+          <h2 class="bp-title">Trigger backup now.</h2>
+          <p class="bp-lede">
+            Writes a fresh snapshot to R2 immediately. The nightly cron runs at{' '}
+            <code>15 4 * * *</code> UTC — this is only needed before a risky change.
+          </p>
+        </div>
+        <button
+          class={
+            trigger.kind === 'running'
+              ? 'bp-run bp-run--pending'
+              : 'bp-run'
+          }
+          onClick={() => void onBackupNow()}
+          disabled={trigger.kind === 'running'}
+        >
+          {trigger.kind === 'running' && <TubeIcon name="live-fetch" size={16} />}
+          {trigger.kind === 'running' ? 'Running…' : 'Run backup'}
         </button>
+        {trigger.kind === 'error' && (
+          <p class="bp-error" role="alert">
+            <TubeIcon name="filament-error" size={16} /> {trigger.message}
+          </p>
+        )}
       </section>
 
-      {error && <div class="terminal" style="border-color: var(--color-danger);">{error}</div>}
-
-      {items && (
-        <section class="card">
-          <h2 class="card-title">Available backups</h2>
-          {items.length === 0 ? (
-            <p class="muted xs">No backups yet.</p>
-          ) : (
-            <div class="stack">
-              {items.map((b) => (
-                <div
-                  key={b.key}
-                  class="row"
-                  style="justify-content: space-between; padding: var(--space-3); border: 1px solid var(--color-line); background: var(--color-bg-elevated);"
-                >
-                  <div>
-                    <div style="font-weight: 500;">{b.key}</div>
-                    <div class="muted xs">
-                      {b.uploadedAt} · {formatSize(b.sizeBytes)}
-                    </div>
-                  </div>
-                  <div class="row">
-                    <a href={api.backupDownloadUrl(b.key)} class="button">
-                      Download
-                    </a>
-                    <button
-                      class="danger"
-                      onClick={() => void onRestore(b.key)}
-                      disabled={restoring !== null}
-                    >
-                      {restoring === b.key ? 'Restoring…' : 'Restore'}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
+      {error && (
+        <div class="bp-load-error" role="alert">
+          <TubeIcon name="filament-error" size={16} /> {error}
+        </div>
       )}
 
-      {toast && <div class={`toast ${toast.kind}`}>{toast.message}</div>}
+      <section class="bp-list">
+        <header class="bp-list-head">
+          <h2 class="bp-list-title">Available backups.</h2>
+          <span class="bp-list-hint">Newest first. Click a row to preview and restore.</span>
+        </header>
+        {items === null ? (
+          <p class="muted">Loading…</p>
+        ) : items.length === 0 ? (
+          <div class="bp-empty">
+            <TubeIcon name="backup-stale" size={40} />
+            <p>No backups on record yet. The nightly cron will write the first one at 04:15 UTC.</p>
+          </div>
+        ) : (
+          <ol class="bp-items">
+            {items.map((b, i) => (
+              <li class={`bp-item${i === 0 ? ' bp-item--newest' : ''}`}>
+                <TubeIcon name={i === 0 ? 'backup-fresh' : 'backup-stale'} size={20} />
+                <div class="bp-item-body">
+                  <div class="bp-item-key">{b.key}</div>
+                  <div class="bp-item-meta">
+                    {b.uploadedAt} · {formatSize(b.sizeBytes)}
+                  </div>
+                </div>
+                <div class="bp-item-actions">
+                  <a href={api.backupDownloadUrl(b.key)} class="bp-item-download">
+                    Download
+                  </a>
+                  <button
+                    class="bp-item-restore"
+                    onClick={() => setRestoreFilename(b.key)}
+                  >
+                    Preview & restore →
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
+      </section>
     </div>
   );
 }
