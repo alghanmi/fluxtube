@@ -14,6 +14,14 @@ updates:
       typescript-eslint:
         patterns:
           - '@typescript-eslint/*'
+    # TypeScript major bumps need a coordinated upgrade across every
+    # workspace (root, workers/sync, workers/dashboard, dashboard,
+    # site, scripts) plus a review of tsconfig + libcheck output.
+    # Dedicated PRs for those; weekly Dependabot bumps stay on the
+    # current major.
+    ignore:
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
 
   - package-ecosystem: 'npm'
     directory: '/workers/sync'
@@ -23,6 +31,9 @@ updates:
     open-pull-requests-limit: 5
     commit-message:
       prefix: 'chore(deps)'
+    ignore:
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
 
   - package-ecosystem: 'npm'
     directory: '/scripts'
@@ -32,6 +43,9 @@ updates:
     open-pull-requests-limit: 5
     commit-message:
       prefix: 'chore(deps)'
+    ignore:
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
 
   - package-ecosystem: 'github-actions'
     directory: '/'
