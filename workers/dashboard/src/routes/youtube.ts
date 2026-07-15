@@ -67,25 +67,27 @@ export function attachYouTubeRoutes(app: Hono<{ Bindings: YouTubeEnv }>): void {
   // ─── OAuth callback ────────────────────────────────────────────────
   //
   // This route is a top-level browser navigation from accounts.google.com,
-  // not a fetch(). All exits are 302 redirects back to /dashboard/settings
-  // so the browser lands on a rendered page rather than raw JSON.
+  // not a fetch(). All exits are 302 redirects to a rendered page:
   //
-  //   Success:              /dashboard/settings?youtube=connected
-  //   Recoverable failure:  /dashboard/settings?youtube_error=<code>
+  //   Success:              /dashboard/oauth?state=connected
+  //   Recoverable failure:  /dashboard/oauth?state=denied&reason=<code>[&message=<msg>]
   //   Unauthorized:         /login  (session cookie expired mid-flow)
+  //
+  // The dedicated /dashboard/oauth page renders the transient success or
+  // error splash per the Phase 10 design (see dashboard/src/pages/dashboard/oauth.astro).
 
   app.get('/api/auth/youtube/callback', async (c) => {
     const session = await requireAuth(c.req.raw, c.env);
     if (!session) return c.redirect('/login', 302);
 
     const cfg = requireOAuthConfig(c.env);
-    if (!cfg.ok) return c.redirect(`/dashboard/settings?youtube_error=${cfg.error}`, 302);
+    if (!cfg.ok) return c.redirect(`/dashboard/oauth?state=denied&reason=${cfg.error}`, 302);
 
     const url = new URL(c.req.raw.url);
     const errorParam = url.searchParams.get('error');
     if (errorParam) {
       return c.redirect(
-        `/dashboard/settings?youtube_error=oauth_error&message=${encodeURIComponent(errorParam)}`,
+        `/dashboard/oauth?state=denied&reason=oauth_error&message=${encodeURIComponent(errorParam)}`,
         302,
       );
     }
@@ -93,19 +95,19 @@ export function attachYouTubeRoutes(app: Hono<{ Bindings: YouTubeEnv }>): void {
     const code = url.searchParams.get('code');
     const state = url.searchParams.get('state');
     if (!code || !state) {
-      return c.redirect('/dashboard/settings?youtube_error=missing_code_or_state', 302);
+      return c.redirect('/dashboard/oauth?state=denied&reason=missing_code_or_state', 302);
     }
 
     const stateOk = await verifyState(state, cfg.signingKey);
-    if (!stateOk) return c.redirect('/dashboard/settings?youtube_error=invalid_state', 302);
+    if (!stateOk) return c.redirect('/dashboard/oauth?state=denied&reason=invalid_state', 302);
 
     const kc = loadKeychain(c.env);
-    if (!kc.ok) return c.redirect(`/dashboard/settings?youtube_error=${kc.error}`, 302);
+    if (!kc.ok) return c.redirect(`/dashboard/oauth?state=denied&reason=${kc.error}`, 302);
 
     const tokens = await exchangeCode(code, cfg);
     if (!tokens.ok) {
       return c.redirect(
-        `/dashboard/settings?youtube_error=token_exchange_failed&message=${encodeURIComponent(tokens.message)}`,
+        `/dashboard/oauth?state=denied&reason=token_exchange_failed&message=${encodeURIComponent(tokens.message)}`,
         302,
       );
     }
@@ -113,7 +115,7 @@ export function attachYouTubeRoutes(app: Hono<{ Bindings: YouTubeEnv }>): void {
       // Google omits refresh_token when the user already granted this
       // scope + prompt=none. We always send prompt=consent above; if
       // it's still missing, something's off with the client config.
-      return c.redirect('/dashboard/settings?youtube_error=no_refresh_token_returned', 302);
+      return c.redirect('/dashboard/oauth?state=denied&reason=no_refresh_token_returned', 302);
     }
 
     const encrypted = await encrypt(tokens.refreshToken, kc.keychain);
@@ -125,7 +127,7 @@ export function attachYouTubeRoutes(app: Hono<{ Bindings: YouTubeEnv }>): void {
       nowSec(),
     );
 
-    return c.redirect('/dashboard/settings?youtube=connected', 302);
+    return c.redirect('/dashboard/oauth?state=connected', 302);
   });
 
   // ─── List playlists ────────────────────────────────────────────────
