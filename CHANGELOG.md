@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.0](https://github.com/alghanmi/fluxtube/compare/v1.0.0...v1.1.0) (2026-07-15)
+
+
+### Features
+
+* **dashboard:** PR-A — logo + favicons + tokens for Phase 10 design pass ([fec33de](https://github.com/alghanmi/fluxtube/commit/fec33dec4dc712ac0e4a08d7f9ffe0e288caccee))
+* **dashboard:** PR-A — Phase 10 foundation (logo + favicons + tokens) ([#89](https://github.com/alghanmi/fluxtube/issues/89)) ([fec33de](https://github.com/alghanmi/fluxtube/commit/fec33dec4dc712ac0e4a08d7f9ffe0e288caccee))
+* **dashboard:** PR-B — TubeIcon Preact component (14-glyph icon set) ([#90](https://github.com/alghanmi/fluxtube/issues/90)) ([471640e](https://github.com/alghanmi/fluxtube/commit/471640eb4012975c3bc54c7febbd7053b62a22a5))
+* **dashboard:** PR-C — MappingEditor Phase 10 redesign (6 states + floating action bar) ([#104](https://github.com/alghanmi/fluxtube/issues/104)) ([5b63a0a](https://github.com/alghanmi/fluxtube/commit/5b63a0a453a9424b1be7e7b72a499639a0eff77c))
+* **dashboard:** PR-D — recovery-code hero screen (state-gated Continue) ([#105](https://github.com/alghanmi/fluxtube/issues/105)) ([a60f1fe](https://github.com/alghanmi/fluxtube/commit/a60f1fe24e1826e502cf43eaae559b94fb7ad24a))
+* **dashboard:** PR-E — backup restore wizard (5 numbered steps + hold-to-restore) ([#106](https://github.com/alghanmi/fluxtube/issues/106)) ([1e5d1f8](https://github.com/alghanmi/fluxtube/commit/1e5d1f8bc0511338c3b11c9696ec549e8994cb6e))
+
 ## [1.0.0](https://github.com/alghanmi/fluxtube/compare/v0.8.0...v1.0.0) (2026-07-11)
 
 
