@@ -1671,6 +1671,81 @@ button.danger:hover {
   }
 }
 
+/* ─────────────────────────────────────────────────────────────────────
+ * Filament-warmup (Phase 10)
+ *
+ * Page-load animation on the signed-in root. Each row's filament status
+ * icon fades in with a subtle stagger — filaments-warming-up-in-cascade.
+ * The whole cascade wraps at 800ms so subsequent interactions don't
+ * re-animate; the `me--warming` class is dropped by MappingEditor's
+ * useWarmup() hook once the timeout elapses.
+ *
+ * Fires once per browser session (sessionStorage gate in useWarmup).
+ * `prefers-reduced-motion` collapses to the end state instantly.
+ * ──────────────────────────────────────────────────────────────────── */
+
+@keyframes me-warmup-fade {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.me--warming .me-row-status,
+.me--warming .me-empty > *,
+.me--warming .me-noinstances > * {
+  animation: me-warmup-fade 260ms ease-out both;
+}
+
+/* Row filaments stagger by 60ms per row. Cap at 8 rows — beyond that
+   the cascade would overrun the 800ms hold. */
+.me--warming .me-rows .me-row:nth-child(1) .me-row-status {
+  animation-delay: 100ms;
+}
+.me--warming .me-rows .me-row:nth-child(2) .me-row-status {
+  animation-delay: 160ms;
+}
+.me--warming .me-rows .me-row:nth-child(3) .me-row-status {
+  animation-delay: 220ms;
+}
+.me--warming .me-rows .me-row:nth-child(4) .me-row-status {
+  animation-delay: 280ms;
+}
+.me--warming .me-rows .me-row:nth-child(5) .me-row-status {
+  animation-delay: 340ms;
+}
+.me--warming .me-rows .me-row:nth-child(6) .me-row-status {
+  animation-delay: 400ms;
+}
+.me--warming .me-rows .me-row:nth-child(7) .me-row-status {
+  animation-delay: 460ms;
+}
+.me--warming .me-rows .me-row:nth-child(n + 8) .me-row-status {
+  animation-delay: 520ms;
+}
+
+/* Empty-state hero + banners settle in the same window as the first
+   filaments so the whole page feels like a single warmup cycle rather
+   than staggered pieces. */
+.me--warming .me-empty > * {
+  animation-delay: 60ms;
+}
+.me--warming .me-noinstances > * {
+  animation-delay: 60ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .me--warming .me-row-status,
+  .me--warming .me-empty > *,
+  .me--warming .me-noinstances > * {
+    animation: none;
+  }
+}
+
 /* TubeIcon — the live-fetch glyph's pulse ring. `prefers-reduced-motion`
    collapses the animation to a static muted state per the design brief. */
 @keyframes ti-pulse-ring {
