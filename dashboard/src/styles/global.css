@@ -1671,6 +1671,125 @@ button.danger:hover {
   }
 }
 
+/* ─────────────────────────────────────────────────────────────────────
+ * OAuth callback splash (Phase 10)
+ *
+ * Full-page transient screen shown after the YouTube OAuth handshake
+ * returns. Success auto-redirects to /dashboard/settings after 1.5s;
+ * error offers Try Again + Back to settings.
+ * ──────────────────────────────────────────────────────────────────── */
+
+.oauth {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  max-width: 46rem;
+  margin: var(--space-12) auto 0;
+  padding-bottom: var(--space-10);
+  text-align: center;
+}
+
+.oauth-hero {
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: var(--space-2) 0 0;
+  font-variation-settings:
+    'SOFT' 15,
+    'opsz' 144,
+    'WONK' 0;
+}
+
+.oauth-hero--ok {
+  color: var(--color-fg);
+}
+
+.oauth-hero--err {
+  color: var(--color-danger);
+}
+
+.oauth-caption {
+  color: var(--color-fg-subtle);
+  font-family: var(--font-mono);
+  font-size: var(--size-sm);
+  margin: 0;
+}
+
+.oauth-caption code {
+  color: var(--color-fg-muted);
+}
+
+.oauth-body {
+  color: var(--color-fg-muted);
+  font-family: var(--font-display);
+  font-size: var(--size-md);
+  line-height: 1.6;
+  max-width: 58ch;
+  margin: 0;
+}
+
+.oauth-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: var(--space-3);
+}
+
+.oauth-retry {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-5);
+  background: var(--color-accent);
+  color: var(--color-bg);
+  border: 1px solid var(--color-accent);
+  font-family: var(--font-mono);
+  font-size: var(--size-sm);
+  text-decoration: none;
+}
+
+.oauth-retry:hover {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+}
+
+.oauth-back {
+  color: var(--color-fg-muted);
+  font-family: var(--font-mono);
+  font-size: var(--size-sm);
+  text-decoration: underline;
+  text-decoration-color: var(--color-line-strong);
+  text-underline-offset: 0.2em;
+}
+
+.oauth-back:hover {
+  color: var(--color-fg);
+  text-decoration-color: var(--color-accent);
+}
+
+.oauth-noscript {
+  color: var(--color-fg-muted);
+  font-family: var(--font-mono);
+  font-size: var(--size-sm);
+  margin-top: var(--space-3);
+}
+
+.oauth-noscript a {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  .oauth-hero {
+    font-size: 28px;
+  }
+}
+
 /* TubeIcon — the live-fetch glyph's pulse ring. `prefers-reduced-motion`
    collapses the animation to a static muted state per the design brief. */
 @keyframes ti-pulse-ring {
