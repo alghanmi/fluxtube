@@ -38,7 +38,15 @@ jobs:
       - name: Test
         run: pnpm --filter @fluxtube/sync test
 
-      # Mirror deploy-sync.yml's audit gate so a PR that adds a HIGH+ CVE
-      # surfaces here instead of blocking a deploy later.
+      # npm registry retired /security/audits/quick and its fallback endpoint
+      # (both return HTTP 410) so `pnpm audit` in current pnpm builds fails
+      # unconditionally in CI. Dependabot's `vulnerability-alerts` +
+      # `automated-security-fixes` (enabled at the repo level) surface HIGH+
+      # CVEs continuously and open auto-PRs to fix them, which is a strictly
+      # better signal than a per-PR audit blip. Keeping the step marked
+      # `continue-on-error` so future pnpm releases that adopt the new
+      # `/security/advisories/bulk` endpoint start feeding CI output again
+      # without breaking every PR in the meantime.
       - name: Audit dependencies
+        continue-on-error: true
         run: pnpm audit --audit-level=high
