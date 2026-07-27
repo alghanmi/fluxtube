@@ -48,6 +48,41 @@ function nextKey(): string {
   return `k-${clientKeyCounter}-${Date.now()}`;
 }
 
+// Filament-warmup: page-load animation on the signed-in root that fades
+// in each row's filament status icon with a subtle stagger. Fires once
+// per browser session per the design brief — sessionStorage flag gates
+// re-plays on internal navigation. `prefers-reduced-motion` collapses
+// the animation to the end state (CSS handles that).
+const WARMUP_KEY = 'fluxtube:me-warmed';
+const WARMUP_HOLD_MS = 800;
+
+function useWarmup(): boolean {
+  const [warming, setWarming] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      return window.sessionStorage.getItem(WARMUP_KEY) === null;
+    } catch {
+      // sessionStorage may be denied (Safari private mode etc.);
+      // treat that as "never warmed" and skip the animation to
+      // avoid re-animating on every navigation.
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    if (!warming) return;
+    try {
+      window.sessionStorage.setItem(WARMUP_KEY, '1');
+    } catch {
+      /* see comment above */
+    }
+    const t = window.setTimeout(() => setWarming(false), WARMUP_HOLD_MS);
+    return () => window.clearTimeout(t);
+  }, [warming]);
+
+  return warming;
+}
+
 export function MappingEditor(): preact.JSX.Element {
   const [groups, setGroups] = useState<Group[]>([]);
   const [playlists, setPlaylists] = useState<api.YouTubePlaylist[]>([]);
@@ -59,6 +94,7 @@ export function MappingEditor(): preact.JSX.Element {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [initial, setInitial] = useState<string>('[]');
   const [editing, setEditing] = useState<Set<string>>(() => new Set());
+  const warming = useWarmup();
 
   useEffect(() => {
     void bootstrap();
@@ -234,7 +270,7 @@ export function MappingEditor(): preact.JSX.Element {
     );
 
   return (
-    <div class="me">
+    <div class={warming ? 'me me--warming' : 'me'}>
       {ytConnected === false && (
         <div class="me-banner me-banner--warn">
           <div>
