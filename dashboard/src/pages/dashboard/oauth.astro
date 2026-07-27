@@ -1,0 +1,39 @@
+---
+// Transient full-page splash the dashboard Worker redirects to after
+// the YouTube OAuth callback. Two variants driven by ?state:
+//
+//   ?state=connected                       → success screen; auto-
+//                                              redirects to
+//                                              /dashboard/settings
+//                                              after 1.5s.
+//   ?state=denied&reason=<code>[&message=] → error screen; Try Again
+//                                              re-enters /api/auth/youtube.
+//
+// The Worker's success path writes the encrypted refresh token to D1
+// before landing here, so this page is decorative only. Any error
+// reason is human-readable-ish; we surface it verbatim beneath the
+// hero headline.
+
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { OAuthSplash } from '../../components/OAuthSplash';
+
+const url = Astro.url;
+const state = url.searchParams.get('state') === 'connected' ? 'connected' : 'denied';
+const reason = url.searchParams.get('reason') ?? undefined;
+const message = url.searchParams.get('message') ?? undefined;
+---
+
+<BaseLayout title={state === 'connected' ? 'YouTube connected' : 'YouTube consent declined'}>
+  <OAuthSplash client:load state={state} reason={reason} message={message} />
+
+  <script is:inline>
+    (async () => {
+      try {
+        const r = await fetch('/api/me', { credentials: 'same-origin' });
+        if (!r.ok) window.location.replace('/login');
+      } catch (_e) {
+        window.location.replace('/login');
+      }
+    })();
+  </script>
+</BaseLayout>
