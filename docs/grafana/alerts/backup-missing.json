@@ -27,7 +27,7 @@
       },
       "model": {
         "refId": "B",
-        "type": "threshold",
+        "type": "math",
         "expression": "$A == 0"
       }
     }
