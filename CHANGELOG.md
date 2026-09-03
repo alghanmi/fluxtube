@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/alghanmi/fluxtube/compare/v1.1.0...v1.1.1) (2026-09-01)
+
+
+### Bug Fixes
+
+* **alerts:** declare math expressions as math, not threshold ([#162](https://github.com/alghanmi/fluxtube/issues/162)) ([ccab8c1](https://github.com/alghanmi/fluxtube/commit/ccab8c1972365d35dd77b5ec1594f4bcd1bbd749))
+
 ## [1.1.0](https://github.com/alghanmi/fluxtube/compare/v1.0.0...v1.1.0) (2026-07-27)
 
 
