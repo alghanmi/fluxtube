@@ -23,29 +23,12 @@ updates:
       - dependency-name: 'typescript'
         update-types: ['version-update:semver-major']
 
-  - package-ecosystem: 'npm'
-    directory: '/workers/sync'
-    schedule:
-      interval: 'weekly'
-      day: 'monday'
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: 'chore(deps)'
-    ignore:
-      - dependency-name: 'typescript'
-        update-types: ['version-update:semver-major']
-
-  - package-ecosystem: 'npm'
-    directory: '/scripts'
-    schedule:
-      interval: 'weekly'
-      day: 'monday'
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: 'chore(deps)'
-    ignore:
-      - dependency-name: 'typescript'
-        update-types: ['version-update:semver-major']
+  # Note: no per-workspace `npm` entries. This is a pnpm workspace — the
+  # lockfile lives at the repo root, and Dependabot's per-directory npm
+  # runs update the workspace package.json but cannot regenerate the
+  # root pnpm-lock.yaml. Every resulting PR fails CI with
+  # ERR_PNPM_OUTDATED_LOCKFILE. The single `/` entry above covers every
+  # workspace (root + workers/* + dashboard + site + scripts).
 
   - package-ecosystem: 'github-actions'
     directory: '/'
