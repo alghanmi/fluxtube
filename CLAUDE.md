@@ -182,6 +182,7 @@ Pinned versions — don't drift without explicit instruction:
 - **No `any`**. Use `unknown` for external JSON, narrow with type guards.
 - **Terraform**: `terraform fmt -recursive` clean at all times. CI enforces.
 - **No real identifiers in tracked files**: D1 UUID + R2 bucket name in both `wrangler.toml`s are placeholders; Terraform sets the real bindings. No backend bucket name, no account ID, no real instance URL anywhere committed.
+- **Issues are published documents.** This repo is public, so an issue is indexed, quoted in notification email, and permanent — editing it does not unsend the mail. The same scrubbing that applies to commits and PRs applies to issue titles, bodies, and comments, and issues are the easiest surface to get wrong because prose invites explaining *how things work*. Never name a vault item or field, quote deploy-side config, or describe where the trust boundary sits. **File the symptom here and the mechanism on the private side**, and cross-reference only from private to public. Before opening one, re-read it asking what it tells an attacker that they did not already know.
 
 ## Public-side CI
 
