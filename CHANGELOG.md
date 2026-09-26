@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.1.2](https://github.com/alghanmi/fluxtube/compare/v1.1.1...v1.1.2) (2026-09-26)
+
+
+### Bug Fixes
+
+* **dashboard:** gate claiming, revoke sessions on recovery, contain credentials ([#187](https://github.com/alghanmi/fluxtube/issues/187)) ([9d46fdf](https://github.com/alghanmi/fluxtube/commit/9d46fdffe2a75e08948c4228fb5b7c03f4cdf3a0))
+* **deploy:** make wrangler.toml unable to shadow Terraform ([#186](https://github.com/alghanmi/fluxtube/issues/186)) ([850731a](https://github.com/alghanmi/fluxtube/commit/850731a2bc433c299bebcd0fa05dcb5341c5599f))
+* **deps:** remove duplicated entries from pnpm-lock.yaml ([#189](https://github.com/alghanmi/fluxtube/issues/189)) ([7a2ab36](https://github.com/alghanmi/fluxtube/commit/7a2ab366ad5e4d2d053fce243e932da841649e9e))
+* **sync:** authenticate operator requests before loading config ([#184](https://github.com/alghanmi/fluxtube/issues/184)) ([e2d348f](https://github.com/alghanmi/fluxtube/commit/e2d348f2aa879fb184f07ffac89d379a2706e9cb))
+
 ## [1.1.1](https://github.com/alghanmi/fluxtube/compare/v1.1.0...v1.1.1) (2026-09-01)
 
 
