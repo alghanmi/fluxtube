@@ -294,7 +294,7 @@ The Workers free tier's 10ms CPU limit is irrelevant here — almost all wall ti
 | -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | This repo (public)                                                               | Worker source, Terraform code, dashboards + alerts JSON, release-please config                                                                                                                                                                       |
 | The deploy companion (private)                                                   | The values Terraform consumes (CF account ID, R2 bucket, etc.), the secrets the Worker reads, the deploy workflow that stitches it all together                                                                                                      |
-| Terraform HCL (here, applied from the deploy companion)                          | All Cloudflare resources: D1, Worker script, cron trigger, plain_text bindings                                                                                                                                                                       |
+| Terraform HCL (here, applied from the deploy companion)                          | All Cloudflare resources: D1, Worker scripts, **cron triggers (sole owner)**, plain_text bindings                                                                                                                                                    |
 | Wrangler (`wrangler deploy --keep-vars`, run by the deploy companion's workflow) | The Worker's JS bundle. `--keep-vars` means Terraform's plain_text bindings survive every deploy                                                                                                                                                     |
 | Dashboard `POST /api/auth/youtube` flow (v1)                                     | Runs the YouTube OAuth handshake in-browser after the operator signs into the dashboard PWA. The dashboard Worker exchanges the code with Google, encrypts the refresh token under the D1 keychain, and writes it to `config.youtube_refresh_token`. |
 
@@ -304,12 +304,17 @@ Nothing sensitive is ever committed to this repository or persisted on disk afte
 
 The deploy companion runs a workflow that listens for `repository_dispatch` events from this repo's `notify-deploy.yml`. On receipt, it:
 
-1. Checks out **itself** for `backend.hcl`, `terraform.tfvars`, ops scripts.
-2. Checks out **this repo at the released tag** for Terraform code, Worker source, and `docs/grafana/`.
-3. Runs `terraform init -backend-config=$private/backend.hcl` against this repo's HCL.
-4. Runs `terraform apply` with `TF_VAR_*` env vars sourced from its own GitHub Secrets.
-5. Runs `wrangler deploy --keep-vars --define VERSION:'"X.Y.Z"'` against the checked-out Worker source.
-6. Runs `pnpm sync-grafana` against the checked-out dashboards + alerts.
-7. Pushes an OTLP `fluxtube.deploys` metric attributing the deploy.
+1. Validates the payload: the ref must be a release tag (`vX.Y.Z`) that exists on this repo, and the version must match it. Anything else (a branch, a `refs/pull/*` ref) fails before any code is checked out.
+2. Checks out **itself** for its config and ops scripts, and **this repo at the released tag** for Terraform code, Worker source, the PWA and `docs/grafana/`.
+3. Runs `terraform init` + `terraform apply` against this repo's HCL.
+4. Reads resource names and IDs back from `terraform output` (`sync_worker_name`, `dashboard_worker_name`, `d1_database_name`/`_id`, `backup_bucket_name`, `pages_project_name`) and writes them into both `wrangler.toml`s. `wrangler deploy` re-uploads bindings from the file, so the placeholders must never reach it.
+5. Applies D1 migrations (`wrangler d1 migrations apply --remote`) **before** any code that depends on them.
+6. Deploys both Workers: `wrangler deploy --name <output> --keep-vars --define VERSION:'"X.Y.Z"'`. `--name` is mandatory — the committed names are placeholders.
+7. Builds `dashboard/` and deploys it with `wrangler pages deploy` (which also bundles the `/api/*` Pages Function).
+8. Smoke-tests the dashboard: `GET /api/health` must report the version just deployed.
+9. Runs `pnpm sync-grafana` against the checked-out dashboards + alerts.
+10. Pushes an OTLP `fluxtube.deploys` metric attributing the deploy.
 
-The compromise model: this repo holds **one secret**, `DEPLOY_DISPATCH_TOKEN`, scoped to fire dispatches on the deploy companion only. Leaking it lets an attacker re-deploy already-released code; it does not grant the ability to deploy arbitrary code.
+Cron schedules are **not** set by `wrangler deploy` — neither `wrangler.toml` declares `[triggers]`, so Terraform's `cloudflare_workers_cron_trigger` resources (and their `cron_enabled` kill switches) are the only owner.
+
+The compromise model: this repo holds **one secret**, `DEPLOY_DISPATCH_TOKEN`, scoped to fire dispatches on the deploy companion only. Because of step 1, leaking it lets an attacker re-deploy an already-released tag; it does not grant the ability to deploy arbitrary code.

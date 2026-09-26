@@ -5,7 +5,7 @@ Four surfaces, in order of how much fidelity they give you:
 1. **Healthchecks.io** — primary dead-man's switch + typed per-reason failure alerts.
 2. **Grafana Cloud Loki** — every log line, queryable for ~14 days.
 3. **Grafana Cloud Mimir (via OTLP/HTTP)** — 11 gauge metrics per run, queryable with PromQL; dashboards live here.
-4. **`wrangler tail fluxtube-sync`** — live stdout for the current invocation.
+4. **`wrangler tail fluxtube-<instance_id>-sync`** — live stdout for the current invocation.
 
 Plus the `GET /audit` endpoint, which is a snapshot of state rather than a stream of events.
 
@@ -101,7 +101,7 @@ A Loki outage logs `loki_push_failed` at warn level (one line, written via `cons
 ## `wrangler tail`
 
 ```bash
-wrangler tail fluxtube-sync
+wrangler tail fluxtube-<instance_id>-sync
 ```
 
 Live stdout for whatever invocation is running. Useful for one-off debugging when you don't want to round-trip through Grafana. Each line is the same JSON the Loki sink ships.
