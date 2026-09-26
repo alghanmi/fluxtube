@@ -18,14 +18,16 @@ export class ApiError extends Error {
 }
 
 async function req<T>(path: string, init: RequestInit = {}): Promise<T> {
+  // `...init` first so the merged `headers` below wins — spreading it last
+  // would replace them wholesale with the caller's headers.
   const res = await fetch(path, {
+    ...init,
     credentials: 'same-origin',
     headers: {
       Accept: 'application/json',
       ...(init.body ? { 'Content-Type': 'application/json' } : {}),
       ...(init.headers ?? {}),
     },
-    ...init,
   });
   const text = await res.text();
   let body: unknown;
@@ -78,8 +80,16 @@ export async function recoverWithCode(code: string): Promise<{ wiped: number }> 
 // Server returns the raw JSON produced by @simplewebauthn/server. We pass it
 // through unchanged to @simplewebauthn/browser for the ceremony.
 
-export async function registerBegin(): Promise<unknown> {
-  return await req('/api/auth/passkey/register/begin', { method: 'POST' });
+/**
+ * Registration needs proof of operator authority: either the operator token
+ * (first claim of a fresh instance) or the claim-ticket cookie a successful
+ * recovery just set (in which case `operatorToken` is omitted).
+ */
+export async function registerBegin(operatorToken?: string): Promise<unknown> {
+  return await req('/api/auth/passkey/register/begin', {
+    method: 'POST',
+    ...(operatorToken ? { headers: { Authorization: `Bearer ${operatorToken}` } } : {}),
+  });
 }
 
 export async function registerFinish(

@@ -18,15 +18,20 @@ import {
   verifyRegistrationResponse,
 } from '@simplewebauthn/server';
 import app from '../../src/index';
-import { challengeCookieHeader, signChallenge } from '../../src/auth/challenge';
+import { challengeCookieHeader, claimCookieHeader, signChallenge } from '../../src/auth/challenge';
+import { ConfigRepo } from '../../src/repos/config';
 import { AdminPasskeyRepo } from '../../src/repos/admin_passkey';
 
 const db = (env as unknown as { DB: D1Database }).DB;
 const HMAC_KEY = 'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=';
 
+const OPERATOR_TOKEN = 'operator-token';
+const OPERATOR_AUTH = { Authorization: `Bearer ${OPERATOR_TOKEN}` };
+
 interface TestEnv {
   DB: D1Database;
   SESSION_SIGNING_KEY?: string;
+  MANUAL_TRIGGER_TOKEN?: string;
   RP_ID?: string;
   RP_NAME?: string;
 }
@@ -35,12 +40,22 @@ function testEnv(overrides: Partial<TestEnv> = {}): TestEnv {
   return {
     DB: db,
     SESSION_SIGNING_KEY: HMAC_KEY,
+    MANUAL_TRIGGER_TOKEN: OPERATOR_TOKEN,
     RP_ID: 'fluxtube.test.example',
     ...overrides,
   };
 }
 
 async function resetPasskeyTable(): Promise<void> {
+  await db.prepare('DROP TABLE IF EXISTS config').run();
+  await db
+    .prepare(
+      `CREATE TABLE config (
+        key TEXT PRIMARY KEY, value TEXT, value_ct TEXT, value_iv TEXT,
+        value_kv INTEGER, updated_at INTEGER NOT NULL
+      )`,
+    )
+    .run();
   await db.prepare('DROP TABLE IF EXISTS admin_passkey').run();
   await db
     .prepare(
@@ -111,6 +126,82 @@ describe('POST /api/auth/passkey/register/begin', () => {
     expect(res.status).toBe(409);
   });
 
+  it('401 on an empty table without operator token or claim ticket', async () => {
+    const res = await app.fetch(
+      new Request('http://d.test/api/auth/passkey/register/begin', { method: 'POST' }),
+      testEnv() as unknown as Env,
+      {} as ExecutionContext,
+    );
+    expect(res.status).toBe(401);
+    expect(((await res.json()) as { error: string }).error).toBe('claim_not_authorized');
+    expect(generateRegistrationOptions).not.toHaveBeenCalled();
+  });
+
+  it('401 with a wrong operator token', async () => {
+    const res = await app.fetch(
+      new Request('http://d.test/api/auth/passkey/register/begin', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer nope' },
+      }),
+      testEnv() as unknown as Env,
+      {} as ExecutionContext,
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it('accepts a valid claim ticket cookie in place of the operator token', async () => {
+    vi.mocked(generateRegistrationOptions).mockResolvedValue({
+      challenge: 'gen-challenge-abc',
+    } as unknown as Awaited<ReturnType<typeof generateRegistrationOptions>>);
+    const ticket = await signChallenge(
+      { purpose: 'claim', value: 'nonce', issuedAt: Math.floor(Date.now() / 1000) },
+      HMAC_KEY,
+    );
+    const cookie = claimCookieHeader(ticket).split(';')[0] ?? '';
+    const res = await app.fetch(
+      new Request('http://d.test/api/auth/passkey/register/begin', {
+        method: 'POST',
+        headers: { Cookie: cookie },
+      }),
+      testEnv() as unknown as Env,
+      {} as ExecutionContext,
+    );
+    expect(res.status).toBe(200);
+  });
+
+  it('rejects an expired claim ticket', async () => {
+    const ticket = await signChallenge(
+      { purpose: 'claim', value: 'nonce', issuedAt: Math.floor(Date.now() / 1000) - 16 * 60 },
+      HMAC_KEY,
+    );
+    const res = await app.fetch(
+      new Request('http://d.test/api/auth/passkey/register/begin', {
+        method: 'POST',
+        headers: { Cookie: claimCookieHeader(ticket).split(';')[0] ?? '' },
+      }),
+      testEnv() as unknown as Env,
+      {} as ExecutionContext,
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it('does not accept a WebAuthn challenge cookie as a claim ticket', async () => {
+    const challenge = await signChallenge(
+      { purpose: 'register', value: 'c', issuedAt: Math.floor(Date.now() / 1000) },
+      HMAC_KEY,
+    );
+    const res = await app.fetch(
+      new Request('http://d.test/api/auth/passkey/register/begin', {
+        method: 'POST',
+        // Same token presented under the claim cookie name.
+        headers: { Cookie: `fluxtube_claim=${challenge}` },
+      }),
+      testEnv() as unknown as Env,
+      {} as ExecutionContext,
+    );
+    expect(res.status).toBe(401);
+  });
+
   it('200 returns options + sets challenge cookie when table is empty', async () => {
     vi.mocked(generateRegistrationOptions).mockResolvedValue({
       challenge: 'gen-challenge-abc',
@@ -122,7 +213,10 @@ describe('POST /api/auth/passkey/register/begin', () => {
     } as unknown as Awaited<ReturnType<typeof generateRegistrationOptions>>);
 
     const res = await app.fetch(
-      new Request('http://d.test/api/auth/passkey/register/begin', { method: 'POST' }),
+      new Request('http://d.test/api/auth/passkey/register/begin', {
+        method: 'POST',
+        headers: OPERATOR_AUTH,
+      }),
       testEnv() as unknown as Env,
       {} as ExecutionContext,
     );
@@ -260,10 +354,14 @@ describe('POST /api/auth/passkey/register/finish', () => {
     // commas (Expires=Wed, ...), so the browser reads the joined header as
     // ONE cookie and only honors the first one.
     const cookies = res.headers.getSetCookie();
-    expect(cookies).toHaveLength(2);
+    expect(cookies).toHaveLength(3);
     expect(
       cookies.some((c) => c.startsWith('fluxtube_challenge=') && c.includes('Max-Age=0')),
     ).toBe(true);
+    // The claim ticket (if any) is spent once a passkey exists.
+    expect(cookies.some((c) => c.startsWith('fluxtube_claim=') && c.includes('Max-Age=0'))).toBe(
+      true,
+    );
     expect(cookies.some((c) => c.startsWith('fluxtube_session=') && c.includes('Max-Age='))).toBe(
       true,
     );
@@ -276,6 +374,10 @@ describe('POST /api/auth/passkey/register/finish', () => {
     // Recovery code hash stored, not the plaintext.
     expect(row?.recoveryHash).toHaveLength(64); // sha256 hex
     expect(row?.recoveryHash).not.toBe(body.recoveryCode);
+
+    // Durable D1-managed flag, so a later recovery wipe can't flip the sync
+    // Worker back to env-binding config.
+    expect((await new ConfigRepo(db).getPlain('config_mode'))?.value).toBe('d1');
   });
 });
 

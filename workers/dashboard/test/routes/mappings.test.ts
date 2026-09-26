@@ -6,7 +6,7 @@ import { ConfigRepo } from '../../src/repos/config';
 import { MappingHistoryRepo } from '../../src/repos/mapping_history';
 import { MappingsRepo } from '../../src/repos/mappings';
 import { MinifluxInstancesRepo } from '../../src/repos/miniflux_instances';
-import { resetV1Schema, TEST_KEYCHAIN_JSON } from '../support/schema';
+import { resetV1Schema, TEST_KEYCHAIN_JSON, seedSessionPasskey } from '../support/schema';
 
 const db = (env as unknown as { DB: D1Database }).DB;
 
@@ -30,6 +30,7 @@ function testEnv(overrides: Partial<TestEnv> = {}): AppEnv {
 }
 
 async function sessionCookie(): Promise<string> {
+  await seedSessionPasskey(db);
   const token = await signSession(
     { sub: 'admin', credentialId: 'cred-1', issuedAt: Math.floor(Date.now() / 1000) },
     HMAC_KEY,

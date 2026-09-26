@@ -16,7 +16,7 @@ export interface BackupRoutesEnv extends DashboardAuthEnv, BackupEnv {}
 
 export function attachBackupRoutes(app: Hono<{ Bindings: BackupRoutesEnv }>): void {
   app.post('/api/backup/now', async (c) => {
-    const session = await requireAuth(c.req.raw, c.env);
+    const session = await requireAuth(c.req.raw, c.env, { bearer: true });
     if (!session) return c.json({ error: 'unauthorized' }, 401);
 
     try {
@@ -40,7 +40,7 @@ export function attachBackupRoutes(app: Hono<{ Bindings: BackupRoutesEnv }>): vo
   });
 
   app.get('/api/backups', async (c) => {
-    const session = await requireAuth(c.req.raw, c.env);
+    const session = await requireAuth(c.req.raw, c.env, { bearer: true });
     if (!session) return c.json({ error: 'unauthorized' }, 401);
     if (!c.env.BACKUPS) return c.json({ error: 'backups_binding_not_configured' }, 500);
 

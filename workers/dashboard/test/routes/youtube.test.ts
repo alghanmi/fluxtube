@@ -4,7 +4,7 @@ import app from '../../src/index';
 import { signSession } from '../../src/auth/session';
 import { decrypt, encrypt, parseKeychain } from '../../src/crypto';
 import { ConfigRepo } from '../../src/repos/config';
-import { resetV1Schema, TEST_KEYCHAIN_JSON } from '../support/schema';
+import { resetV1Schema, TEST_KEYCHAIN_JSON, seedSessionPasskey } from '../support/schema';
 
 const db = (env as unknown as { DB: D1Database }).DB;
 
@@ -25,6 +25,7 @@ function testEnv(overrides: Record<string, unknown> = {}): AppEnv {
 }
 
 async function sessionCookie(): Promise<string> {
+  await seedSessionPasskey(db);
   const token = await signSession(
     { sub: 'admin', credentialId: 'cred-1', issuedAt: Math.floor(Date.now() / 1000) },
     HMAC_KEY,
@@ -223,7 +224,8 @@ describe('GET /api/auth/youtube/callback', () => {
       {} as ExecutionContext,
     );
     expect(res.status).toBe(302);
-    expect(res.headers.get('Location')).toContain(
+    // Fixed reason code only — upstream error text never reaches the URL.
+    expect(res.headers.get('Location')).toBe(
       '/dashboard/oauth?state=denied&reason=token_exchange_failed',
     );
   });

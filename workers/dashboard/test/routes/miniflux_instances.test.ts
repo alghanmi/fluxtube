@@ -5,7 +5,7 @@ import { signSession } from '../../src/auth/session';
 import { decrypt, parseKeychain } from '../../src/crypto';
 import { MappingsRepo } from '../../src/repos/mappings';
 import { MinifluxInstancesRepo } from '../../src/repos/miniflux_instances';
-import { resetV1Schema, TEST_KEYCHAIN_JSON } from '../support/schema';
+import { resetV1Schema, TEST_KEYCHAIN_JSON, seedSessionPasskey } from '../support/schema';
 
 const db = (env as unknown as { DB: D1Database }).DB;
 
@@ -23,6 +23,7 @@ function testEnv(overrides: Record<string, unknown> = {}): AppEnv {
 }
 
 async function sessionCookie(): Promise<string> {
+  await seedSessionPasskey(db);
   const token = await signSession(
     { sub: 'admin', credentialId: 'cred-1', issuedAt: Math.floor(Date.now() / 1000) },
     HMAC_KEY,
@@ -96,6 +97,19 @@ describe('POST /api/miniflux/instances', () => {
       new Request('http://d.test/api/miniflux/instances', {
         method: 'POST',
         body: JSON.stringify({ displayName: 'x' }),
+        headers: { Cookie: await sessionCookie() },
+      }),
+      testEnv(),
+      {} as ExecutionContext,
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it('400 on a plain-http URL (the token would travel in clear)', async () => {
+    const res = await app.fetch(
+      new Request('http://d.test/api/miniflux/instances', {
+        method: 'POST',
+        body: JSON.stringify({ displayName: 'Home', url: 'http://home.example', apiToken: 't' }),
         headers: { Cookie: await sessionCookie() },
       }),
       testEnv(),
@@ -264,6 +278,36 @@ describe('PUT /api/miniflux/instances/:id', () => {
     expect(decrypted).toBe('rotated-token');
   });
 
+  it('400 when the URL changes without re-entering the token', async () => {
+    const id = await new MinifluxInstancesRepo(db).insert({
+      displayName: 'Home',
+      url: 'https://home.example',
+      apiTokenCt: 'ct',
+      apiTokenIv: 'iv',
+      apiTokenKv: 1,
+      createdAt: 1,
+      updatedAt: 1,
+    });
+    const res = await app.fetch(
+      new Request(`http://d.test/api/miniflux/instances/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ url: 'https://elsewhere.example' }),
+        headers: { Cookie: await sessionCookie() },
+      }),
+      testEnv(),
+      {} as ExecutionContext,
+    );
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: string }).error).toBe(
+      'apiToken_required_when_url_changes',
+    );
+    // Stored URL + ciphertext untouched.
+    expect(await new MinifluxInstancesRepo(db).get(id)).toMatchObject({
+      url: 'https://home.example',
+      apiTokenCt: 'ct',
+    });
+  });
+
   it('409 on URL collision with another row', async () => {
     const idA = await new MinifluxInstancesRepo(db).insert({
       displayName: 'A',
@@ -286,7 +330,7 @@ describe('PUT /api/miniflux/instances/:id', () => {
     const res = await app.fetch(
       new Request(`http://d.test/api/miniflux/instances/${idA}`, {
         method: 'PUT',
-        body: JSON.stringify({ url: 'https://b.example' }),
+        body: JSON.stringify({ url: 'https://b.example', apiToken: 'tok' }),
         headers: { Cookie: await sessionCookie() },
       }),
       testEnv(),

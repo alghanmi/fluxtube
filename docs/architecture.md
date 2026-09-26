@@ -184,11 +184,19 @@ The `D1_KEYCHAIN` Worker secret is a JSON object shaped `{ "current": 2, "keys":
 
 ### Dashboard Worker route surface
 
-The dashboard Worker uses Hono. Full route map in `workers/dashboard/src/routes/`. Auth on every `/api/*` route is either a signed session cookie (from a passkey ceremony) or `Authorization: Bearer <MANUAL_TRIGGER_TOKEN>`.
+The dashboard Worker uses Hono. Full route map in `workers/dashboard/src/routes/`.
+
+Auth model:
+
+- **Passkey session** (signed cookie, 24h) is required on every data route. A session is only valid while its credential still exists in `admin_passkey`, so a recovery wipe ends every outstanding session.
+- **Operator Bearer** (`MANUAL_TRIGGER_TOKEN`) is accepted only on `/api/sync/trigger`, `/api/backup/now`, `/api/backups` and `/api/me` — not on restores, credential edits or mappings.
+- **Claiming** (`register/begin`) requires the operator Bearer on a fresh instance, or the 15-minute claim-ticket cookie a successful `/api/auth/recovery` sets in that browser. An empty `admin_passkey` table alone is not permission to claim.
+- **Origin check**: POST/PUT/DELETE carrying an `Origin` other than `https://<RP_ID>` get 403.
+- Changing a Miniflux instance's URL requires re-entering its token, and instance URLs must be `https://`. A stored token is only ever sent to the URL it was entered for.
 
 - **Auth**: `/api/auth/passkey/{register,authenticate}/{begin,finish}`, `/api/auth/recovery` (single-use hashed recovery code wipes `admin_passkey`), `/api/auth/logout`, `/api/me`
-- **YouTube OAuth**: `/api/auth/youtube` (302 to Google), `/api/auth/youtube/callback` (exchange + persist encrypted refresh_token, 302 back to `/dashboard/settings`)
-- **Config**: `/api/miniflux/instances` (CRUD), `/api/miniflux/categories?instance_id=N` (live via decrypted token), `/api/youtube/playlists` (live), `/api/mappings` (grouped view + full-replace save), `/api/mappings/history` (last N snapshots + restore), `/api/config/rotate-keys`
+- **YouTube OAuth**: `/api/auth/youtube` (302 to Google), `/api/auth/youtube/callback` (exchange + persist encrypted refresh_token, 302 to `/dashboard/oauth?state=connected|denied&reason=<code>`)
+- **Config**: `/api/miniflux/instances` (CRUD), `/api/miniflux/categories?instance_id=N` (live via decrypted token), `/api/youtube/playlists` (live), `/api/mappings` (grouped view + full-replace save), `/api/mappings/history` (last N snapshots + restore). `/api/config/rotate-keys` is documented elsewhere but **not implemented yet** (#178)
 - **Ops**: `/api/sync/trigger` (invokes sync Worker via Service Binding), `/api/backup/{now,restore/:file,list}`, `/api/backup/:filename` (download)
 
 ### Cross-instance dedup

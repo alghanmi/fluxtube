@@ -16,15 +16,16 @@ import { TubeIcon } from './icon/TubeIcon';
 interface Props {
   state: 'connected' | 'denied';
   reason?: string;
-  message?: string;
 }
 
 const REDIRECT_MS = 1500;
 const SETTINGS_URL = '/dashboard/settings';
 
-function humanizeReason(reason?: string, message?: string): string {
+// Everything shown comes from fixed copy keyed by `reason`. Free text from
+// the URL is never rendered, so a crafted link can't put arbitrary words on
+// this page.
+function humanizeReason(reason?: string): string {
   if (!reason) return 'Nothing was changed. Your last connection is still active.';
-  if (message) return `${describeReason(reason)} — ${message}`;
   return describeReason(reason);
 }
 
@@ -47,12 +48,16 @@ function describeReason(reason: string): string {
     case 'keychain_invalid':
       return 'The at-rest encryption keychain is missing or invalid on the Worker.';
     default:
-      return `The OAuth flow ended with reason \`${reason}\`.`;
+      // Unmapped Worker codes (e.g. `*_not_configured`) are snake_case; show
+      // those verbatim for debugging, and nothing else.
+      return /^[a-z0-9_]{1,64}$/.test(reason)
+        ? `The OAuth flow ended with reason \`${reason}\`.`
+        : 'The OAuth flow ended unexpectedly.';
   }
 }
 
 export function OAuthSplash(props: Props): preact.JSX.Element {
-  const { state, reason, message } = props;
+  const { state, reason } = props;
 
   useEffect(() => {
     if (state !== 'connected') return;
@@ -83,7 +88,7 @@ export function OAuthSplash(props: Props): preact.JSX.Element {
     <div class="oauth">
       <TubeIcon name="filament-error" size={56} />
       <h1 class="oauth-hero oauth-hero--err">Consent declined.</h1>
-      <p class="oauth-body">{humanizeReason(reason, message)}</p>
+      <p class="oauth-body">{humanizeReason(reason)}</p>
       <div class="oauth-actions">
         <a href={api.youtubeOAuthBeginUrl()} class="oauth-retry">
           Try again →

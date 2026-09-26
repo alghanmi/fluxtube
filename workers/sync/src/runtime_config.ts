@@ -6,10 +6,13 @@
 // sync path reads from D1 instead. Both modes coexist so production stays
 // on the env path until the operator cuts over.
 //
-// The gate is the `admin_passkey` table's existence:
-//   COUNT(*) FROM admin_passkey > 0  →  D1-managed mode; env vars strictly
-//                                       ignored (safety per the plan).
-//   0                                 →  env-managed mode; unchanged behaviour.
+// The gate (see `isD1Managed`):
+//   config.config_mode = 'd1' OR a row in admin_passkey
+//                                     →  D1-managed mode; env vars strictly
+//                                        ignored (safety per the plan).
+//   neither                           →  env-managed mode; unchanged behaviour.
+// The config_mode row survives a recovery wipe of admin_passkey; the passkey
+// fallback covers instances claimed before migration 0003 ran.
 //
 // A caller (index.ts, router.ts) calls `loadRuntimeConfig(env)` at the top
 // of each run/request and receives a normalized shape that both paths
@@ -42,8 +45,21 @@ export interface NormalizedRuntimeConfig {
 }
 
 export async function loadRuntimeConfig(env: Env): Promise<NormalizedRuntimeConfig> {
-  const passkeyCount = await new AdminPasskeyRepo(env.DB).count();
-  return passkeyCount > 0 ? await loadFromD1(env) : loadFromEnv(env);
+  return (await isD1Managed(env)) ? await loadFromD1(env) : loadFromEnv(env);
+}
+
+/**
+ * D1-managed iff the dashboard has recorded `config.config_mode = 'd1'`
+ * (written at first claim; backfilled by migration 0003) OR a passkey row
+ * exists (instances claimed before the flag existed, until 0003 runs).
+ *
+ * The flag is what keeps a recovery wipe — which empties admin_passkey —
+ * from silently flipping sync back to the legacy env bindings.
+ */
+async function isD1Managed(env: Env): Promise<boolean> {
+  const mode = await new ConfigRepo(env.DB).getPlain('config_mode');
+  if (mode?.value === 'd1') return true;
+  return (await new AdminPasskeyRepo(env.DB).count()) > 0;
 }
 
 /**

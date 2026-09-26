@@ -5,7 +5,7 @@ import { signSession } from '../../src/auth/session';
 import { ConfigRepo } from '../../src/repos/config';
 import { MappingsRepo } from '../../src/repos/mappings';
 import { MinifluxInstancesRepo } from '../../src/repos/miniflux_instances';
-import { resetV1Schema } from '../support/schema';
+import { resetV1Schema, seedSessionPasskey } from '../support/schema';
 
 const db = (env as unknown as { DB: D1Database }).DB;
 
@@ -55,6 +55,7 @@ function testEnv(overrides: Record<string, unknown> = {}): AppEnv {
 }
 
 async function sessionCookie(): Promise<string> {
+  await seedSessionPasskey(db);
   const token = await signSession(
     { sub: 'admin', credentialId: 'cred-1', issuedAt: Math.floor(Date.now() / 1000) },
     HMAC_KEY,

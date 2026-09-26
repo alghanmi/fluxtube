@@ -14,7 +14,11 @@
 const COOKIE_NAME = 'fluxtube_challenge';
 const MAX_AGE_SECONDS = 60 * 5; // 5m — enough for the user to touch the key
 
-export type ChallengePurpose = 'register' | 'authenticate';
+// 'claim' is not a WebAuthn challenge: it's the one-time ticket minted by a
+// successful POST /api/auth/recovery that authorises the next passkey
+// registration without the operator Bearer token. It travels in its own
+// cookie (below) so starting a registration doesn't overwrite it.
+export type ChallengePurpose = 'register' | 'authenticate' | 'claim';
 
 export interface ChallengeData {
   purpose: ChallengePurpose;
@@ -36,6 +40,7 @@ export async function verifyChallenge(
   hmacKeyB64: string,
   expectedPurpose: ChallengePurpose,
   now: number = Math.floor(Date.now() / 1000),
+  maxAgeSeconds: number = MAX_AGE_SECONDS,
 ): Promise<string | null> {
   if (!token) return null;
   const dot = token.indexOf('.');
@@ -64,7 +69,7 @@ export async function verifyChallenge(
   if (payload.purpose !== expectedPurpose) return null;
   if (typeof payload.value !== 'string' || payload.value.length === 0) return null;
   if (typeof payload.issuedAt !== 'number') return null;
-  if (now - payload.issuedAt > MAX_AGE_SECONDS) return null;
+  if (now - payload.issuedAt > maxAgeSeconds) return null;
   if (payload.issuedAt > now + 60) return null;
   return payload.value;
 }
@@ -91,13 +96,48 @@ export function clearChallengeCookieHeader(): string {
   ].join('; ');
 }
 
+// ─── Claim ticket cookie ────────────────────────────────────────────────
+
+const CLAIM_COOKIE_NAME = 'fluxtube_claim';
+export const CLAIM_MAX_AGE_SECONDS = 60 * 15; // 15m to register a new passkey
+
+export function claimCookieHeader(token: string): string {
+  return [
+    `${CLAIM_COOKIE_NAME}=${token}`,
+    'Path=/api/auth/passkey',
+    'Secure',
+    'HttpOnly',
+    'SameSite=Strict',
+    `Max-Age=${CLAIM_MAX_AGE_SECONDS}`,
+  ].join('; ');
+}
+
+export function clearClaimCookieHeader(): string {
+  return [
+    `${CLAIM_COOKIE_NAME}=`,
+    'Path=/api/auth/passkey',
+    'Secure',
+    'HttpOnly',
+    'SameSite=Strict',
+    'Max-Age=0',
+  ].join('; ');
+}
+
+export function readClaimCookie(request: Request): string | undefined {
+  return readCookie(request, CLAIM_COOKIE_NAME);
+}
+
 export function readChallengeCookie(request: Request): string | undefined {
+  return readCookie(request, COOKIE_NAME);
+}
+
+function readCookie(request: Request, name: string): string | undefined {
   const cookieHeader = request.headers.get('Cookie');
   if (!cookieHeader) return undefined;
   for (const pair of cookieHeader.split(';')) {
     const trimmed = pair.trim();
-    if (trimmed.startsWith(`${COOKIE_NAME}=`)) {
-      return trimmed.slice(COOKIE_NAME.length + 1);
+    if (trimmed.startsWith(`${name}=`)) {
+      return trimmed.slice(name.length + 1);
     }
   }
   return undefined;

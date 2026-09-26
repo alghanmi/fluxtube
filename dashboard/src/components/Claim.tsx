@@ -22,13 +22,22 @@ type Phase =
   | { kind: 'recovery'; code: string; credentialId: string; backedUp: boolean }
   | { kind: 'error'; message: string };
 
+// Arriving from a successful recovery (/claim?from=recovery) the browser
+// already holds a claim ticket, so no operator token is needed.
+function cameFromRecovery(): boolean {
+  if (typeof window === 'undefined') return false;
+  return new URLSearchParams(window.location.search).get('from') === 'recovery';
+}
+
 export function Claim(): preact.JSX.Element {
   const [phase, setPhase] = useState<Phase>({ kind: 'idle' });
+  const [fromRecovery] = useState<boolean>(cameFromRecovery);
+  const [token, setToken] = useState('');
 
   async function onClaim(): Promise<void> {
     setPhase({ kind: 'registering' });
     try {
-      const options = await api.registerBegin();
+      const options = await api.registerBegin(fromRecovery ? undefined : token.trim());
       const attestation = await startRegistration({
         optionsJSON: options as Parameters<typeof startRegistration>[0]['optionsJSON'],
       });
@@ -40,9 +49,15 @@ export function Claim(): preact.JSX.Element {
         backedUp: finish.credentialBackedUp,
       });
     } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
       setPhase({
         kind: 'error',
-        message: err instanceof Error ? err.message : String(err),
+        message:
+          message === 'claim_not_authorized'
+            ? fromRecovery
+              ? 'Your recovery session expired. Redeem the code again, or claim with the operator token.'
+              : 'That operator token was not accepted.'
+            : message,
       });
     }
   }
@@ -58,6 +73,22 @@ export function Claim(): preact.JSX.Element {
         Register a passkey to become the operator for this FluxTube instance. Only one operator per
         instance — after this, the register endpoint locks.
       </p>
+      {!fromRecovery && (
+        <div class="rc-form-field">
+          <label for="operator-token">Operator token</label>
+          <input
+            id="operator-token"
+            type="password"
+            autocomplete="off"
+            value={token}
+            onInput={(e) => setToken((e.currentTarget as HTMLInputElement).value)}
+          />
+          <p class="claim-lede">
+            The <code>MANUAL_TRIGGER_TOKEN</code> this instance was deployed with. It proves you're
+            the operator; it isn't stored in the browser.
+          </p>
+        </div>
+      )}
       {phase.kind === 'error' && (
         <div class="claim-error" role="alert">
           <TubeIcon name="filament-error" size={18} />
@@ -65,7 +96,11 @@ export function Claim(): preact.JSX.Element {
         </div>
       )}
       <div class="claim-actions">
-        <button class="claim-primary" onClick={onClaim} disabled={phase.kind === 'registering'}>
+        <button
+          class="claim-primary"
+          onClick={onClaim}
+          disabled={phase.kind === 'registering' || (!fromRecovery && !token.trim())}
+        >
           {phase.kind === 'registering' ? 'Waiting for your key…' : 'Register passkey'}
         </button>
         <a href="/recovery" class="claim-secondary">

@@ -70,7 +70,12 @@ export function attachYouTubeRoutes(app: Hono<{ Bindings: YouTubeEnv }>): void {
   // not a fetch(). All exits are 302 redirects to a rendered page:
   //
   //   Success:              /dashboard/oauth?state=connected
-  //   Recoverable failure:  /dashboard/oauth?state=denied&reason=<code>[&message=<msg>]
+  //   Recoverable failure:  /dashboard/oauth?state=denied&reason=<code>
+  //
+  // Only a fixed reason code goes in the URL — never upstream text. The splash
+  // page renders its own copy per code, so a crafted link can't put arbitrary
+  // words on a trusted page. Upstream detail is dropped here (not logged
+  // yet: the dashboard Worker has no logger — see #181).
   //   Unauthorized:         /login  (session cookie expired mid-flow)
   //
   // The dedicated /dashboard/oauth page renders the transient success or
@@ -86,10 +91,8 @@ export function attachYouTubeRoutes(app: Hono<{ Bindings: YouTubeEnv }>): void {
     const url = new URL(c.req.raw.url);
     const errorParam = url.searchParams.get('error');
     if (errorParam) {
-      return c.redirect(
-        `/dashboard/oauth?state=denied&reason=oauth_error&message=${encodeURIComponent(errorParam)}`,
-        302,
-      );
+      const reason = errorParam === 'access_denied' ? 'access_denied' : 'oauth_error';
+      return c.redirect(`/dashboard/oauth?state=denied&reason=${reason}`, 302);
     }
 
     const code = url.searchParams.get('code');
@@ -106,10 +109,7 @@ export function attachYouTubeRoutes(app: Hono<{ Bindings: YouTubeEnv }>): void {
 
     const tokens = await exchangeCode(code, cfg);
     if (!tokens.ok) {
-      return c.redirect(
-        `/dashboard/oauth?state=denied&reason=token_exchange_failed&message=${encodeURIComponent(tokens.message)}`,
-        302,
-      );
+      return c.redirect('/dashboard/oauth?state=denied&reason=token_exchange_failed', 302);
     }
     if (!tokens.refreshToken) {
       // Google omits refresh_token when the user already granted this

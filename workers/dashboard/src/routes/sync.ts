@@ -26,7 +26,7 @@ export interface SyncEnv extends DashboardAuthEnv {
 
 export function attachSyncRoutes(app: Hono<{ Bindings: SyncEnv }>): void {
   app.post('/api/sync/trigger', async (c) => {
-    const session = await requireAuth(c.req.raw, c.env);
+    const session = await requireAuth(c.req.raw, c.env, { bearer: true });
     if (!session) return c.json({ error: 'unauthorized' }, 401);
 
     if (!c.env.SYNC) return c.json({ error: 'sync_binding_not_configured' }, 503);

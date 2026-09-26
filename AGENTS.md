@@ -135,8 +135,9 @@ Pinned versions — don't drift without explicit instruction:
     │   ├── .dev.vars.example
     │   ├── migrations/
     │   │   ├── 0001_initial.sql       # queue table
-    │   │   └── 0002_v1_init.sql       # v1 tables: miniflux_instances, mappings, mapping_history,
-    │   │                              #            config, admin_passkey
+    │   │   ├── 0002_v1_init.sql       # v1 tables: miniflux_instances, mappings, mapping_history,
+    │   │   │                          #            config, admin_passkey
+    │   │   └── 0003_config_mode.sql   # durable D1-managed flag (survives recovery wipes)
     │   ├── src/
     │   │   ├── index.ts               # scheduled + fetch handlers
     │   │   ├── sync.ts                # core sync (returns RunSummary)
@@ -182,6 +183,7 @@ Pinned versions — don't drift without explicit instruction:
 - **No `any`**. Use `unknown` for external JSON, narrow with type guards.
 - **Terraform**: `terraform fmt -recursive` clean at all times. CI enforces.
 - **No real identifiers in tracked files**: D1 UUID + R2 bucket name in both `wrangler.toml`s are placeholders; Terraform sets the real bindings. No backend bucket name, no account ID, no real instance URL anywhere committed.
+- **Issues are published documents.** This repo is public, so an issue is indexed, quoted in notification email, and permanent — editing it does not unsend the mail. The same scrubbing that applies to commits and PRs applies to issue titles, bodies, and comments, and issues are the easiest surface to get wrong because prose invites explaining _how things work_. Never name a vault item or field, quote deploy-side config, or describe where the trust boundary sits. **File the symptom here and the mechanism on the private side**, and cross-reference only from private to public. Before opening one, re-read it asking what it tells an attacker that they did not already know.
 
 ## Public-side CI
 
@@ -209,7 +211,7 @@ Grafana provisioning (dashboards + alerts under `docs/grafana/`) is pushed by a 
 
 - **Both `wrangler.toml`s carry placeholders**. `workers/sync/wrangler.toml`'s `database_id` and `workers/dashboard/wrangler.toml`'s `database_id` + `r2_buckets[].bucket_name` are all `00000000-…` / `fluxtube-placeholder-*`. Terraform sets the real bindings on `cloudflare_workers_script.{sync,dashboard}`; the deploy workflow `sed`s in the real values immediately before `wrangler deploy` because `--keep-vars` covers `vars`, not bindings.
 - **YouTube OAuth refresh tokens no longer expire on a fixed cycle** — the Google Cloud OAuth app is published to In Production (Google-verified). The dashboard's `/api/auth/youtube` flow is the canonical path for minting refresh tokens; they land in D1 encrypted under `config.youtube_refresh_token`. The old `scripts/oauth-bootstrap.ts` local-CLI flow was retired in v1.
-- **D1-managed vs env-managed config.** The sync Worker's `runtime_config.ts` checks whether an `admin_passkey` row exists. If yes → all runtime config is read from D1 (multi-Miniflux, encrypted YouTube token, per-mapping `skip_shorts`). If no → legacy `CATEGORY_PLAYLIST_MAPPING` + `MINIFLUX_*` env bindings still work (single-Miniflux). Post-cutover we're D1-managed; the env-managed path exists for cold-start / recovery.
+- **D1-managed vs env-managed config.** The sync Worker's `runtime_config.ts` checks for `config.config_mode = 'd1'` (written at first claim; migration `0003` backfills it) or, failing that, an `admin_passkey` row. The flag is what keeps a recovery wipe of `admin_passkey` from flipping sync back to env bindings. If D1-managed → all runtime config is read from D1 (multi-Miniflux, encrypted YouTube token, per-mapping `skip_shorts`). If no → legacy `CATEGORY_PLAYLIST_MAPPING` + `MINIFLUX_*` env bindings still work (single-Miniflux). Post-cutover we're D1-managed; the env-managed path exists for cold-start / recovery.
 - **Encryption at rest.** Every sensitive D1 column has a `_ct` / `_iv` / `_kv` triple. AES-GCM under a JSON keychain in the `D1_KEYCHAIN` Worker secret. Rotation: bump keychain `current`, redeploy, hit `POST /api/config/rotate-keys`.
 - **Cron triggers fire at most once per minute.** Sync default `*/30 * * * *`; backup default `15 4 * * *` (offset from the sync tick to avoid CPU contention).
 - **No `playlistItems.delete` calls** — the user removes videos from the playlist manually; that's the signal Pass 2 listens for.
