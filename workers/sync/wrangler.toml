@@ -1,28 +1,35 @@
-name = "fluxtube-sync"
+# Placeholder. Production Worker names are instance-prefixed
+# (`fluxtube-<instance_id>-sync`) and come from the Terraform output
+# `sync_worker_name`; every deploy MUST pass `--name`. Script upload is an
+# upsert, so deploying without `--name` doesn't fail — it silently creates a
+# separate Worker under this placeholder name with none of the secrets.
+name = "fluxtube-sync-placeholder"
 main = "src/index.ts"
 compatibility_date = "2025-05-01"
 compatibility_flags = ["nodejs_compat"]
 
 # Expose the operator endpoints (`POST /sync`, `GET /audit` — see router.ts)
-# on the workers.dev subdomain. Auth is a Bearer token (`MANUAL_TRIGGER_TOKEN`);
-# there is no unauthenticated surface. Move to a custom domain later — see TODO.md.
+# on the workers.dev subdomain; operator scripts call them directly. Every
+# request is Bearer-checked (`MANUAL_TRIGGER_TOKEN`) before anything else
+# runs. Move to a custom domain later — see #108.
 workers_dev = true
 
 # ── Build-time string substitution ────────────────────────────────────────────
 # wrangler replaces the bare identifier `VERSION` in the bundle at build time.
-# `deploy-sync.yml` overrides this on production deploys with the version from
-# `workers/sync/package.json`. The value here is the default for `wrangler dev`
+# The deploy pipeline overrides this on production deploys with the version from
+# the root `package.json`. The value here is the default for `wrangler dev`
 # and is also what the cloudflare/vitest-pool-workers test bundle sees.
 # See `src/globals.d.ts` for the matching TypeScript declaration.
 [define]
 VERSION = "\"0.0.0-dev\""
 
 # ── Cron trigger ──────────────────────────────────────────────────────────────
-# Default cadence. Terraform manages this in production via the
-# `cron_schedule` variable. Keep this value in sync with the variable to avoid
-# drift — `wrangler deploy` will set crons from this file on each push.
-[triggers]
-crons = ["*/30 * * * *"]
+# Deliberately absent. Terraform is the only owner of the schedule
+# (`cloudflare_workers_cron_trigger.sync`, gated by `var.cron_enabled`).
+# With no `[triggers]` table, `wrangler deploy` leaves the deployed schedule
+# untouched; declaring one here would re-arm the cron on every deploy and
+# defeat the `cron_enabled = false` kill switch. Locally, use
+# `wrangler dev --test-scheduled` and hit `/cdn-cgi/local/scheduled`.
 
 # ── Non-secret vars ───────────────────────────────────────────────────────────
 # Vars are owned by Terraform (set as plain_text bindings on the script
@@ -34,10 +41,11 @@ crons = ["*/30 * * * *"]
 # file.
 
 # ── D1 binding ────────────────────────────────────────────────────────────────
-# Terraform sets the real production binding via `d1_database_binding` on the
-# `cloudflare_workers_script` resource (see infrastructure/terraform/_modules/
-# fluxtube-environment/worker.tf). The value below is an all-zeros placeholder
-# so the file parses; production deploys ignore it.
+# Terraform declares the real binding on `cloudflare_workers_script.sync`
+# (infrastructure/terraform/_modules/fluxtube-environment/worker_sync.tf).
+# `wrangler deploy` re-uploads bindings from THIS file, though, so the deploy
+# pipeline rewrites `database_name` + `database_id` from Terraform outputs
+# immediately before deploying. The values below are placeholders.
 #
 # For local `wrangler dev --remote`: copy this file to a personal
 # `wrangler.local.toml` (gitignored), drop in your dev D1 UUID, and run

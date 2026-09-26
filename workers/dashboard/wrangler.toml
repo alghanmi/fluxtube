@@ -1,12 +1,15 @@
-name = "fluxtube-dashboard"
+# Placeholder — see workers/sync/wrangler.toml. The real name comes from the
+# Terraform output `dashboard_worker_name`; every deploy MUST pass `--name`.
+name = "fluxtube-dashboard-placeholder"
 main = "src/index.ts"
 compatibility_date = "2025-05-01"
 compatibility_flags = ["nodejs_compat"]
 
-# Enable the workers.dev subdomain for local + preview visibility. Production
-# routes traffic through the (Terraform-injected) dashboard host's `/api/*`
-# via a Service Binding from the Pages project — wired up in Phase 7.
-workers_dev = true
+# No workers.dev URL. The PWA reaches this Worker only through the Pages
+# Function at dashboard/functions/api/[[path]].ts over the DASHBOARD Service
+# Binding, so a public workers.dev hostname adds attack surface and nothing
+# else. `wrangler dev` is unaffected.
+workers_dev = false
 
 # ── Build-time string substitution ────────────────────────────────────────────
 # wrangler replaces the bare identifier `VERSION` in the bundle at build time.
@@ -17,25 +20,21 @@ workers_dev = true
 VERSION = "\"0.0.0-dev\""
 
 # ── Cron trigger (nightly R2 backup) ──────────────────────────────────────────
-# Phase 5 adds the `scheduled` handler + backup logic. Offset from the sync
-# worker's `*/30 * * * *` schedule to avoid CPU contention on tick boundaries.
-[triggers]
-crons = ["15 4 * * *"]
+# Deliberately absent — Terraform owns the schedule
+# (`cloudflare_workers_cron_trigger.dashboard`, gated by
+# `var.dashboard_cron_enabled`). See workers/sync/wrangler.toml for why.
 
 # ── R2 binding (nightly backups, Phase 5) ─────────────────────────────────────
-# Terraform creates the real bucket in Phase 7 with a 120-day lifecycle rule
-# and injects the actual `bucket_name` at deploy time. The placeholder below
-# is a per-project literal that wrangler dev can parse; production overrides
-# via the `r2_bucket_binding` block on `cloudflare_workers_script`.
+# Terraform creates the real bucket (120-day lifecycle rule). As with D1,
+# `wrangler deploy` re-uploads this binding, so the deploy pipeline rewrites
+# `bucket_name` from the Terraform output `backup_bucket_name` before deploy.
 [[r2_buckets]]
 binding = "BACKUPS"
 bucket_name = "fluxtube-backups-placeholder"
 
 # ── D1 binding (shared with sync worker) ──────────────────────────────────────
-# Same D1 database as workers/sync — Terraform sets the real binding via
-# `d1_database_binding` on this script's `cloudflare_workers_script` resource
-# in Phase 7. The value below is an all-zeros placeholder so wrangler dev
-# parses; production deploys ignore it (real UUID injected by Terraform).
+# Same D1 database as workers/sync. Placeholders, rewritten by the deploy
+# pipeline from Terraform outputs — see workers/sync/wrangler.toml.
 #
 # `migrations_dir` points at the sync worker's migrations folder so both
 # workers share the same migration ledger.
