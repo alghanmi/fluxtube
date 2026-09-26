@@ -3,7 +3,7 @@ import { createLogger, parseLogLevel } from './logger';
 import { LokiSink } from './logsink';
 import { emitRunMetrics, OtlpMetricsSink } from './metricsink';
 import { MinifluxClient } from './miniflux';
-import { handleFetch } from './router';
+import { authorized, handleFetch } from './router';
 import { loadRuntimeConfig, type NormalizedRuntimeConfig } from './runtime_config';
 import { QueueState } from './state';
 import { runSync, type SyncDeps } from './sync';
@@ -210,6 +210,17 @@ export default {
   // unconditionally in `finally` so any buffered points (e.g. a manual /sync
   // run) ship before the request returns.
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    // Authenticate before loading runtime config. Loading reads D1 and
+    // decrypts secrets, and its failure message describes the instance's
+    // configuration state — neither should be reachable anonymously.
+    // handleFetch re-checks, so direct callers stay covered too.
+    if (!authorized(request, env.MANUAL_TRIGGER_TOKEN)) {
+      return new Response(JSON.stringify({ error: 'unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     const runId = crypto.randomUUID();
     const sink = buildLokiSink(env, runId);
     const metrics = buildMetricsSink(env, runId);
@@ -219,8 +230,8 @@ export default {
       runtime = await loadRuntimeConfig(env);
     } catch (err) {
       // 503 so operator scripts see a clear failure rather than a stale 401.
-      // Body carries the failure detail — safe because /sync + /audit are
-      // Bearer-token-gated in router.ts.
+      // Body carries the failure detail — safe because the Bearer check
+      // above has already passed.
       const bootstrapLogger = createLogger(parseLogLevel(env.SYNC_LOG_LEVEL), sink);
       bootstrapLogger.error('sync_config_load_failed', {
         message: err instanceof Error ? err.message : String(err),

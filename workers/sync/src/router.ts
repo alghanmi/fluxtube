@@ -121,7 +121,13 @@ function fatalOutcomeAttr(
   return 'fatal_other';
 }
 
-function authorized(request: Request, expected: string): boolean {
+/**
+ * Bearer check against `MANUAL_TRIGGER_TOKEN`. Exported so the Worker's
+ * `fetch` entrypoint can reject unauthenticated callers before it touches
+ * D1 or the keychain — config-load errors must never reach an anonymous
+ * caller.
+ */
+export function authorized(request: Request, expected: string): boolean {
   if (!expected) return false;
   const header = request.headers.get('Authorization');
   if (header === null) return false;
