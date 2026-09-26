@@ -70,13 +70,16 @@ describe('crypto: multi-key-version decryption', () => {
   it('decrypt throws on tampered ciphertext (GCM auth tag catches it)', async () => {
     const kc = keychain(1, ['1', KEY_1]);
     const encrypted = await encrypt('secret', kc);
-    // Flip a byte in ct.
+    // Replace the 4th-from-last base64 char with a guaranteed-different
+    // one. (Checking a different position than the one replaced made this
+    // a no-op whenever that char was already 'A' — a ~1/64 flake.)
+    const i = encrypted.ct.length - 4;
     const tampered = {
       ...encrypted,
       ct:
-        encrypted.ct.slice(0, -4) +
-        (encrypted.ct.endsWith('A') ? 'B' : 'A') +
-        encrypted.ct.slice(-3),
+        encrypted.ct.slice(0, i) +
+        (encrypted.ct[i] === 'A' ? 'B' : 'A') +
+        encrypted.ct.slice(i + 1),
     };
     await expect(decrypt(tampered, kc)).rejects.toThrow();
   });
