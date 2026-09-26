@@ -1,11 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  decrypt,
-  encrypt,
-  generateKeyBase64,
-  parseKeychain,
-  type Keychain,
-} from '../src/crypto';
+import { decrypt, encrypt, generateKeyBase64, parseKeychain, type Keychain } from '../src/crypto';
 
 // Test fixtures: two known 32-byte keys (bytes 0..31 and 32..63), base64.
 // Deterministic so tests are stable, but real keychains are generated via
@@ -76,10 +70,16 @@ describe('crypto: multi-key-version decryption', () => {
   it('decrypt throws on tampered ciphertext (GCM auth tag catches it)', async () => {
     const kc = keychain(1, ['1', KEY_1]);
     const encrypted = await encrypt('secret', kc);
-    // Flip a byte in ct.
+    // Replace the 4th-from-last base64 char with a guaranteed-different
+    // one. (Checking a different position than the one replaced made this
+    // a no-op whenever that char was already 'A' — a ~1/64 flake.)
+    const i = encrypted.ct.length - 4;
     const tampered = {
       ...encrypted,
-      ct: encrypted.ct.slice(0, -4) + (encrypted.ct.endsWith('A') ? 'B' : 'A') + encrypted.ct.slice(-3),
+      ct:
+        encrypted.ct.slice(0, i) +
+        (encrypted.ct[i] === 'A' ? 'B' : 'A') +
+        encrypted.ct.slice(i + 1),
     };
     await expect(decrypt(tampered, kc)).rejects.toThrow();
   });
@@ -102,28 +102,28 @@ describe('parseKeychain', () => {
   });
 
   it('rejects non-integer current', () => {
-    expect(() =>
-      parseKeychain(JSON.stringify({ current: 1.5, keys: { '1': KEY_1 } })),
-    ).toThrow(/integer/);
+    expect(() => parseKeychain(JSON.stringify({ current: 1.5, keys: { '1': KEY_1 } }))).toThrow(
+      /integer/,
+    );
   });
 
   it('rejects when current version is not in the keys map', () => {
-    expect(() =>
-      parseKeychain(JSON.stringify({ current: 2, keys: { '1': KEY_1 } })),
-    ).toThrow(/current version 2 not present/);
+    expect(() => parseKeychain(JSON.stringify({ current: 2, keys: { '1': KEY_1 } }))).toThrow(
+      /current version 2 not present/,
+    );
   });
 
   it('rejects non-integer key names', () => {
-    expect(() =>
-      parseKeychain(JSON.stringify({ current: 1, keys: { latest: KEY_1 } })),
-    ).toThrow(/non-integer key version/);
+    expect(() => parseKeychain(JSON.stringify({ current: 1, keys: { latest: KEY_1 } }))).toThrow(
+      /non-integer key version/,
+    );
   });
 
   it('rejects wrong-length keys', () => {
     const shortKey = 'AAAA'; // 3 bytes decoded
-    expect(() =>
-      parseKeychain(JSON.stringify({ current: 1, keys: { '1': shortKey } })),
-    ).toThrow(/3 bytes, need 32/);
+    expect(() => parseKeychain(JSON.stringify({ current: 1, keys: { '1': shortKey } }))).toThrow(
+      /3 bytes, need 32/,
+    );
   });
 });
 

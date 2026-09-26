@@ -28,11 +28,13 @@ function makeEnv(overrides: Partial<Env> = {}): Env {
   };
 }
 
-function makeDeps(overrides: {
-  unread?: { id: number; url: string; title: string; status: 'unread' }[];
-  playlistItems?: PlaylistItemRef[];
-  rowsForPlaylist?: never;
-} = {}) {
+function makeDeps(
+  overrides: {
+    unread?: { id: number; url: string; title: string; status: 'unread' }[];
+    playlistItems?: PlaylistItemRef[];
+    rowsForPlaylist?: never;
+  } = {},
+) {
   const miniflux = {
     listCategories: vi.fn(async () => [{ id: 1, title: 'X' }]),
     listUnreadInCategory: vi.fn(async () => overrides.unread ?? []),
@@ -174,7 +176,14 @@ describe('handleFetch — routing', () => {
   });
 
   it('POST /sync?wait=1 runs synchronously and returns 200 with the run summary', async () => {
-    const res = await handleFetch(req('/sync?wait=1', 'POST'), env, ctx, deps.logger, deps, MAPPINGS);
+    const res = await handleFetch(
+      req('/sync?wait=1', 'POST'),
+      env,
+      ctx,
+      deps.logger,
+      deps,
+      MAPPINGS,
+    );
     expect(res.status).toBe(200);
     const body = (await res.json()) as {
       status: string;

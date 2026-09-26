@@ -129,7 +129,10 @@ export function RestoreWizard(props: {
         />
       )}
       {currentStep === 4 && step.kind === 4 && (
-        <StepReauth result={step.result} onContinue={() => setStep({ kind: 5, result: step.result })} />
+        <StepReauth
+          result={step.result}
+          onContinue={() => setStep({ kind: 5, result: step.result })}
+        />
       )}
       {currentStep === 5 && step.kind === 5 && <StepDone result={step.result} onExit={onExit} />}
     </div>
@@ -232,7 +235,11 @@ function StepChoose(props: {
         <button class="wz-btn" onClick={onCancel}>
           Cancel
         </button>
-        <button class="wz-btn wz-btn--primary" onClick={onPreview} disabled={!selected || previewing}>
+        <button
+          class="wz-btn wz-btn--primary"
+          onClick={onPreview}
+          disabled={!selected || previewing}
+        >
           {previewing ? 'Loading preview…' : 'Preview this backup →'}
         </button>
       </div>
@@ -447,17 +454,21 @@ function StepReauth(props: { result: RestoreResult; onContinue: () => void }): p
       </p>
       <div class="wz-summary">
         <span>
-          <strong>{result.restoredInstances}</strong> Miniflux instance{result.restoredInstances === 1 ? '' : 's'}
+          <strong>{result.restoredInstances}</strong> Miniflux instance
+          {result.restoredInstances === 1 ? '' : 's'}
         </span>
         <span>
-          <strong>{result.restoredMappings}</strong> mapping{result.restoredMappings === 1 ? '' : 's'}
+          <strong>{result.restoredMappings}</strong> mapping
+          {result.restoredMappings === 1 ? '' : 's'}
         </span>
         <span>
-          <strong>{result.restoredHistory}</strong> history row{result.restoredHistory === 1 ? '' : 's'}
+          <strong>{result.restoredHistory}</strong> history row
+          {result.restoredHistory === 1 ? '' : 's'}
         </span>
         {result.skippedMappings > 0 && (
           <span class="wz-warn">
-            <strong>{result.skippedMappings}</strong> mapping{result.skippedMappings === 1 ? '' : 's'} skipped
+            <strong>{result.skippedMappings}</strong> mapping
+            {result.skippedMappings === 1 ? '' : 's'} skipped
           </span>
         )}
       </div>

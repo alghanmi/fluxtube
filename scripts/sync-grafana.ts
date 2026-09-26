@@ -122,7 +122,9 @@ async function resolvePrometheusDatasourceUid(baseUrl: string, token: string): P
     return defaults[0]!.uid;
   }
 
-  const names = candidates.map((c) => `${c.name} (uid=${c.uid}, default=${c.isDefault})`).join(', ');
+  const names = candidates
+    .map((c) => `${c.name} (uid=${c.uid}, default=${c.isDefault})`)
+    .join(', ');
   throw new Error(
     `Multiple Prometheus datasources found and none/multiple marked default: ${names}. ` +
       `Set GRAFANA_PROMETHEUS_DATASOURCE_UID in the workflow env to the metrics datasource's uid.`,
@@ -134,11 +136,7 @@ interface Folder {
   title: string;
 }
 
-async function resolveFolderUid(
-  baseUrl: string,
-  token: string,
-  title: string,
-): Promise<string> {
+async function resolveFolderUid(baseUrl: string, token: string, title: string): Promise<string> {
   // `/api/folders` is paginated (default page size 1000, max 1000). One page
   // is more than enough for a personal Grafana instance, but ask for the max
   // explicitly so the script behaves consistently as folders are added.
@@ -188,7 +186,9 @@ async function pushDashboard(
   }
   const res = await grafana(baseUrl, token, 'POST', '/api/dashboards/db', body);
   const result = (await res.json()) as { uid?: string; status?: string };
-  log(`  ✓ ${filename} → uid=${result.uid ?? '?'} status=${result.status ?? '?'} folder=${folderUid}`);
+  log(
+    `  ✓ ${filename} → uid=${result.uid ?? '?'} status=${result.status ?? '?'} folder=${folderUid}`,
+  );
 }
 
 async function pushAlertRule(
@@ -202,7 +202,9 @@ async function pushAlertRule(
 
   const exists = await alertRuleExists(baseUrl, token, uid);
   const verb = exists ? 'PUT' : 'POST';
-  const path = exists ? `/api/v1/provisioning/alert-rules/${uid}` : '/api/v1/provisioning/alert-rules';
+  const path = exists
+    ? `/api/v1/provisioning/alert-rules/${uid}`
+    : '/api/v1/provisioning/alert-rules';
 
   if (DRY_RUN) {
     log(`  [dry-run] ${verb} ${path} ← ${filename}`);
@@ -213,9 +215,16 @@ async function pushAlertRule(
 }
 
 async function alertRuleExists(baseUrl: string, token: string, uid: string): Promise<boolean> {
-  const res = await grafana(baseUrl, token, 'GET', `/api/v1/provisioning/alert-rules/${uid}`, undefined, {
-    acceptNotFound: true,
-  });
+  const res = await grafana(
+    baseUrl,
+    token,
+    'GET',
+    `/api/v1/provisioning/alert-rules/${uid}`,
+    undefined,
+    {
+      acceptNotFound: true,
+    },
+  );
   return res.status === 200;
 }
 
@@ -319,6 +328,6 @@ function log(line: string): void {
 }
 
 main().catch((err) => {
-  console.error(err instanceof Error ? err.stack ?? err.message : String(err));
+  console.error(err instanceof Error ? (err.stack ?? err.message) : String(err));
   process.exit(1);
 });

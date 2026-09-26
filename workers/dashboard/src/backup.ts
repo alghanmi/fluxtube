@@ -278,7 +278,8 @@ export async function restoreBackup(
   for (const h of payload.mapping_history) {
     await historyRepo.append({
       snapshotJson: h.snapshot_json,
-      actor: h.actor === 'ui' || h.actor === 'restore' || h.actor === 'migration' ? h.actor : 'restore',
+      actor:
+        h.actor === 'ui' || h.actor === 'restore' || h.actor === 'migration' ? h.actor : 'restore',
       createdAt: h.created_at,
     });
   }

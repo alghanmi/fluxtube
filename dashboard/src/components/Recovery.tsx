@@ -6,10 +6,7 @@ import * as api from '../lib/api';
 import { TubeIcon } from './icon/TubeIcon';
 
 type Phase =
-  | { kind: 'idle' }
-  | { kind: 'submitting' }
-  | { kind: 'done' }
-  | { kind: 'error'; message: string };
+  { kind: 'idle' } | { kind: 'submitting' } | { kind: 'done' } | { kind: 'error'; message: string };
 
 export function Recovery(): preact.JSX.Element {
   const [code, setCode] = useState('');

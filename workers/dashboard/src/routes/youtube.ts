@@ -147,10 +147,7 @@ export function attachYouTubeRoutes(app: Hono<{ Bindings: YouTubeEnv }>): void {
 
     let refreshToken: string;
     try {
-      refreshToken = await decrypt(
-        { ct: stored.ct, iv: stored.iv, kv: stored.kv },
-        kc.keychain,
-      );
+      refreshToken = await decrypt({ ct: stored.ct, iv: stored.iv, kv: stored.kv }, kc.keychain);
     } catch (err) {
       return c.json(
         {
@@ -204,9 +201,7 @@ function requireOAuthConfig(env: YouTubeEnv): OAuthConfigOk | OAuthConfigErr {
   };
 }
 
-type KeychainResult =
-  | { ok: true; keychain: Keychain }
-  | { ok: false; error: string };
+type KeychainResult = { ok: true; keychain: Keychain } | { ok: false; error: string };
 
 function loadKeychain(env: YouTubeEnv): KeychainResult {
   if (!env.D1_KEYCHAIN) return { ok: false, error: 'keychain_not_configured' };
@@ -266,8 +261,7 @@ async function verifyState(token: string, hmacKeyB64: string): Promise<boolean> 
 // ─── Upstream YouTube calls ─────────────────────────────────────────────
 
 type ExchangeResult =
-  | { ok: true; refreshToken: string | null; accessToken: string }
-  | { ok: false; message: string };
+  { ok: true; refreshToken: string | null; accessToken: string } | { ok: false; message: string };
 
 async function exchangeCode(code: string, cfg: OAuthConfigOk): Promise<ExchangeResult> {
   const body = new URLSearchParams({
@@ -357,9 +351,7 @@ interface PlaylistDto {
   itemCount: number;
 }
 
-type PlaylistsResult =
-  | { ok: true; items: PlaylistDto[] }
-  | { ok: false; message: string };
+type PlaylistsResult = { ok: true; items: PlaylistDto[] } | { ok: false; message: string };
 
 async function listOwnedPlaylists(accessToken: string): Promise<PlaylistsResult> {
   const items: PlaylistDto[] = [];

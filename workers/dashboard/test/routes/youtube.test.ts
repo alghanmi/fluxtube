@@ -87,7 +87,9 @@ describe('GET /api/auth/youtube (begin)', () => {
     const url = new URL(loc);
     expect(url.origin + url.pathname).toBe('https://accounts.google.com/o/oauth2/v2/auth');
     expect(url.searchParams.get('client_id')).toBe('client-id-xyz');
-    expect(url.searchParams.get('redirect_uri')).toBe('https://dashboard.test/api/auth/youtube/callback');
+    expect(url.searchParams.get('redirect_uri')).toBe(
+      'https://dashboard.test/api/auth/youtube/callback',
+    );
     expect(url.searchParams.get('scope')).toBe('https://www.googleapis.com/auth/youtube');
     expect(url.searchParams.get('access_type')).toBe('offline');
     expect(url.searchParams.get('prompt')).toBe('consent');
@@ -137,7 +139,9 @@ describe('GET /api/auth/youtube/callback', () => {
       {} as ExecutionContext,
     );
     expect(res.status).toBe(302);
-    expect(res.headers.get('Location')).toBe('/dashboard/oauth?state=denied&reason=missing_code_or_state');
+    expect(res.headers.get('Location')).toBe(
+      '/dashboard/oauth?state=denied&reason=missing_code_or_state',
+    );
   });
 
   it('exchanges code, encrypts + stores the refresh token, redirects to /dashboard/oauth?state=connected', async () => {
@@ -219,7 +223,9 @@ describe('GET /api/auth/youtube/callback', () => {
       {} as ExecutionContext,
     );
     expect(res.status).toBe(302);
-    expect(res.headers.get('Location')).toContain('/dashboard/oauth?state=denied&reason=token_exchange_failed');
+    expect(res.headers.get('Location')).toContain(
+      '/dashboard/oauth?state=denied&reason=token_exchange_failed',
+    );
   });
 });
 
@@ -259,10 +265,10 @@ describe('GET /api/youtube/playlists', () => {
     const stub = vi.fn(async (url: string | URL | Request) => {
       const reqUrl = typeof url === 'string' ? url : url instanceof URL ? url.toString() : url.url;
       if (reqUrl.startsWith('https://oauth2.googleapis.com/token')) {
-        return new Response(
-          JSON.stringify({ access_token: 'at-fresh', expires_in: 3600 }),
-          { status: 200, headers: { 'Content-Type': 'application/json' } },
-        );
+        return new Response(JSON.stringify({ access_token: 'at-fresh', expires_in: 3600 }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
       }
       if (reqUrl.startsWith('https://www.googleapis.com/youtube/v3/playlists')) {
         return new Response(

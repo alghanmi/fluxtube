@@ -163,7 +163,12 @@
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
       "id": 3,
       "options": {
-        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": false },
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
         "tooltip": { "mode": "single", "sort": "none" }
       },
       "targets": [
@@ -214,7 +219,12 @@
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
       "id": 4,
       "options": {
-        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": false },
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
         "tooltip": { "mode": "single", "sort": "none" }
       },
       "targets": [
@@ -261,7 +271,10 @@
         "multi": true,
         "name": "instance_id",
         "options": [],
-        "query": { "query": "label_values(fluxtube_runs, instance_id)", "refId": "PrometheusVariableQueryEditor-VariableQuery" },
+        "query": {
+          "query": "label_values(fluxtube_runs, instance_id)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
         "refresh": 2,
         "regex": "",
         "skipUrlSync": false,

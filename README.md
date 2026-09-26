@@ -24,6 +24,7 @@ pnpm --filter @fluxtube/dashboard test
 ```
 
 For running the Workers against your own Cloudflare account, you'll need:
+
 - A Cloudflare account with Workers + D1 + R2 + Pages
 - A Miniflux instance (self-hosted or [reader.miniflux.app](https://reader.miniflux.app))
 - YouTube playlists (PL... — Watch Later is API-disabled)
@@ -60,6 +61,7 @@ Deployment is automated via a companion deploy repo — see [Deploying your own 
 Production deploys live in a **private companion repo** that holds your account-specific values (D1 UUID, R2 bucket, API tokens, dashboard credentials). When you publish a release on this repo, that deploy repo's workflow listens for a `repository_dispatch` event and runs the full pipeline: `terraform apply` → `wrangler deploy --define VERSION:'"X.Y.Z"'` → push Grafana dashboards + alerts → emit deploy metric.
 
 The deploy companion is one of:
+
 - Yours: fork or create a `*-deploy` repo, mirror the shape from your favourite operator runbook (Bitwarden, 1Password, `pass`, or any vault).
 - Mine: see [`alghanmi/fluxtube-deploy`](https://github.com/alghanmi/fluxtube-deploy) (private; you can't browse it but its `TODO.md` is the operator checklist).
 
@@ -69,12 +71,12 @@ The split-repo pattern is described in [`docs/architecture.md` → "How the publ
 
 All four surfaces are optional; enable any subset.
 
-| Surface | What | Configure via |
-|---|---|---|
-| **stdout JSON logs** | Always on, viewable via `wrangler tail` | — |
-| **Healthchecks.io** | Cron dead-man's switch + per-reason failure alerts | `HEARTBEAT_URL`, `HEARTBEAT_URL_AUTH`, `HEARTBEAT_URL_QUOTA` |
-| **Grafana Cloud Loki** | Structured log shipping | `GRAFANA_LOKI_URL` + `_USER` + `_TOKEN` |
-| **Grafana Cloud OTLP** | 11 gauge metrics per run via OTLP/HTTP JSON | `GRAFANA_OTLP_URL` + `_USER` + `_TOKEN` |
+| Surface                | What                                               | Configure via                                                |
+| ---------------------- | -------------------------------------------------- | ------------------------------------------------------------ |
+| **stdout JSON logs**   | Always on, viewable via `wrangler tail`            | —                                                            |
+| **Healthchecks.io**    | Cron dead-man's switch + per-reason failure alerts | `HEARTBEAT_URL`, `HEARTBEAT_URL_AUTH`, `HEARTBEAT_URL_QUOTA` |
+| **Grafana Cloud Loki** | Structured log shipping                            | `GRAFANA_LOKI_URL` + `_USER` + `_TOKEN`                      |
+| **Grafana Cloud OTLP** | 11 gauge metrics per run via OTLP/HTTP JSON        | `GRAFANA_OTLP_URL` + `_USER` + `_TOKEN`                      |
 
 See [`docs/observability.md`](./docs/observability.md) for LogQL + PromQL recipes and the metric reference.
 

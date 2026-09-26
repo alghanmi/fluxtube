@@ -105,13 +105,10 @@ export function readChallengeCookie(request: Request): string | undefined {
 
 async function importHmacKey(b64: string): Promise<CryptoKey> {
   const raw = base64Decode(b64);
-  return crypto.subtle.importKey(
-    'raw',
-    raw,
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign', 'verify'],
-  );
+  return crypto.subtle.importKey('raw', raw, { name: 'HMAC', hash: 'SHA-256' }, false, [
+    'sign',
+    'verify',
+  ]);
 }
 
 // base64 helpers duplicated from session.ts. Kept per-file for phase-boundary

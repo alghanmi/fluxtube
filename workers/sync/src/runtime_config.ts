@@ -99,7 +99,8 @@ async function loadFromD1(env: Env): Promise<NormalizedRuntimeConfig> {
   // instances[0] is defined. Explicit guard satisfies the linter without
   // hiding the invariant.
   const instance = instances[0];
-  if (!instance) throw new Error('unreachable: miniflux_instances list is empty after length check');
+  if (!instance)
+    throw new Error('unreachable: miniflux_instances list is empty after length check');
 
   const minifluxApiToken = await decrypt(
     { ct: instance.apiTokenCt, iv: instance.apiTokenIv, kv: instance.apiTokenKv },

@@ -91,7 +91,9 @@ function warnToStderr(event: string, fields?: Record<string, unknown>): void {
   );
 }
 
-function fatalOutcome(err: unknown): 'fatal_invalid_grant' | 'fatal_quota_exhausted' | 'fatal_other' {
+function fatalOutcome(
+  err: unknown,
+): 'fatal_invalid_grant' | 'fatal_quota_exhausted' | 'fatal_other' {
   if (err instanceof FatalError) {
     if (err.reason === 'invalid_grant') return 'fatal_invalid_grant';
     if (err.reason === 'quota_exhausted') return 'fatal_quota_exhausted';
@@ -100,7 +102,11 @@ function fatalOutcome(err: unknown): 'fatal_invalid_grant' | 'fatal_quota_exhaus
 }
 
 export default {
-  async scheduled(_controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+  async scheduled(
+    _controller: ScheduledController,
+    env: Env,
+    ctx: ExecutionContext,
+  ): Promise<void> {
     const runId = crypto.randomUUID();
     const sink = buildLokiSink(env, runId);
     const metrics = buildMetricsSink(env, runId);

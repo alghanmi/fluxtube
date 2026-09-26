@@ -61,8 +61,7 @@ export async function audit(
   for (const pair of mapping) {
     const categoryId = categoryIdByName.get(pair.category) ?? null;
 
-    const unread =
-      categoryId === null ? [] : await miniflux.listUnreadInCategory(categoryId);
+    const unread = categoryId === null ? [] : await miniflux.listUnreadInCategory(categoryId);
     const playlistItems = await getPlaylistItems(pair.playlistId);
     const trackedRows = await state.rowsForPlaylist(pair.playlistId);
 
@@ -107,9 +106,7 @@ export async function audit(
 
   const mappingPlaylistIds = new Set(mapping.map((p) => p.playlistId));
   const allTrackedPlaylistIds = await state.allPlaylistIds();
-  const d1OrphanPlaylistIds = allTrackedPlaylistIds.filter(
-    (id) => !mappingPlaylistIds.has(id),
-  );
+  const d1OrphanPlaylistIds = allTrackedPlaylistIds.filter((id) => !mappingPlaylistIds.has(id));
 
   return {
     generated_at: new Date().toISOString(),

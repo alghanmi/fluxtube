@@ -18,11 +18,7 @@ export class MinifluxClient {
     return `${trimmed}${path}`;
   }
 
-  private async request(
-    method: 'GET' | 'PUT',
-    path: string,
-    body?: unknown,
-  ): Promise<Response> {
+  private async request(method: 'GET' | 'PUT', path: string, body?: unknown): Promise<Response> {
     const init: RequestInit = {
       method,
       headers: {

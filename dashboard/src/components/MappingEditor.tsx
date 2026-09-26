@@ -147,9 +147,7 @@ export function MappingEditor(): preact.JSX.Element {
 
   async function loadCategories(instanceId: number): Promise<void> {
     setGroups((prev) =>
-      prev.map((g) =>
-        g.instanceId === instanceId ? { ...g, categoriesLoaded: 'loading' } : g,
-      ),
+      prev.map((g) => (g.instanceId === instanceId ? { ...g, categoriesLoaded: 'loading' } : g)),
     );
     try {
       const cats = await api.listCategories(instanceId);
@@ -285,9 +283,7 @@ export function MappingEditor(): preact.JSX.Element {
         </div>
       )}
       {ytError && (
-        <div class="me-banner me-banner--err">
-          Couldn't list YouTube playlists: {ytError}
-        </div>
+        <div class="me-banner me-banner--err">Couldn't list YouTube playlists: {ytError}</div>
       )}
 
       {groups.length === 0 && (
@@ -373,9 +369,7 @@ function InstanceSection(props: {
       </header>
 
       {group.categoriesError && (
-        <div class="me-inline-err">
-          Miniflux categories fetch failed: {group.categoriesError}
-        </div>
+        <div class="me-inline-err">Miniflux categories fetch failed: {group.categoriesError}</div>
       )}
 
       {isEmpty ? (
@@ -387,9 +381,7 @@ function InstanceSection(props: {
             playlist. Remove a video from the playlist when you're done — the corresponding RSS
             entry gets marked read on the next tick.
           </p>
-          <p class="me-empty-hint">
-            Miniflux categories are managed under Miniflux → Categories.
-          </p>
+          <p class="me-empty-hint">Miniflux categories are managed under Miniflux → Categories.</p>
           <button class="me-empty-cta" onClick={onAdd} disabled={saveDisabled}>
             <TubeIcon name="add" size={18} />
             Add a mapping
@@ -447,7 +439,8 @@ function RowSummary(props: {
   // isn't in it, we assume the playlist is unreachable (deleted, private,
   // wrong account). If the list hasn't loaded yet (playlists.length === 0),
   // don't jump to conclusions.
-  const unreachable = playlists.length > 0 && !playlists.some((p) => p.id === row.youtubePlaylistId);
+  const unreachable =
+    playlists.length > 0 && !playlists.some((p) => p.id === row.youtubePlaylistId);
   const playlist = playlists.find((p) => p.id === row.youtubePlaylistId);
   const statusIcon: 'filament-active' | 'filament-idle' | 'filament-error' = unreachable
     ? 'filament-error'
@@ -506,8 +499,7 @@ function RowSummary(props: {
               account.
             </p>
             <p class="me-row-inline-err-fix">
-              Check the ID, or reconnect YouTube in{' '}
-              <a href="/dashboard/settings">settings</a>.
+              Check the ID, or reconnect YouTube in <a href="/dashboard/settings">settings</a>.
             </p>
           </div>
         </div>
@@ -593,9 +585,7 @@ function RowEditor(props: {
           <input
             type="checkbox"
             checked={row.skipShorts}
-            onInput={(e) =>
-              onChange({ skipShorts: (e.currentTarget as HTMLInputElement).checked })
-            }
+            onInput={(e) => onChange({ skipShorts: (e.currentTarget as HTMLInputElement).checked })}
           />
           <span>Skip YouTube Shorts</span>
         </label>
@@ -642,11 +632,7 @@ function FloatingActionBar(props: {
         {state === 'idle' && dirty && <span>You have unsaved changes.</span>}
       </div>
       <div class="me-actionbar-actions">
-        <button
-          class="me-actionbar-discard"
-          onClick={onDiscard}
-          disabled={state === 'pending'}
-        >
+        <button class="me-actionbar-discard" onClick={onDiscard} disabled={state === 'pending'}>
           Discard
         </button>
         {state === 'pending' ? (

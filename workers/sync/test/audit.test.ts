@@ -63,9 +63,7 @@ const logger = createLogger('error');
 
 describe('audit', () => {
   it('partitions Miniflux unread vs D1 tracking vs YouTube playlist into the four buckets', async () => {
-    const mapping: CategoryPlaylistMapping[] = [
-      { category: 'Cycling', playlistId: 'PLcycling' },
-    ];
+    const mapping: CategoryPlaylistMapping[] = [{ category: 'Cycling', playlistId: 'PLcycling' }];
     const { miniflux, youtube } = fakes({
       categories: [{ id: 1, title: 'Cycling' }],
       unreadByCategory: {
@@ -117,9 +115,7 @@ describe('audit', () => {
     expect(pair.youtube_playlist_size).toBe(2);
     expect(pair.d1_tracked_count).toBe(2);
     expect(pair.not_a_youtube_url).toBe(1);
-    expect(pair.untracked_unread_in_playlist).toEqual([
-      { entry_id: 101, video_id: 'bbbbbbbbbbb' },
-    ]);
+    expect(pair.untracked_unread_in_playlist).toEqual([{ entry_id: 101, video_id: 'bbbbbbbbbbb' }]);
     expect(pair.untracked_unread_not_in_playlist).toEqual([
       { entry_id: 102, video_id: 'ccccccccccc' },
     ]);
@@ -130,9 +126,7 @@ describe('audit', () => {
   });
 
   it('surfaces playlist IDs in D1 that no longer appear in the mapping', async () => {
-    const mapping: CategoryPlaylistMapping[] = [
-      { category: 'Cycling', playlistId: 'PLcycling' },
-    ];
+    const mapping: CategoryPlaylistMapping[] = [{ category: 'Cycling', playlistId: 'PLcycling' }];
     const { miniflux, youtube } = fakes({
       categories: [{ id: 1, title: 'Cycling' }],
       unreadByCategory: { 1: [] },
@@ -153,9 +147,7 @@ describe('audit', () => {
   });
 
   it('reports null category_id when the configured category is not found in Miniflux', async () => {
-    const mapping: CategoryPlaylistMapping[] = [
-      { category: 'Missing', playlistId: 'PLa' },
-    ];
+    const mapping: CategoryPlaylistMapping[] = [{ category: 'Missing', playlistId: 'PLa' }];
     const { miniflux, youtube } = fakes({
       categories: [{ id: 1, title: 'Other' }],
       unreadByCategory: {},

@@ -29,14 +29,24 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Every workspace, not just workers/sync: the dashboard Worker, the
+      # PWA, the marketing site and scripts all ship to production, and a
+      # Dependabot bump that only breaks one of them must fail here rather
+      # than at deploy time.
+      - name: Format check
+        run: pnpm format:check
+
       - name: Type check
-        run: pnpm --filter @fluxtube/sync typecheck
+        run: pnpm -r typecheck
 
       - name: Lint
-        run: pnpm --filter @fluxtube/sync lint
+        run: pnpm -r lint
 
       - name: Test
-        run: pnpm --filter @fluxtube/sync test
+        run: pnpm -r test
+
+      - name: Build
+        run: pnpm -r build
 
       # npm registry retired /security/audits/quick and its fallback endpoint
       # (both return HTTP 410) so `pnpm audit` in current pnpm builds fails

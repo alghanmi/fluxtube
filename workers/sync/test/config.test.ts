@@ -39,12 +39,12 @@ describe('parseCategoryPlaylistMapping', () => {
   });
 
   it('rejects entries missing required fields', () => {
-    expect(() =>
-      parseCategoryPlaylistMapping(JSON.stringify([{ category: 'X' }])),
-    ).toThrow(/playlist_id/);
-    expect(() =>
-      parseCategoryPlaylistMapping(JSON.stringify([{ playlist_id: 'PLxxx' }])),
-    ).toThrow(/category/);
+    expect(() => parseCategoryPlaylistMapping(JSON.stringify([{ category: 'X' }]))).toThrow(
+      /playlist_id/,
+    );
+    expect(() => parseCategoryPlaylistMapping(JSON.stringify([{ playlist_id: 'PLxxx' }]))).toThrow(
+      /category/,
+    );
   });
 
   it('allows empty mapping (treated as no-op)', () => {
@@ -81,9 +81,7 @@ describe('parseCategoryPlaylistMapping', () => {
   });
 
   it('accepts skip_shorts: true and emits skipShorts: true', () => {
-    const raw = JSON.stringify([
-      { category: 'A', playlist_id: 'PLxyz', skip_shorts: true },
-    ]);
+    const raw = JSON.stringify([{ category: 'A', playlist_id: 'PLxyz', skip_shorts: true }]);
     expect(parseCategoryPlaylistMapping(raw)).toEqual([
       { category: 'A', playlistId: 'PLxyz', skipShorts: true },
     ]);
@@ -101,9 +99,7 @@ describe('parseCategoryPlaylistMapping', () => {
   });
 
   it('rejects non-boolean skip_shorts', () => {
-    const raw = JSON.stringify([
-      { category: 'A', playlist_id: 'PLxyz', skip_shorts: 'yes' },
-    ]);
+    const raw = JSON.stringify([{ category: 'A', playlist_id: 'PLxyz', skip_shorts: 'yes' }]);
     expect(() => parseCategoryPlaylistMapping(raw)).toThrow(/skip_shorts must be a boolean/);
   });
 });

@@ -38,9 +38,7 @@ export class QueueState {
 
   async delete(minifluxEntryId: number, youtubePlaylistId: string): Promise<void> {
     await this.db
-      .prepare(
-        'DELETE FROM queue WHERE miniflux_entry_id = ? AND youtube_playlist_id = ?',
-      )
+      .prepare('DELETE FROM queue WHERE miniflux_entry_id = ? AND youtube_playlist_id = ?')
       .bind(minifluxEntryId, youtubePlaylistId)
       .run();
   }
@@ -83,10 +81,7 @@ export class QueueState {
    * `excludePlaylistId` — whether removing it will leave the entry orphaned
    * across all playlists.
    */
-  async hasOtherRowsForEntry(
-    minifluxEntryId: number,
-    excludePlaylistId: string,
-  ): Promise<boolean> {
+  async hasOtherRowsForEntry(minifluxEntryId: number, excludePlaylistId: string): Promise<boolean> {
     const row = await this.db
       .prepare(
         'SELECT 1 AS x FROM queue WHERE miniflux_entry_id = ? AND youtube_playlist_id != ? LIMIT 1',

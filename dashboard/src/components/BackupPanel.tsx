@@ -8,10 +8,7 @@ import * as api from '../lib/api';
 import { TubeIcon } from './icon/TubeIcon';
 import { RestoreWizard } from './RestoreWizard';
 
-type Trigger =
-  | { kind: 'idle' }
-  | { kind: 'running' }
-  | { kind: 'error'; message: string };
+type Trigger = { kind: 'idle' } | { kind: 'running' } | { kind: 'error'; message: string };
 
 export function BackupPanel(): preact.JSX.Element {
   const [items, setItems] = useState<api.BackupObject[] | null>(null);
@@ -71,11 +68,7 @@ export function BackupPanel(): preact.JSX.Element {
           </p>
         </div>
         <button
-          class={
-            trigger.kind === 'running'
-              ? 'bp-run bp-run--pending'
-              : 'bp-run'
-          }
+          class={trigger.kind === 'running' ? 'bp-run bp-run--pending' : 'bp-run'}
           onClick={() => void onBackupNow()}
           disabled={trigger.kind === 'running'}
         >
@@ -122,10 +115,7 @@ export function BackupPanel(): preact.JSX.Element {
                   <a href={api.backupDownloadUrl(b.key)} class="bp-item-download">
                     Download
                   </a>
-                  <button
-                    class="bp-item-restore"
-                    onClick={() => setRestoreFilename(b.key)}
-                  >
+                  <button class="bp-item-restore" onClick={() => setRestoreFilename(b.key)}>
                     Preview & restore →
                   </button>
                 </div>

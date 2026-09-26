@@ -167,8 +167,7 @@ describe('buildOtlpPayload', () => {
     const ts = new Date(1748934000000); // arbitrary ms
     const samples: MetricSample[] = [{ name: 'fluxtube.runs', value: 1, ts }];
     const payload = buildOtlpPayload(samples, {});
-    const dp =
-      payload.resourceMetrics[0]?.scopeMetrics[0]?.metrics[0]?.gauge.dataPoints[0];
+    const dp = payload.resourceMetrics[0]?.scopeMetrics[0]?.metrics[0]?.gauge.dataPoints[0];
     if (dp === undefined) throw new Error('expected one data point');
     expect(dp.timeUnixNano).toBe('1748934000000000000');
     expect(typeof dp.timeUnixNano).toBe('string');

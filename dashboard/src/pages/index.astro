@@ -29,7 +29,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           window.location.replace('/dashboard');
           return;
         }
-      } catch (_e) { /* fall through */ }
+      } catch (_e) {
+        /* fall through */
+      }
 
       try {
         // A GET /api/auth/passkey/authenticate/begin returns 404 when no
@@ -43,7 +45,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           window.location.replace('/claim');
           return;
         }
-      } catch (_e) { /* fall through */ }
+      } catch (_e) {
+        /* fall through */
+      }
 
       window.location.replace('/login');
     })();

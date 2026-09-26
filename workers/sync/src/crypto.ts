@@ -146,11 +146,10 @@ export async function decrypt(value: EncryptedValue, keychain: Keychain): Promis
 export async function generateKeyBase64(): Promise<string> {
   // AES generateKey returns a single CryptoKey (not a pair) but the union
   // return type needs a cast. Cast + exportKey with format='raw' → ArrayBuffer.
-  const key = (await crypto.subtle.generateKey(
-    { name: AES_GCM, length: KEY_LENGTH_BITS },
-    true,
-    ['encrypt', 'decrypt'],
-  )) as CryptoKey;
+  const key = (await crypto.subtle.generateKey({ name: AES_GCM, length: KEY_LENGTH_BITS }, true, [
+    'encrypt',
+    'decrypt',
+  ])) as CryptoKey;
   const raw = (await crypto.subtle.exportKey('raw', key)) as ArrayBuffer;
   return base64Encode(new Uint8Array(raw));
 }

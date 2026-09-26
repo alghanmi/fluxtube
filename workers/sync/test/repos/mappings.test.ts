@@ -18,12 +18,7 @@ async function seedInstance(url: string): Promise<number> {
   });
 }
 
-const mapping = (
-  instanceId: number,
-  category: string,
-  playlist: string,
-  skipShorts = false,
-) => ({
+const mapping = (instanceId: number, category: string, playlist: string, skipShorts = false) => ({
   minifluxInstanceId: instanceId,
   minifluxCategory: category,
   youtubePlaylistId: playlist,

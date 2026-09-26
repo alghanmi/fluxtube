@@ -180,19 +180,19 @@ export function attachMappingsRoutes(app: Hono<{ Bindings: MappingsEnv }>): void
 
 // ─── Helpers ────────────────────────────────────────────────────────────
 
-async function currentGrouped(
-  db: D1Database,
-): Promise<Array<{
-  id: number;
-  displayName: string;
-  url: string;
-  mappings: Array<{
+async function currentGrouped(db: D1Database): Promise<
+  Array<{
     id: number;
-    minifluxCategory: string;
-    youtubePlaylistId: string;
-    skipShorts: boolean;
-  }>;
-}>> {
+    displayName: string;
+    url: string;
+    mappings: Array<{
+      id: number;
+      minifluxCategory: string;
+      youtubePlaylistId: string;
+      skipShorts: boolean;
+    }>;
+  }>
+> {
   const instances = await new MinifluxInstancesRepo(db).list();
   const mappings = await new MappingsRepo(db).list();
   return instances.map((inst) => ({
@@ -247,9 +247,7 @@ function uniqueInstanceIds(mappings: MappingPayload[]): number[] {
   return Array.from(new Set(mappings.map((m) => m.minifluxInstanceId))).sort((a, b) => a - b);
 }
 
-type ParseResult =
-  | { ok: true; mappings: MappingPayload[] }
-  | { ok: false; error: string };
+type ParseResult = { ok: true; mappings: MappingPayload[] } | { ok: false; error: string };
 
 function parseMappingsPayload(body: unknown): ParseResult {
   if (typeof body !== 'object' || body === null) return { ok: false, error: 'invalid_body' };

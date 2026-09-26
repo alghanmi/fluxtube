@@ -257,9 +257,7 @@ function emitBackupMetrics(
   metrics: MetricsSink | undefined,
   ctx: ExecutionContext,
   env: Env,
-  input:
-    | { outcome: 'success'; sizeBytes: number; lastSuccessSec: number }
-    | { outcome: 'failure' },
+  input: { outcome: 'success'; sizeBytes: number; lastSuccessSec: number } | { outcome: 'failure' },
 ): void {
   if (!metrics) return;
   const ts = new Date();

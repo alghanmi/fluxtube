@@ -9,13 +9,7 @@ import type { Hono } from 'hono';
 import { requireAuth } from '../auth/require_auth';
 import type { DashboardAuthEnv } from '../auth/require_auth';
 import { ConfigRepo } from '../repos/config';
-import {
-  fetchBackupBody,
-  generateBackup,
-  listBackups,
-  objectKey,
-  restoreBackup,
-} from '../backup';
+import { fetchBackupBody, generateBackup, listBackups, objectKey, restoreBackup } from '../backup';
 import type { BackupEnv } from '../backup';
 
 export interface BackupRoutesEnv extends DashboardAuthEnv, BackupEnv {}
@@ -56,10 +50,13 @@ export function attachBackupRoutes(app: Hono<{ Bindings: BackupRoutesEnv }>): vo
       const items = await listBackups(c.env, limit);
       return c.json({ backups: items });
     } catch (err) {
-      return c.json({
-        error: 'list_failed',
-        message: err instanceof Error ? err.message : String(err),
-      }, 502);
+      return c.json(
+        {
+          error: 'list_failed',
+          message: err instanceof Error ? err.message : String(err),
+        },
+        502,
+      );
     }
   });
 

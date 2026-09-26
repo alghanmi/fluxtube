@@ -40,7 +40,12 @@ export function Settings(): preact.JSX.Element {
     setTimeout(() => setToast(null), 3000);
   }
 
-  if (error) return <div class="terminal" style="border-color: var(--color-danger);">{error}</div>;
+  if (error)
+    return (
+      <div class="terminal" style="border-color: var(--color-danger);">
+        {error}
+      </div>
+    );
   if (!instances || !config) return <p class="muted">Loading settings…</p>;
 
   return (
@@ -80,17 +85,10 @@ function MinifluxSection(props: {
       <p class="card-subtitle">
         One or more Miniflux servers. Each is polled independently on every tick.
       </p>
-      {instances.length === 0 && (
-        <p class="muted xs">No instances configured yet.</p>
-      )}
+      {instances.length === 0 && <p class="muted xs">No instances configured yet.</p>}
       <div class="stack">
         {instances.map((inst) => (
-          <InstanceRow
-            key={inst.id}
-            instance={inst}
-            onChanged={onChanged}
-            popToast={popToast}
-          />
+          <InstanceRow key={inst.id} instance={inst} onChanged={onChanged} popToast={popToast} />
         ))}
       </div>
       {adding ? (
@@ -332,9 +330,7 @@ function ConfigSection(props: {
             min="1"
             max="100"
             value={historyWindow}
-            onInput={(e) =>
-              setHistoryWindow(Number((e.currentTarget as HTMLInputElement).value))
-            }
+            onInput={(e) => setHistoryWindow(Number((e.currentTarget as HTMLInputElement).value))}
           />
         </div>
       </div>
