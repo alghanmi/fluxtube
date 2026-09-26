@@ -127,6 +127,7 @@ docs: clarify the skip_shorts behavior in the README
 Standard GitHub flow: fork, branch, PR. CI runs typecheck + lint + test + audit on every PR via `pr-checks.yml`. For Terraform changes, `terraform-check.yml` runs `fmt -check` + `validate`.
 
 PRs that touch:
+
 - `workers/sync/**` → must keep tests green; new features need new tests
 - `infrastructure/terraform/**` → must pass `terraform fmt -check -recursive` + `validate`
 - `docs/grafana/**` → JSON files are pushed to Grafana on the next release; validate locally with `jq empty` before pushing

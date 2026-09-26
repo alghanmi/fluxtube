@@ -49,7 +49,12 @@ export function History(): preact.JSX.Element {
     }
   }
 
-  if (error) return <div class="terminal" style="border-color: var(--color-danger);">{error}</div>;
+  if (error)
+    return (
+      <div class="terminal" style="border-color: var(--color-danger);">
+        {error}
+      </div>
+    );
   if (!entries) return <p class="muted">Loading history…</p>;
   if (entries.length === 0)
     return (
@@ -73,10 +78,7 @@ export function History(): preact.JSX.Element {
               </div>
             </div>
             <div class="row">
-              <button
-                onClick={() => void onRestore(e.id)}
-                disabled={restoring !== null}
-              >
+              <button onClick={() => void onRestore(e.id)} disabled={restoring !== null}>
                 {restoring === e.id ? 'Restoring…' : 'Restore'}
               </button>
             </div>

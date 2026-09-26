@@ -58,7 +58,9 @@ async function resetPasskeyTable(): Promise<void> {
     .run();
 }
 
-async function seedPasskey(overrides: Partial<Parameters<AdminPasskeyRepo['insert']>[0]> = {}): Promise<void> {
+async function seedPasskey(
+  overrides: Partial<Parameters<AdminPasskeyRepo['insert']>[0]> = {},
+): Promise<void> {
   await new AdminPasskeyRepo(db).insert({
     credentialId: 'cred-abc',
     publicKey: 'AAECAw', // base64url, arbitrary
@@ -259,12 +261,12 @@ describe('POST /api/auth/passkey/register/finish', () => {
     // ONE cookie and only honors the first one.
     const cookies = res.headers.getSetCookie();
     expect(cookies).toHaveLength(2);
-    expect(cookies.some((c) => c.startsWith('fluxtube_challenge=') && c.includes('Max-Age=0'))).toBe(
+    expect(
+      cookies.some((c) => c.startsWith('fluxtube_challenge=') && c.includes('Max-Age=0')),
+    ).toBe(true);
+    expect(cookies.some((c) => c.startsWith('fluxtube_session=') && c.includes('Max-Age='))).toBe(
       true,
     );
-    expect(
-      cookies.some((c) => c.startsWith('fluxtube_session=') && c.includes('Max-Age=')),
-    ).toBe(true);
 
     // Row landed in D1.
     const row = await new AdminPasskeyRepo(db).get('new-cred-id');
@@ -354,7 +356,12 @@ describe('POST /api/auth/passkey/authenticate/finish', () => {
     const res = await app.fetch(
       new Request('http://d.test/api/auth/passkey/authenticate/finish', {
         method: 'POST',
-        body: JSON.stringify({ id: 'cred-abc', rawId: 'cred-abc', response: {}, type: 'public-key' }),
+        body: JSON.stringify({
+          id: 'cred-abc',
+          rawId: 'cred-abc',
+          response: {},
+          type: 'public-key',
+        }),
         headers: { Cookie: `fluxtube_challenge=${challengeToken}` },
       }),
       testEnv() as unknown as Env,
@@ -367,9 +374,9 @@ describe('POST /api/auth/passkey/authenticate/finish', () => {
     const cookies = res.headers.getSetCookie();
     expect(cookies).toHaveLength(2);
     expect(cookies.some((c) => c.startsWith('fluxtube_session='))).toBe(true);
-    expect(cookies.some((c) => c.startsWith('fluxtube_challenge=') && c.includes('Max-Age=0'))).toBe(
-      true,
-    );
+    expect(
+      cookies.some((c) => c.startsWith('fluxtube_challenge=') && c.includes('Max-Age=0')),
+    ).toBe(true);
 
     // sign_count bumped in D1.
     const row = await new AdminPasskeyRepo(db).get('cred-abc');
@@ -390,7 +397,12 @@ describe('POST /api/auth/passkey/authenticate/finish', () => {
     const res = await app.fetch(
       new Request('http://d.test/api/auth/passkey/authenticate/finish', {
         method: 'POST',
-        body: JSON.stringify({ id: 'cred-abc', rawId: 'cred-abc', response: {}, type: 'public-key' }),
+        body: JSON.stringify({
+          id: 'cred-abc',
+          rawId: 'cred-abc',
+          response: {},
+          type: 'public-key',
+        }),
         headers: { Cookie: `fluxtube_challenge=${challengeToken}` },
       }),
       testEnv() as unknown as Env,
@@ -418,7 +430,12 @@ describe('challenge cookie signing (integration)', () => {
     const res = await app.fetch(
       new Request('http://d.test/api/auth/passkey/authenticate/finish', {
         method: 'POST',
-        body: JSON.stringify({ id: 'cred-abc', rawId: 'cred-abc', response: {}, type: 'public-key' }),
+        body: JSON.stringify({
+          id: 'cred-abc',
+          rawId: 'cred-abc',
+          response: {},
+          type: 'public-key',
+        }),
         headers: { Cookie: cookie },
       }),
       testEnv() as unknown as Env,

@@ -28,9 +28,7 @@ describe('MinifluxClient', () => {
 
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe('https://reader.example.com/v1/categories');
-    expect(
-      (init.headers as Record<string, string>)['X-Auth-Token'],
-    ).toBe('token123');
+    expect((init.headers as Record<string, string>)['X-Auth-Token']).toBe('token123');
   });
 
   it('parses categories', async () => {
@@ -54,15 +52,13 @@ describe('MinifluxClient', () => {
       title: `Entry ${i + 1}`,
       status: 'unread',
     }));
-    fetchMock
-      .mockResolvedValueOnce(jsonResponse({ entries: fullPage }))
-      .mockResolvedValueOnce(
-        jsonResponse({
-          entries: [
-            { id: 999, url: 'https://youtu.be/zzzzzzzzzzz', title: 'Last', status: 'unread' },
-          ],
-        }),
-      );
+    fetchMock.mockResolvedValueOnce(jsonResponse({ entries: fullPage })).mockResolvedValueOnce(
+      jsonResponse({
+        entries: [
+          { id: 999, url: 'https://youtu.be/zzzzzzzzzzz', title: 'Last', status: 'unread' },
+        ],
+      }),
+    );
 
     const client = new MinifluxClient('https://reader.example.com', 't');
     const result = await client.listUnreadInCategory(7);

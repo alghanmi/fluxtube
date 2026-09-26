@@ -1,6 +1,6 @@
 # FluxTube — Architecture
 
-Deep-dive on the design. README.md has the elevator pitch; CLAUDE.md is the canonical agent-facing reference. This file is for humans who want to know *why* something is shaped a particular way.
+Deep-dive on the design. README.md has the elevator pitch; CLAUDE.md is the canonical agent-facing reference. This file is for humans who want to know _why_ something is shaped a particular way.
 
 ---
 
@@ -75,7 +75,7 @@ For each `(category, playlist, skip_shorts?)` in the mapping:
    - If parse fails → log `not_a_youtube_url` and continue (channel pages, malformed links, etc.).
    - If `pair.skipShorts && isShort` → `miniflux.markRead([entry.id])`, log `skipped_short`, continue.
    - If `state.exists(entry.id, playlist_id)` → log `skipped_tracked`, continue.
-   - If `videoId` is already in the playlist → backfill the D1 row using the real `playlistItemId` from the `playlistItems.list` response, log `tracked_existing_in_playlist`, continue. *(Handles the user adding videos manually and prior-run D1 rows that were lost.)*
+   - If `videoId` is already in the playlist → backfill the D1 row using the real `playlistItemId` from the `playlistItems.list` response, log `tracked_existing_in_playlist`, continue. _(Handles the user adding videos manually and prior-run D1 rows that were lost.)_
    - Otherwise: `youtube.insertPlaylistItem(playlist_id, videoId)`, then `state.insert(...)`, log `added`. **Push the new item into the cached playlist list** so Pass 2 doesn't immediately think it's missing.
 
 `VideoUnavailableError` (404 / 403 on insert — video is private / deleted / region-locked) is caught and treated as terminal: `miniflux.markRead([entry.id])`, log `skipped_unavailable`. The 4xx tells us the entry will never be watchable.
@@ -99,7 +99,7 @@ The mark-read-before-delete order is load-bearing. The earlier version of this c
 
 ## Why D1 (not KV, not in-memory)
 
-The mark-read decision depends on a relational question: *"does any tracking row still exist for entry X across **any** playlist?"* Compound primary key `(miniflux_entry_id, youtube_playlist_id)`, plus an index on each column individually, supports both halves:
+The mark-read decision depends on a relational question: _"does any tracking row still exist for entry X across **any** playlist?"_ Compound primary key `(miniflux_entry_id, youtube_playlist_id)`, plus an index on each column individually, supports both halves:
 
 - `hasOtherRowsForEntry(entry_id, exclude_playlist_id)` for the mark-read predicate.
 - `rowsForPlaylist(playlist_id)` for Pass 2 iteration.
@@ -144,7 +144,7 @@ The sync Worker's `runtime_config.ts` picks between two config sources based on 
 
 ```ts
 async function isD1Managed(env: Env): Promise<boolean> {
-  const r = await env.DB.prepare("SELECT COUNT(*) AS n FROM admin_passkey").first<{n:number}>();
+  const r = await env.DB.prepare('SELECT COUNT(*) AS n FROM admin_passkey').first<{ n: number }>();
   return (r?.n ?? 0) > 0;
 }
 ```
@@ -206,14 +206,14 @@ The mapping table's compound uniqueness (`miniflux_instance_id, miniflux_categor
 
 10,000 units per day default. Per operation:
 
-| Operation | Cost | Frequency |
-|---|---|---|
-| `playlistItems.list` | 1 | Once per unique playlist per run |
-| `playlistItems.insert` | 50 | Once per new video |
+| Operation              | Cost | Frequency                        |
+| ---------------------- | ---- | -------------------------------- |
+| `playlistItems.list`   | 1    | Once per unique playlist per run |
+| `playlistItems.insert` | 50   | Once per new video               |
 
 At 48 runs/day with moderate volume (~10 new videos), expected daily burn is well under 1,000 units. The Worker aborts the current run with `FatalError('quota_exhausted')` if it crosses 8,000 — that gives a 20% reserve for the rest of the day.
 
-Two things we explicitly *don't* do:
+Two things we explicitly _don't_ do:
 
 - Never call `search.list` (100 units, not needed).
 - Never call `playlistItems.delete` — the user removes videos from the playlist; that's the signal we listen for.
@@ -222,15 +222,15 @@ Two things we explicitly *don't* do:
 
 ## Failure modes and recovery
 
-| Failure | Symptom | Recovery |
-|---|---|---|
-| YouTube refresh token revoked | `invalid_grant` in logs → `HEARTBEAT_URL_AUTH/fail` fires within one tick | Sign into `/dashboard/settings` → **Reconnect YouTube** (walks OAuth, writes fresh token to D1 encrypted). Post-verification the token no longer expires on a fixed cycle. |
-| YouTube quota exhausted | `quota_exhausted` → `HEARTBEAT_URL_QUOTA/fail` | Wait until midnight Pacific; quota resets daily |
-| Miniflux transient 5xx mid-run | One or more `entry_processing_failed` / `removal_processing_failed` log lines; run continues | Next cron tick picks up where this one left off |
-| Video unavailable on YouTube (private / deleted) | `skipped_unavailable` log line; entry marked read | Nothing to do — terminal state |
-| Miniflux entry deleted while still in D1 | `entry_gone_from_miniflux` log line; D1 row cleaned up | Nothing to do — terminal state |
-| D1 transient error | One log line per failed row; run continues | Idempotent, next tick reconciles |
-| Worker cron didn't fire | Healthchecks.io main check goes red after 35 min | Check Cloudflare dashboard → Cron Triggers |
+| Failure                                          | Symptom                                                                                      | Recovery                                                                                                                                                                   |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| YouTube refresh token revoked                    | `invalid_grant` in logs → `HEARTBEAT_URL_AUTH/fail` fires within one tick                    | Sign into `/dashboard/settings` → **Reconnect YouTube** (walks OAuth, writes fresh token to D1 encrypted). Post-verification the token no longer expires on a fixed cycle. |
+| YouTube quota exhausted                          | `quota_exhausted` → `HEARTBEAT_URL_QUOTA/fail`                                               | Wait until midnight Pacific; quota resets daily                                                                                                                            |
+| Miniflux transient 5xx mid-run                   | One or more `entry_processing_failed` / `removal_processing_failed` log lines; run continues | Next cron tick picks up where this one left off                                                                                                                            |
+| Video unavailable on YouTube (private / deleted) | `skipped_unavailable` log line; entry marked read                                            | Nothing to do — terminal state                                                                                                                                             |
+| Miniflux entry deleted while still in D1         | `entry_gone_from_miniflux` log line; D1 row cleaned up                                       | Nothing to do — terminal state                                                                                                                                             |
+| D1 transient error                               | One log line per failed row; run continues                                                   | Idempotent, next tick reconciles                                                                                                                                           |
+| Worker cron didn't fire                          | Healthchecks.io main check goes red after 35 min                                             | Check Cloudflare dashboard → Cron Triggers                                                                                                                                 |
 
 The **`/audit`** endpoint is the operator's tool for reconciling drift after these failures. It returns a per-pair JSON dump showing, separately:
 
@@ -247,7 +247,14 @@ The **`/audit`** endpoint is the operator's tool for reconciling drift after the
 Every significant event emits one JSON line to stdout, structured:
 
 ```json
-{"ts":"2026-06-02T07:30:00.000Z","level":"info","event":"added","entry_id":12345,"video_id":"abc...","playlist_id":"PL..."}
+{
+  "ts": "2026-06-02T07:30:00.000Z",
+  "level": "info",
+  "event": "added",
+  "entry_id": 12345,
+  "video_id": "abc...",
+  "playlist_id": "PL..."
+}
 ```
 
 When `GRAFANA_LOKI_URL` / `_USER` / `_TOKEN` are set, every line is also fanned out to Grafana Cloud Loki via the `LokiSink` (see `workers/sync/src/logsink.ts`):
@@ -283,13 +290,13 @@ The Workers free tier's 10ms CPU limit is irrelevant here — almost all wall ti
 
 ## What lives where
 
-| Source of truth | Owns |
-|---|---|
-| This repo (public) | Worker source, Terraform code, dashboards + alerts JSON, release-please config |
-| The deploy companion (private) | The values Terraform consumes (CF account ID, R2 bucket, etc.), the secrets the Worker reads, the deploy workflow that stitches it all together |
-| Terraform HCL (here, applied from the deploy companion) | All Cloudflare resources: D1, Worker script, cron trigger, plain_text bindings |
-| Wrangler (`wrangler deploy --keep-vars`, run by the deploy companion's workflow) | The Worker's JS bundle. `--keep-vars` means Terraform's plain_text bindings survive every deploy |
-| Dashboard `POST /api/auth/youtube` flow (v1) | Runs the YouTube OAuth handshake in-browser after the operator signs into the dashboard PWA. The dashboard Worker exchanges the code with Google, encrypts the refresh token under the D1 keychain, and writes it to `config.youtube_refresh_token`. |
+| Source of truth                                                                  | Owns                                                                                                                                                                                                                                                 |
+| -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| This repo (public)                                                               | Worker source, Terraform code, dashboards + alerts JSON, release-please config                                                                                                                                                                       |
+| The deploy companion (private)                                                   | The values Terraform consumes (CF account ID, R2 bucket, etc.), the secrets the Worker reads, the deploy workflow that stitches it all together                                                                                                      |
+| Terraform HCL (here, applied from the deploy companion)                          | All Cloudflare resources: D1, Worker script, cron trigger, plain_text bindings                                                                                                                                                                       |
+| Wrangler (`wrangler deploy --keep-vars`, run by the deploy companion's workflow) | The Worker's JS bundle. `--keep-vars` means Terraform's plain_text bindings survive every deploy                                                                                                                                                     |
+| Dashboard `POST /api/auth/youtube` flow (v1)                                     | Runs the YouTube OAuth handshake in-browser after the operator signs into the dashboard PWA. The dashboard Worker exchanges the code with Google, encrypts the refresh token under the D1 keychain, and writes it to `config.youtube_refresh_token`. |
 
 Nothing sensitive is ever committed to this repository or persisted on disk after a script run completes.
 

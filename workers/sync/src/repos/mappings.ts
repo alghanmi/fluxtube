@@ -90,10 +90,7 @@ export class MappingsRepo {
    * wraps this + a mapping_history snapshot in one D1 batch/transaction.
    * Returns the ids of the newly-inserted rows.
    */
-  async replaceForInstance(
-    minifluxInstanceId: number,
-    rows: MappingInsert[],
-  ): Promise<number[]> {
+  async replaceForInstance(minifluxInstanceId: number, rows: MappingInsert[]): Promise<number[]> {
     await this.db
       .prepare('DELETE FROM mappings WHERE miniflux_instance_id = ?')
       .bind(minifluxInstanceId)

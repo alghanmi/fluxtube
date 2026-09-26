@@ -15,11 +15,11 @@ Plus the `GET /audit` endpoint, which is a snapshot of state rather than a strea
 
 Three checks, all optional but recommended:
 
-| Check | URL var | Fires on |
-|---|---|---|
-| `FluxTube` (main) | `HEARTBEAT_URL` | Each successful run (`/success`) + every fatal error (`/fail`). Configure with a period of 30 minutes and a 5-minute grace. If 35 minutes pass with no ping → dead-man alert. |
-| `FluxTube — YouTube Auth` | `HEARTBEAT_URL_AUTH` | `invalid_grant` `FatalError` only. The 7-day OAuth refresh expiry. Configure as "Simple" with no expected period (manual pings only). |
-| `FluxTube — YouTube Quota` | `HEARTBEAT_URL_QUOTA` | `quota_exhausted` `FatalError` only. Same configuration as the Auth check. |
+| Check                      | URL var               | Fires on                                                                                                                                                                      |
+| -------------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `FluxTube` (main)          | `HEARTBEAT_URL`       | Each successful run (`/success`) + every fatal error (`/fail`). Configure with a period of 30 minutes and a 5-minute grace. If 35 minutes pass with no ping → dead-man alert. |
+| `FluxTube — YouTube Auth`  | `HEARTBEAT_URL_AUTH`  | `invalid_grant` `FatalError` only. The 7-day OAuth refresh expiry. Configure as "Simple" with no expected period (manual pings only).                                         |
+| `FluxTube — YouTube Quota` | `HEARTBEAT_URL_QUOTA` | `quota_exhausted` `FatalError` only. Same configuration as the Auth check.                                                                                                    |
 
 All three URLs are Worker plain_text bindings (set via `TF_VAR_heartbeat_url*`). Per-reason checks are no-ops when the var is empty.
 
@@ -35,11 +35,11 @@ The main `HEARTBEAT_URL/fail` ping fires alongside the typed one, so dashboards 
 
 Optional. Enable by setting all three of:
 
-| Var | Routing | Description |
-|---|---|---|
-| `GRAFANA_LOKI_URL` | Worker plain_text binding | E.g. `https://logs-prod-006.grafana.net` |
-| `GRAFANA_LOKI_USER` | Worker plain_text binding | The 6-digit user ID from My Account → Loki |
-| `GRAFANA_LOKI_TOKEN` | Worker secret | API key with `logs:write` scope |
+| Var                  | Routing                   | Description                                |
+| -------------------- | ------------------------- | ------------------------------------------ |
+| `GRAFANA_LOKI_URL`   | Worker plain_text binding | E.g. `https://logs-prod-006.grafana.net`   |
+| `GRAFANA_LOKI_USER`  | Worker plain_text binding | The 6-digit user ID from My Account → Loki |
+| `GRAFANA_LOKI_TOKEN` | Worker secret             | API key with `logs:write` scope            |
 
 Missing any of the three → the sink is not constructed and the Worker stays on stdout-only logging.
 
@@ -54,11 +54,11 @@ Missing any of the three → the sink is not constructed and the Worker stays on
 
 Each run produces a single Loki stream with three labels:
 
-| Label | Value | Used for |
-|---|---|---|
-| `app` | `fluxtube` | Filtering across all FluxTube logs |
-| `env` | `production` | Future-proofing for a dev environment |
-| `run_id` | a per-invocation UUID | Grouping all log lines from one run |
+| Label    | Value                 | Used for                              |
+| -------- | --------------------- | ------------------------------------- |
+| `app`    | `fluxtube`            | Filtering across all FluxTube logs    |
+| `env`    | `production`          | Future-proofing for a dev environment |
+| `run_id` | a per-invocation UUID | Grouping all log lines from one run   |
 
 Stream values are sorted by ns-precision timestamp (Loki requires non-decreasing).
 
@@ -110,17 +110,17 @@ Live stdout for whatever invocation is running. Useful for one-off debugging whe
 
 ## `GET /audit` — state snapshot
 
-Not a log stream — a *current-state* dump. Use it when reconciling drift between Miniflux unread counts and YouTube playlist sizes. Reported per `(category, playlist)` pair plus a top-level orphan list:
+Not a log stream — a _current-state_ dump. Use it when reconciling drift between Miniflux unread counts and YouTube playlist sizes. Reported per `(category, playlist)` pair plus a top-level orphan list:
 
-| Field | Meaning |
-|---|---|
-| `miniflux_unread_count` | Total unread in this category |
-| `youtube_playlist_size` | Total videos in this playlist |
-| `d1_tracked_count` | Total D1 rows for this playlist |
-| `not_a_youtube_url` | Unread entries whose URL fails parsing — leak candidates |
-| `untracked_unread_in_playlist` | Already in playlist but no D1 row — backfill candidate (Pass 1 handles this) |
-| `untracked_unread_not_in_playlist` | Pass 1 hasn't added yet (or has been failing) |
-| `tracked_but_missing_from_playlist` | Pass 2 hasn't marked read yet (the user watched + removed) |
+| Field                               | Meaning                                                                      |
+| ----------------------------------- | ---------------------------------------------------------------------------- |
+| `miniflux_unread_count`             | Total unread in this category                                                |
+| `youtube_playlist_size`             | Total videos in this playlist                                                |
+| `d1_tracked_count`                  | Total D1 rows for this playlist                                              |
+| `not_a_youtube_url`                 | Unread entries whose URL fails parsing — leak candidates                     |
+| `untracked_unread_in_playlist`      | Already in playlist but no D1 row — backfill candidate (Pass 1 handles this) |
+| `untracked_unread_not_in_playlist`  | Pass 1 hasn't added yet (or has been failing)                                |
+| `tracked_but_missing_from_playlist` | Pass 2 hasn't marked read yet (the user watched + removed)                   |
 
 Top-level `d1_orphan_playlist_ids` is the list of playlist IDs in D1 that aren't in the current mapping — leftover state from config rotation.
 
@@ -137,11 +137,11 @@ Workers can't easily produce Prometheus `remote_write` (snappy compression isn't
 
 Enable by setting all three of:
 
-| Var | Type | Where |
-|---|---|---|
-| `GRAFANA_OTLP_URL` | Worker plain_text binding | Base URL from My Account → OpenTelemetry tile, e.g. `https://otlp-gateway-prod-us-east-0.grafana.net/otlp`. The sink appends `/v1/metrics` if you don't. |
-| `GRAFANA_OTLP_USER` | Worker plain_text binding | Numeric user ID (often different from the Loki user — Grafana Cloud issues a per-service ID). |
-| `GRAFANA_OTLP_TOKEN` | Worker secret | API token with `metrics:write` scope only. |
+| Var                  | Type                      | Where                                                                                                                                                    |
+| -------------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GRAFANA_OTLP_URL`   | Worker plain_text binding | Base URL from My Account → OpenTelemetry tile, e.g. `https://otlp-gateway-prod-us-east-0.grafana.net/otlp`. The sink appends `/v1/metrics` if you don't. |
+| `GRAFANA_OTLP_USER`  | Worker plain_text binding | Numeric user ID (often different from the Loki user — Grafana Cloud issues a per-service ID).                                                            |
+| `GRAFANA_OTLP_TOKEN` | Worker secret             | API token with `metrics:write` scope only.                                                                                                               |
 
 Missing any of the three → the `OtlpMetricsSink` is not constructed and behavior is unchanged (no metrics shipped).
 
@@ -156,27 +156,27 @@ Missing any of the three → the `OtlpMetricsSink` is not constructed and behavi
 
 All gauges — Workers are stateless, so cumulative counters would need D1 round-trips. Aggregate per-run gauges via `sum_over_time(metric[range])` in PromQL.
 
-| PromQL name | Source field | Notes |
-|---|---|---|
-| `fluxtube_items_added` | `summary.added` | New videos pushed into playlists this run |
-| `fluxtube_items_marked_read` | `summary.marked_read` | Miniflux entries marked read this run |
-| `fluxtube_items_skipped_tracked` | `summary.skipped_tracked` | Entries already in D1 |
-| `fluxtube_items_skipped_existing_in_playlist` | `summary.skipped_existing_in_playlist` | Backfilled D1 rows for videos that were already in the playlist |
-| `fluxtube_items_skipped_unavailable` | `summary.skipped_unavailable` | Private / deleted / region-blocked videos; marked read |
-| `fluxtube_items_skipped_shorts` | `summary.skipped_shorts` | `/shorts/` URLs on mappings with `skip_shorts: true` |
-| `fluxtube_errors_entry` | `summary.entry_errors` | Per-entry failures in Pass 1 |
-| `fluxtube_errors_removal` | `summary.removal_errors` | Per-row failures in Pass 2 |
-| `fluxtube_quota_used` | `summary.quota_used` | YouTube quota units spent this run |
-| `fluxtube_run_duration_seconds` | `summary.duration_ms / 1000` | Wall time |
-| `fluxtube_runs` | `1` per run | Carries `outcome ∈ {success, fatal_invalid_grant, fatal_quota_exhausted, fatal_other}` |
+| PromQL name                                   | Source field                           | Notes                                                                                  |
+| --------------------------------------------- | -------------------------------------- | -------------------------------------------------------------------------------------- |
+| `fluxtube_items_added`                        | `summary.added`                        | New videos pushed into playlists this run                                              |
+| `fluxtube_items_marked_read`                  | `summary.marked_read`                  | Miniflux entries marked read this run                                                  |
+| `fluxtube_items_skipped_tracked`              | `summary.skipped_tracked`              | Entries already in D1                                                                  |
+| `fluxtube_items_skipped_existing_in_playlist` | `summary.skipped_existing_in_playlist` | Backfilled D1 rows for videos that were already in the playlist                        |
+| `fluxtube_items_skipped_unavailable`          | `summary.skipped_unavailable`          | Private / deleted / region-blocked videos; marked read                                 |
+| `fluxtube_items_skipped_shorts`               | `summary.skipped_shorts`               | `/shorts/` URLs on mappings with `skip_shorts: true`                                   |
+| `fluxtube_errors_entry`                       | `summary.entry_errors`                 | Per-entry failures in Pass 1                                                           |
+| `fluxtube_errors_removal`                     | `summary.removal_errors`               | Per-row failures in Pass 2                                                             |
+| `fluxtube_quota_used`                         | `summary.quota_used`                   | YouTube quota units spent this run                                                     |
+| `fluxtube_run_duration_seconds`               | `summary.duration_ms / 1000`           | Wall time                                                                              |
+| `fluxtube_runs`                               | `1` per run                            | Carries `outcome ∈ {success, fatal_invalid_grant, fatal_quota_exhausted, fatal_other}` |
 
 Dashboard-Worker-emitted (v1, Phase 8):
 
-| PromQL name | Notes |
-|---|---|
-| `fluxtube_backup_runs_total` | One data point per backup attempt. Carries `outcome ∈ {success, failure}`. |
+| PromQL name                            | Notes                                                                          |
+| -------------------------------------- | ------------------------------------------------------------------------------ |
+| `fluxtube_backup_runs_total`           | One data point per backup attempt. Carries `outcome ∈ {success, failure}`.     |
 | `fluxtube_backup_last_success_seconds` | Unix seconds of the last successful backup. Powers the `backup-missing` alert. |
-| `fluxtube_backup_size_bytes` | Size of the last successful backup payload. |
+| `fluxtube_backup_size_bytes`           | Size of the last successful backup payload.                                    |
 
 All metrics ship with resource attributes `service.name` (`fluxtube` for sync, `fluxtube-dashboard` for dashboard), `service.namespace=production`, `service.version=<VERSION>`, `service.instance.id=<run_id>` — plus `instance_id=<var.instance_id>` (Phase 8) so a single Grafana stack can filter by FluxTube instance via the dashboards' `instance_id` template variable. The Loki stream carries the same `instance_id` label.
 
@@ -205,12 +205,12 @@ sum_over_time(fluxtube_items_marked_read[2h]) == 0
 
 A starter dashboard ships in this repo: `docs/grafana/dashboards/fluxtube-overview.json`. Four panels:
 
-| Panel | Query |
-|---|---|
-| Run outcomes (stacked) | `sum by (outcome) (sum_over_time(fluxtube_runs[$__interval]))` |
-| Run duration (p95) | `quantile_over_time(0.95, fluxtube_run_duration_seconds[$__range])` |
-| Items added | `sum_over_time(fluxtube_items_added[$__interval])` |
-| Items marked read | `sum_over_time(fluxtube_items_marked_read[$__interval])` |
+| Panel                  | Query                                                               |
+| ---------------------- | ------------------------------------------------------------------- |
+| Run outcomes (stacked) | `sum by (outcome) (sum_over_time(fluxtube_runs[$__interval]))`      |
+| Run duration (p95)     | `quantile_over_time(0.95, fluxtube_run_duration_seconds[$__range])` |
+| Items added            | `sum_over_time(fluxtube_items_added[$__interval])`                  |
+| Items marked read      | `sum_over_time(fluxtube_items_marked_read[$__interval])`            |
 
 Installation is automatic via the `sync-grafana.yml` workflow (which lives in the deploy companion, since the Grafana API token is a private-side secret) — see the **Grafana sync workflow** section below. You don't import dashboards via the UI; you edit JSON in this repo and merge.
 
@@ -257,10 +257,10 @@ fluxtube_deploy_duration_seconds
 
 Two systems own different parts of the alert surface. Keep both — each is good at what the other is bad at.
 
-| Alert source | Owns | Why |
-|---|---|---|
+| Alert source                                                           | Owns                                                                                                           | Why                                                                                                                                                            |
+| ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Healthchecks.io** (third-party, independent of Grafana / Cloudflare) | Cron silence (35-min dead-man), typed `FatalError` per-reason fast alerts (`invalid_grant`, `quota_exhausted`) | Purpose-built for cron jobs; works even if Grafana Cloud is down; mobile push routes via Pushover/Slack are one click; free tier covers 20 checks indefinitely |
-| **Grafana Cloud** (queries shipped metrics) | Trend, threshold, correlation alerts that Healthchecks can't express | Has metric history; can do `quantile_over_time`, `sum_over_time`, derived alerts; lives in the same UI as the dashboards |
+| **Grafana Cloud** (queries shipped metrics)                            | Trend, threshold, correlation alerts that Healthchecks can't express                                           | Has metric history; can do `quantile_over_time`, `sum_over_time`, derived alerts; lives in the same UI as the dashboards                                       |
 
 When in doubt: "go/no-go right now" → Healthchecks. "Has X been weird over time?" → Grafana.
 
@@ -268,13 +268,13 @@ When in doubt: "go/no-go right now" → Healthchecks. "Has X been weird over tim
 
 One file per rule under `docs/grafana/alerts/`. Each rule has `for: 15m` debounce and tags `app=fluxtube, severity=warning`. Notification policy → your default email/integration.
 
-| Alert | PromQL | When it triggers |
-|---|---|---|
-| **Pass 2 not draining** | `sum_over_time(fluxtube_items_marked_read[3h]) == 0 AND sum_over_time(fluxtube_runs{outcome="success"}[3h]) > 3` | 3+ successful runs in 3h but zero mark-reads — backlog clearing has stopped. Audit endpoint is the next debugging step. |
-| **Sustained Pass 1 errors** | `sum_over_time(fluxtube_errors_entry[1h]) > 3` | More than 3 per-entry failures in 1h. Usually transient (YouTube rate limiting, weird entry shapes) — sustained means investigate. |
-| **Sustained Pass 2 errors** | `sum_over_time(fluxtube_errors_removal[1h]) > 2` | More than 2 per-row removal failures in 1h. The mark-read-then-delete order means retries should self-heal; sustained means they aren't. |
-| **Quota burn rate too high** | `sum_over_time(fluxtube_quota_used[24h]) > 8000` | Cumulative daily quota approaching the 10k cap. Softer trend warning to the per-run `quota_exhausted` Healthchecks alert. |
-| **Run duration regression** | `quantile_over_time(0.95, fluxtube_run_duration_seconds[6h]) > 25` | p95 wall time within 5s of the 30s Worker cap. Upstream slowness or backlog explosion. |
+| Alert                        | PromQL                                                                                                           | When it triggers                                                                                                                         |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| **Pass 2 not draining**      | `sum_over_time(fluxtube_items_marked_read[3h]) == 0 AND sum_over_time(fluxtube_runs{outcome="success"}[3h]) > 3` | 3+ successful runs in 3h but zero mark-reads — backlog clearing has stopped. Audit endpoint is the next debugging step.                  |
+| **Sustained Pass 1 errors**  | `sum_over_time(fluxtube_errors_entry[1h]) > 3`                                                                   | More than 3 per-entry failures in 1h. Usually transient (YouTube rate limiting, weird entry shapes) — sustained means investigate.       |
+| **Sustained Pass 2 errors**  | `sum_over_time(fluxtube_errors_removal[1h]) > 2`                                                                 | More than 2 per-row removal failures in 1h. The mark-read-then-delete order means retries should self-heal; sustained means they aren't. |
+| **Quota burn rate too high** | `sum_over_time(fluxtube_quota_used[24h]) > 8000`                                                                 | Cumulative daily quota approaching the 10k cap. Softer trend warning to the per-run `quota_exhausted` Healthchecks alert.                |
+| **Run duration regression**  | `quantile_over_time(0.95, fluxtube_run_duration_seconds[6h]) > 25`                                               | p95 wall time within 5s of the 30s Worker cap. Upstream slowness or backlog explosion.                                                   |
 
 ### Importing the rules
 
@@ -299,10 +299,10 @@ The `deploy-on-release.yml` workflow (also on the deploy companion) calls the sa
 
 ### What it manages
 
-| Source file | API endpoint | Idempotency |
-|---|---|---|
-| `docs/grafana/dashboards/*.json` | `POST /api/dashboards/db` with `overwrite: true` | Dashboard `uid` field — same UID always overwrites |
-| `docs/grafana/alerts/*.json` | `POST` (create) or `PUT` (update) `/api/v1/provisioning/alert-rules` | Rule `uid` field — script GETs first, then chooses verb |
+| Source file                      | API endpoint                                                         | Idempotency                                             |
+| -------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------- |
+| `docs/grafana/dashboards/*.json` | `POST /api/dashboards/db` with `overwrite: true`                     | Dashboard `uid` field — same UID always overwrites      |
+| `docs/grafana/alerts/*.json`     | `POST` (create) or `PUT` (update) `/api/v1/provisioning/alert-rules` | Rule `uid` field — script GETs first, then chooses verb |
 
 ### What it does NOT manage
 
@@ -336,13 +336,13 @@ pnpm --filter @fluxtube/scripts sync-grafana
 
 ### Failure modes
 
-| Symptom | Cause | Fix |
-|---|---|---|
-| "No Prometheus datasource found" | Grafana stack doesn't have a Prometheus datasource configured | Connections → Add new → Prometheus → point at the same Mimir endpoint you query interactively |
-| "Multiple Prometheus datasources found and none/multiple marked default" | Stack has >1 Prometheus DS and the `isDefault` heuristic can't disambiguate. Grafana Cloud's default setup (one metrics DS + `grafanacloud-usage`) is handled automatically because only the metrics DS is `isDefault`. | Set `GRAFANA_PROMETHEUS_DATASOURCE_UID` to the metrics DS's UID via your secret-management flow |
-| `Folder "fluxtube" not found` | Folder doesn't exist, OR the service account lacks permission to see it (the diagnostic prints the folders that ARE visible). | Create the folder OR grant the service account **Editor** on the existing folder via Folder actions → Permissions. Org-level Editor role doesn't auto-grant folder access in Grafana Cloud RBAC. |
-| `401 Unauthorized` | Token invalid or expired | Regenerate in Grafana, push the new token through your secret-management flow |
-| `403 Forbidden` on a specific endpoint | Token scopes incomplete | Re-check the scope list in step 1 |
+| Symptom                                                                  | Cause                                                                                                                                                                                                                   | Fix                                                                                                                                                                                              |
+| ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| "No Prometheus datasource found"                                         | Grafana stack doesn't have a Prometheus datasource configured                                                                                                                                                           | Connections → Add new → Prometheus → point at the same Mimir endpoint you query interactively                                                                                                    |
+| "Multiple Prometheus datasources found and none/multiple marked default" | Stack has >1 Prometheus DS and the `isDefault` heuristic can't disambiguate. Grafana Cloud's default setup (one metrics DS + `grafanacloud-usage`) is handled automatically because only the metrics DS is `isDefault`. | Set `GRAFANA_PROMETHEUS_DATASOURCE_UID` to the metrics DS's UID via your secret-management flow                                                                                                  |
+| `Folder "fluxtube" not found`                                            | Folder doesn't exist, OR the service account lacks permission to see it (the diagnostic prints the folders that ARE visible).                                                                                           | Create the folder OR grant the service account **Editor** on the existing folder via Folder actions → Permissions. Org-level Editor role doesn't auto-grant folder access in Grafana Cloud RBAC. |
+| `401 Unauthorized`                                                       | Token invalid or expired                                                                                                                                                                                                | Regenerate in Grafana, push the new token through your secret-management flow                                                                                                                    |
+| `403 Forbidden` on a specific endpoint                                   | Token scopes incomplete                                                                                                                                                                                                 | Re-check the scope list in step 1                                                                                                                                                                |
 
 ### Alerting failure mode
 

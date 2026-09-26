@@ -17,10 +17,7 @@ export class ApiError extends Error {
   }
 }
 
-async function req<T>(
-  path: string,
-  init: RequestInit = {},
-): Promise<T> {
+async function req<T>(path: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(path, {
     credentials: 'same-origin',
     headers: {
@@ -98,9 +95,7 @@ export async function authenticateBegin(): Promise<unknown> {
   return await req('/api/auth/passkey/authenticate/begin', { method: 'POST' });
 }
 
-export async function authenticateFinish(
-  assertion: unknown,
-): Promise<{ credentialId: string }> {
+export async function authenticateFinish(assertion: unknown): Promise<{ credentialId: string }> {
   return await req('/api/auth/passkey/authenticate/finish', {
     method: 'POST',
     body: JSON.stringify(assertion),

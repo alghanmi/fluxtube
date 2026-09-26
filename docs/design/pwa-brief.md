@@ -26,7 +26,7 @@ The word "FluxTube" is the whole story:
 
 - **Flux** — flow, motion, signal, current. Also the pre-electronic
   physics term for a bundle of magnetic field lines threading through
-  a region of space (a *fluxtube* is a real object in solar physics).
+  a region of space (a _fluxtube_ is a real object in solar physics).
 - **Tube** — the conduit itself. Also the vacuum tube, the CRT, the
   broadcast heritage that YouTube inherited. And, of course, YouTube.
 
@@ -41,7 +41,7 @@ The existing marketing site (`fluxtube.forklabs.cc`) already establishes
 part of this: warm-terminal dark theme, Fraunces display + IBM Plex Mono
 body, ink-red accents, man-page layout devices. The dashboard should
 share that world without being a copy — a marketing page is showing,
-whereas a dashboard is *doing*.
+whereas a dashboard is _doing_.
 
 ## Non-goals — what this dashboard is not
 
@@ -80,7 +80,7 @@ delicate filament curling inside, brass base pins at the bottom.
 Why it works for FluxTube:
 
 - The name literally has "tube" in it. Every other SaaS is trying to
-  invent an abstract mark; this one has a *thing* to draw.
+  invent an abstract mark; this one has a _thing_ to draw.
 - Broadcast heritage rhymes with YouTube's television lineage without
   being on-the-nose. It says "we know what came before this."
 - The warm amber glow harmonizes with the marketing site's palette
@@ -118,7 +118,7 @@ Type-only. No pictorial glyph. The mark IS the letterforms.
 Fraunces has variable-font axes for SOFT and WONK. Use them:
 
 - Exaggerated SOFT on the "u" in **flux** — the counter opens into a
-  wide bowl that reads as a channel, a curve, a *flow*. The letterform
+  wide bowl that reads as a channel, a curve, a _flow_. The letterform
   itself embodies the meaning.
 - A companion horizontal thread — one hairline in ink-red — runs
   under the wordmark, dipping subtly at the "u" like signal
@@ -144,7 +144,7 @@ Risks:
 
 #### C — The fluxtube curve (wildcard)
 
-The physics reference. In solar physics, a *fluxtube* is the geometric
+The physics reference. In solar physics, a _fluxtube_ is the geometric
 region enclosed by a bundle of magnetic field lines — imagine a rope
 made of curved threads, twisting slightly along its length. It has a
 literal, drawable shape.
@@ -207,7 +207,7 @@ Risks:
 ## Priority 2 — visual language for the PWA
 
 Extending the existing marketing site's palette and typography into an
-interactive surface. The site is showing; the dashboard is *doing*.
+interactive surface. The site is showing; the dashboard is _doing_.
 Same wardrobe, different posture.
 
 ### Palette
@@ -215,19 +215,19 @@ Same wardrobe, different posture.
 Start from the existing site tokens. Add restraint colors for
 interactive state.
 
-| Token                    | Purpose                            | Notes |
-|---|---|---|
-| `--color-bg`             | App background                     | Dark, warm-neutral (not pure black). Match the site. |
-| `--color-surface`        | Cards, panels, mapping rows        | One step lighter than bg; still dark. |
-| `--color-surface-raised` | Modal / drawer / dropdown surface  | Slightly lighter again. Two elevation levels total, no more. |
-| `--color-ink`            | Body text                          | Warm cream, high contrast. Match the site. |
-| `--color-ink-muted`      | Secondary text, labels             | Cream at ~60% opacity. |
-| `--color-line`           | Hairline borders                   | Warm-gray, low contrast; the *presence* of the line matters more than its color. |
-| `--color-accent`         | Primary action, active state, brand| Ink-red — the site accent. |
-| `--color-accent-glow`    | Filament / active-connection glyphs| Amber (from the logo world). New addition. |
-| `--color-danger`         | Destructive confirmations only     | Deeper red. Reserved. |
-| `--color-success`        | Connection ok, save succeeded      | Muted forest, NOT bright acid-green. Refuse the SaaS green. |
-| `--color-warning`        | Backup stale, quota approaching    | Warm ochre, borrowed from the amber. |
+| Token                    | Purpose                             | Notes                                                                            |
+| ------------------------ | ----------------------------------- | -------------------------------------------------------------------------------- |
+| `--color-bg`             | App background                      | Dark, warm-neutral (not pure black). Match the site.                             |
+| `--color-surface`        | Cards, panels, mapping rows         | One step lighter than bg; still dark.                                            |
+| `--color-surface-raised` | Modal / drawer / dropdown surface   | Slightly lighter again. Two elevation levels total, no more.                     |
+| `--color-ink`            | Body text                           | Warm cream, high contrast. Match the site.                                       |
+| `--color-ink-muted`      | Secondary text, labels              | Cream at ~60% opacity.                                                           |
+| `--color-line`           | Hairline borders                    | Warm-gray, low contrast; the _presence_ of the line matters more than its color. |
+| `--color-accent`         | Primary action, active state, brand | Ink-red — the site accent.                                                       |
+| `--color-accent-glow`    | Filament / active-connection glyphs | Amber (from the logo world). New addition.                                       |
+| `--color-danger`         | Destructive confirmations only      | Deeper red. Reserved.                                                            |
+| `--color-success`        | Connection ok, save succeeded       | Muted forest, NOT bright acid-green. Refuse the SaaS green.                      |
+| `--color-warning`        | Backup stale, quota approaching     | Warm ochre, borrowed from the amber.                                             |
 
 **Palette guardrails:**
 
@@ -254,13 +254,13 @@ Same families as the marketing site:
 
 Type scale — five sizes maximum:
 
-| Token | Size | Face | Use |
-|---|---|---|---|
+| Token            | Size | Face      | Use                                                    |
+| ---------------- | ---- | --------- | ------------------------------------------------------ |
 | `--type-hero`    | 44px | Fraunces  | Signed-out state, recovery-code screen, section heroes |
-| `--type-h`       | 28px | Fraunces  | Page titles, modal titles |
-| `--type-body`    | 16px | Fraunces  | Paragraphs, help text |
-| `--type-data`    | 14px | Plex Mono | Table cells, form fields, IDs, timestamps |
-| `--type-caption` | 12px | Plex Mono | Field labels, muted metadata |
+| `--type-h`       | 28px | Fraunces  | Page titles, modal titles                              |
+| `--type-body`    | 16px | Fraunces  | Paragraphs, help text                                  |
+| `--type-data`    | 14px | Plex Mono | Table cells, form fields, IDs, timestamps              |
+| `--type-caption` | 12px | Plex Mono | Field labels, muted metadata                           |
 
 Never mix Fraunces and Plex Mono inside a single line. Whichever face
 opens a line owns the whole line.
@@ -292,15 +292,15 @@ No two-tone icons. No emoji. No third-party icon libraries.
 
 Connection status (used on Miniflux instance cards + YouTube integration + backup state):
 
-- **filament-active**  — glowing filament arc (amber). "Connection healthy, last sync green."
-- **filament-idle**    — same arc, unlit (line only). "Connected but no recent activity."
-- **filament-error**   — same arc, broken mid-curve, ink-red tip. "Auth failed / connection error."
+- **filament-active** — glowing filament arc (amber). "Connection healthy, last sync green."
+- **filament-idle** — same arc, unlit (line only). "Connected but no recent activity."
+- **filament-error** — same arc, broken mid-curve, ink-red tip. "Auth failed / connection error."
 
 Data flow:
 
-- **rss-node**         — the origin dot representing a Miniflux category.
-- **playlist-node**    — the destination stack representing a YouTube playlist.
-- **flow-line**        — the arc between them; renders in ink-red when a run just added an item, muted when idle.
+- **rss-node** — the origin dot representing a Miniflux category.
+- **playlist-node** — the destination stack representing a YouTube playlist.
+- **flow-line** — the arc between them; renders in ink-red when a run just added an item, muted when idle.
 
 Actions:
 
@@ -310,9 +310,9 @@ Actions:
 
 State glyphs:
 
-- **encrypted**        — subtle key motif (small, muted). Sits inline
+- **encrypted** — subtle key motif (small, muted). Sits inline
   next to any field the operator sees ciphertext-only.
-- **live-fetch**       — an amber pulse (small dot with animated ring)
+- **live-fetch** — an amber pulse (small dot with animated ring)
   for "we're fetching this from the source right now."
 - **backup-fresh** / **backup-stale** — filled square / hollow square
   with a small age label alongside.
@@ -385,8 +385,8 @@ Requirements:
   1. Clicked "Copy to clipboard" (which flashes an amber confirmation).
   2. Actively checked a checkbox labelled "I've saved this in a place
      I trust."
-  Only then does the "Continue" button appear. This is the one place
-  in the whole product where UX friction is a feature.
+     Only then does the "Continue" button appear. This is the one place
+     in the whole product where UX friction is a feature.
 - **After acknowledgement** — the operator is routed to `/dashboard`.
   The recovery code is gone; only its hash exists in D1. Do not offer
   a "show me again" affordance anywhere. There is no such affordance.
@@ -445,7 +445,7 @@ Reduced-motion: filaments render at their final state instantly.
 ### The save-pulse
 
 When a save is in flight, the floating save button pulses its filament
-(1s cycle, amber). Not a spinner. The filament glow *is* the loading
+(1s cycle, amber). Not a spinner. The filament glow _is_ the loading
 indicator, tying the motion vocabulary to the logo.
 
 Reduced-motion: solid amber, no pulse.
@@ -513,7 +513,7 @@ Concrete rules:
 ### Format
 
 - Deliver as a Figma file (or equivalent) with a page per section.
-- Copy the *actual* strings that will ship — no "Lorem ipsum," no
+- Copy the _actual_ strings that will ship — no "Lorem ipsum," no
   "Sample category → sample playlist." Use plausible category names,
   plausible playlist titles, real filenames. The copy IS the design.
 - Include a `readme.md` in the file's cover page: what changed since
@@ -594,4 +594,4 @@ the pulse on the save button. That is the thing this dashboard is
 remembered for. Everything around it stays quiet.
 
 If the design pass wants to spend the budget elsewhere, that's fine —
-but *pick one*. Boldness distributed evenly is timidity.
+but _pick one_. Boldness distributed evenly is timidity.

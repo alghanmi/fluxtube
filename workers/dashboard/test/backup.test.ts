@@ -128,16 +128,16 @@ describe('BackupSchema', () => {
 
 describe('generateBackup', () => {
   it('throws when BACKUPS binding is missing', async () => {
-    await expect(
-      generateBackup({ DB: db, INSTANCE_ID: 'x' } as BackupEnv),
-    ).rejects.toThrow(/BACKUPS_binding/);
+    await expect(generateBackup({ DB: db, INSTANCE_ID: 'x' } as BackupEnv)).rejects.toThrow(
+      /BACKUPS_binding/,
+    );
   });
 
   it('throws when INSTANCE_ID is missing', async () => {
     const { bucket } = stubBucket();
-    await expect(
-      generateBackup({ DB: db, BACKUPS: bucket } as BackupEnv),
-    ).rejects.toThrow(/INSTANCE_ID/);
+    await expect(generateBackup({ DB: db, BACKUPS: bucket } as BackupEnv)).rejects.toThrow(
+      /INSTANCE_ID/,
+    );
   });
 
   it('writes a valid, self-consistent payload to R2', async () => {
@@ -250,9 +250,7 @@ describe('restoreBackup', () => {
       schema_version: 1 as const,
       exported_at: '2026-07-01T00:00:00.000Z',
       instance_id: 'test-instance',
-      miniflux_instances: [
-        { display_name: 'Restored', url: 'https://restored.example' },
-      ],
+      miniflux_instances: [{ display_name: 'Restored', url: 'https://restored.example' }],
       mappings: [
         {
           miniflux_url: 'https://restored.example',
@@ -286,11 +284,7 @@ describe('restoreBackup', () => {
       },
     ]);
 
-    const result = await restoreBackup(
-      { DB: db, BACKUPS: bucket },
-      'good.json',
-      1_700_000_500,
-    );
+    const result = await restoreBackup({ DB: db, BACKUPS: bucket }, 'good.json', 1_700_000_500);
     expect(result).toEqual({
       restoredInstances: 1,
       restoredMappings: 1,

@@ -162,24 +162,24 @@ describe('loadRuntimeConfig — D1-mode (admin_passkey populated) — THE fallba
     await seedMinifluxInstance('https://a.example', 'tok');
     await seedYouTubeRefreshToken('rt');
 
-    await expect(
-      loadRuntimeConfig(baseEnv({ D1_KEYCHAIN: undefined })),
-    ).rejects.toThrow(/D1_KEYCHAIN is required/);
+    await expect(loadRuntimeConfig(baseEnv({ D1_KEYCHAIN: undefined }))).rejects.toThrow(
+      /D1_KEYCHAIN is required/,
+    );
   });
 
   it('throws when D1_KEYCHAIN is malformed', async () => {
     await seedPasskey();
     // Instance not seeded — but keychain error fires first.
-    await expect(
-      loadRuntimeConfig(baseEnv({ D1_KEYCHAIN: 'not-json' })),
-    ).rejects.toThrow(/not valid JSON/);
+    await expect(loadRuntimeConfig(baseEnv({ D1_KEYCHAIN: 'not-json' }))).rejects.toThrow(
+      /not valid JSON/,
+    );
   });
 
   it('throws when no miniflux_instances rows exist', async () => {
     await seedPasskey();
-    await expect(
-      loadRuntimeConfig(baseEnv({ D1_KEYCHAIN: KEYCHAIN_JSON })),
-    ).rejects.toThrow(/no miniflux_instances row/);
+    await expect(loadRuntimeConfig(baseEnv({ D1_KEYCHAIN: KEYCHAIN_JSON }))).rejects.toThrow(
+      /no miniflux_instances row/,
+    );
   });
 
   it('throws (Phase 3.5 pending) when multiple miniflux_instances rows exist', async () => {
@@ -188,17 +188,17 @@ describe('loadRuntimeConfig — D1-mode (admin_passkey populated) — THE fallba
     await seedMinifluxInstance('https://b.example', 'tok-b');
     await seedYouTubeRefreshToken('rt');
 
-    await expect(
-      loadRuntimeConfig(baseEnv({ D1_KEYCHAIN: KEYCHAIN_JSON })),
-    ).rejects.toThrow(/multi-instance sync not yet implemented/);
+    await expect(loadRuntimeConfig(baseEnv({ D1_KEYCHAIN: KEYCHAIN_JSON }))).rejects.toThrow(
+      /multi-instance sync not yet implemented/,
+    );
   });
 
   it('throws when config.youtube_refresh_token is not set', async () => {
     await seedPasskey();
     await seedMinifluxInstance('https://a.example', 'tok');
 
-    await expect(
-      loadRuntimeConfig(baseEnv({ D1_KEYCHAIN: KEYCHAIN_JSON })),
-    ).rejects.toThrow(/youtube_refresh_token is not set/);
+    await expect(loadRuntimeConfig(baseEnv({ D1_KEYCHAIN: KEYCHAIN_JSON }))).rejects.toThrow(
+      /youtube_refresh_token is not set/,
+    );
   });
 });

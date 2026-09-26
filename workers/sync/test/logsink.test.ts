@@ -58,7 +58,9 @@ describe('LokiSink', () => {
     await Promise.all(pending);
 
     expect(captured.url).toBe('https://logs.example/loki/api/v1/push');
-    const body = captured.body as { streams: { stream: Record<string, string>; values: [string, string][] }[] };
+    const body = captured.body as {
+      streams: { stream: Record<string, string>; values: [string, string][] }[];
+    };
     expect(body.streams).toHaveLength(1);
     expect(body.streams[0]?.stream).toEqual({
       app: 'fluxtube',
@@ -89,7 +91,9 @@ describe('LokiSink', () => {
     const body = captured.body as { streams: { values: [string, string][] }[] };
     const firstStream = body.streams[0];
     if (firstStream === undefined) throw new Error('expected one stream');
-    const events = firstStream.values.map(([, line]) => (JSON.parse(line) as { event: string }).event);
+    const events = firstStream.values.map(
+      ([, line]) => (JSON.parse(line) as { event: string }).event,
+    );
     expect(events).toEqual(['a', 'b']);
   });
 

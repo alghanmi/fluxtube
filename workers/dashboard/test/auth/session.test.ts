@@ -115,9 +115,9 @@ describe('readSessionCookie', () => {
   });
 
   it('finds the session cookie among other cookies', () => {
-    expect(
-      readSessionCookie(withCookie('other=xyz; fluxtube_session=abc.def; last=q')),
-    ).toBe('abc.def');
+    expect(readSessionCookie(withCookie('other=xyz; fluxtube_session=abc.def; last=q'))).toBe(
+      'abc.def',
+    );
   });
 
   it('returns undefined when the cookie header contains other cookies only', () => {

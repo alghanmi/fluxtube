@@ -76,8 +76,7 @@ export function attachMinifluxCategoriesRoutes(
 }
 
 type FetchResult =
-  | { ok: true; categories: Category[] }
-  | { ok: false; status: number; message: string };
+  { ok: true; categories: Category[] } | { ok: false; status: number; message: string };
 
 async function fetchMinifluxCategories(baseUrl: string, apiToken: string): Promise<FetchResult> {
   const trimmed = baseUrl.replace(/\/+$/, '');

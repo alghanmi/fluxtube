@@ -317,9 +317,7 @@ describe('scheduled handler', () => {
       {} as ExecutionContext,
     );
     expect(store.size).toBe(1);
-    expect(
-      (await new ConfigRepo(db).getPlain('backup_last_success_at'))?.value,
-    ).not.toBeNull();
+    expect((await new ConfigRepo(db).getPlain('backup_last_success_at'))?.value).not.toBeNull();
   });
 
   it('stamps failure timestamp + re-throws when generateBackup errors', async () => {
@@ -332,9 +330,7 @@ describe('scheduled handler', () => {
         {} as ExecutionContext,
       ),
     ).rejects.toThrow();
-    expect(
-      (await new ConfigRepo(db).getPlain('backup_last_failure_at'))?.value,
-    ).not.toBeNull();
+    expect((await new ConfigRepo(db).getPlain('backup_last_failure_at'))?.value).not.toBeNull();
   });
 
   it('pushes fluxtube.backup metrics via OTLP when GRAFANA_OTLP_* is set', async () => {
@@ -349,7 +345,8 @@ describe('scheduled handler', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
-        const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+        const url =
+          typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
         if (url.includes('/v1/metrics')) {
           capturedUrls.push(url);
           capturedBodies.push(typeof init?.body === 'string' ? init.body : '');

@@ -49,10 +49,7 @@ export async function handleFetch(
         const summary = await runSync(mappings, deps);
         if (metrics) emitRunMetrics(metrics, summary, 'success', startedAt, metricCommonAttributes);
         logger.info('manual_sync_complete', { request_id: requestId, ...summary });
-        return jsonResponse(
-          { status: 'completed', request_id: requestId, summary },
-          200,
-        );
+        return jsonResponse({ status: 'completed', request_id: requestId, summary }, 200);
       } catch (err) {
         const reason = err instanceof FatalError ? err.reason : undefined;
         logger.error('manual_sync_failed', {
@@ -83,7 +80,8 @@ export async function handleFetch(
     ctx.waitUntil(
       runSync(mappings, deps)
         .then((summary) => {
-          if (metrics) emitRunMetrics(metrics, summary, 'success', startedAt, metricCommonAttributes);
+          if (metrics)
+            emitRunMetrics(metrics, summary, 'success', startedAt, metricCommonAttributes);
           logger.info('manual_sync_complete', { request_id: requestId, ...summary });
         })
         .catch((err) => {

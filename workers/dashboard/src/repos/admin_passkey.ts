@@ -130,9 +130,7 @@ export class AdminPasskeyRepo {
     // recovery was ever used (rows are gone, but the fact of use is preserved
     // in Grafana logs from this call — Phase 8 wires the alert).
     const stamp = await this.db
-      .prepare(
-        `UPDATE admin_passkey SET recovery_used_at = ? WHERE recovery_hash = ?`,
-      )
+      .prepare(`UPDATE admin_passkey SET recovery_used_at = ? WHERE recovery_hash = ?`)
       .bind(at, recoveryHash)
       .run();
     const affected = stamp.meta.changes ?? 0;

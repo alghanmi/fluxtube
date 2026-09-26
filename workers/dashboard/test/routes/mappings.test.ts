@@ -193,7 +193,7 @@ describe('PUT /api/mappings', () => {
     );
     expect(res.status).toBe(200);
 
-    const home = (await new MappingsRepo(db).listByInstance(id1));
+    const home = await new MappingsRepo(db).listByInstance(id1);
     expect(home).toHaveLength(1);
     expect(home[0]?.minifluxCategory).toBe('New');
     expect(home[0]?.skipShorts).toBe(true);

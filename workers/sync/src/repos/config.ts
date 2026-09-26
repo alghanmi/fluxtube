@@ -109,9 +109,6 @@ export class ConfigRepo {
   }
 
   private async getRaw(key: string): Promise<Row | null> {
-    return await this.db
-      .prepare('SELECT * FROM config WHERE key = ?')
-      .bind(key)
-      .first<Row>();
+    return await this.db.prepare('SELECT * FROM config WHERE key = ?').bind(key).first<Row>();
   }
 }

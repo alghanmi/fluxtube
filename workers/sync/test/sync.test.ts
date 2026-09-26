@@ -3,12 +3,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createLogger } from '../src/logger';
 import { QueueState } from '../src/state';
 import { runSync } from '../src/sync';
-import {
-  FatalError,
-  MinifluxEntryNotFoundError,
-  VideoUnavailableError,
+import { FatalError, MinifluxEntryNotFoundError, VideoUnavailableError } from '../src/types';
+import type {
+  CategoryPlaylistMapping,
+  MinifluxCategory,
+  MinifluxEntry,
+  PlaylistItemRef,
 } from '../src/types';
-import type { CategoryPlaylistMapping, MinifluxCategory, MinifluxEntry, PlaylistItemRef } from '../src/types';
 import type { MinifluxClient } from '../src/miniflux';
 import type { YouTubeClient } from '../src/youtube';
 
@@ -114,15 +115,11 @@ const logger = createLogger('error');
 
 describe('runSync — Pass 1: add new videos', () => {
   it('adds an unread entry whose video is not in the playlist or D1', async () => {
-    const mapping: CategoryPlaylistMapping[] = [
-      { category: 'YouTube', playlistId: 'PLa' },
-    ];
+    const mapping: CategoryPlaylistMapping[] = [{ category: 'YouTube', playlistId: 'PLa' }];
     const { client: miniflux } = fakeMiniflux({
       categories: [{ id: 1, title: 'YouTube' }],
       unreadByCategory: {
-        1: [
-          { id: 100, url: 'https://youtu.be/aaaaaaaaaaa', title: 'A', status: 'unread' },
-        ],
+        1: [{ id: 100, url: 'https://youtu.be/aaaaaaaaaaa', title: 'A', status: 'unread' }],
       },
     });
     const { client: youtube, inserted } = fakeYouTube({ initialItems: { PLa: [] } });
@@ -250,11 +247,21 @@ describe('runSync — Pass 1: add new videos', () => {
       unreadByCategory: {
         1: [
           // Short — should be marked read, not inserted
-          { id: 100, url: 'https://www.youtube.com/shorts/aaaaaaaaaaa', title: 'S', status: 'unread' },
+          {
+            id: 100,
+            url: 'https://www.youtube.com/shorts/aaaaaaaaaaa',
+            title: 'S',
+            status: 'unread',
+          },
           // Regular video — should still be inserted
           { id: 101, url: 'https://youtu.be/bbbbbbbbbbb', title: 'V', status: 'unread' },
           // /watch?v= URL that happens to be a Short (we can't detect it by URL) — inserted
-          { id: 102, url: 'https://www.youtube.com/watch?v=ccccccccccc', title: 'W', status: 'unread' },
+          {
+            id: 102,
+            url: 'https://www.youtube.com/watch?v=ccccccccccc',
+            title: 'W',
+            status: 'unread',
+          },
         ],
       },
     });
@@ -276,7 +283,12 @@ describe('runSync — Pass 1: add new videos', () => {
       categories: [{ id: 1, title: 'X' }],
       unreadByCategory: {
         1: [
-          { id: 100, url: 'https://www.youtube.com/shorts/aaaaaaaaaaa', title: 'S', status: 'unread' },
+          {
+            id: 100,
+            url: 'https://www.youtube.com/shorts/aaaaaaaaaaa',
+            title: 'S',
+            status: 'unread',
+          },
         ],
       },
     });
@@ -548,9 +560,9 @@ describe('runSync — fatal errors', () => {
     const { client: youtube } = fakeYouTube({ initialItems: { PLa: [] }, fatalOnList: true });
 
     const state = new QueueState(db);
-    await expect(
-      runSync(mapping, { miniflux, youtube, state, logger }),
-    ).rejects.toBeInstanceOf(FatalError);
+    await expect(runSync(mapping, { miniflux, youtube, state, logger })).rejects.toBeInstanceOf(
+      FatalError,
+    );
   });
 
   it('returns immediately when mapping is empty', async () => {

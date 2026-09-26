@@ -97,14 +97,9 @@ export function sessionCookieHeader(token: string): string {
 
 /** Set-Cookie value that clears the session cookie. SameSite must match sessionCookieHeader. */
 export function clearSessionCookieHeader(): string {
-  return [
-    `${COOKIE_NAME}=`,
-    'Path=/',
-    'Secure',
-    'HttpOnly',
-    'SameSite=Lax',
-    'Max-Age=0',
-  ].join('; ');
+  return [`${COOKIE_NAME}=`, 'Path=/', 'Secure', 'HttpOnly', 'SameSite=Lax', 'Max-Age=0'].join(
+    '; ',
+  );
 }
 
 /** Reads the session cookie value from a request. null if absent. */
@@ -122,13 +117,10 @@ export function readSessionCookie(request: Request): string | undefined {
 
 async function importHmacKey(b64: string): Promise<CryptoKey> {
   const raw = base64Decode(b64);
-  return crypto.subtle.importKey(
-    'raw',
-    raw,
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign', 'verify'],
-  );
+  return crypto.subtle.importKey('raw', raw, { name: 'HMAC', hash: 'SHA-256' }, false, [
+    'sign',
+    'verify',
+  ]);
 }
 
 // ─── base64 helpers ─────────────────────────────────────────────────────

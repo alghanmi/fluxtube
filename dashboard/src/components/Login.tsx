@@ -4,10 +4,7 @@ import { useState } from 'preact/hooks';
 import { startAuthentication } from '@simplewebauthn/browser';
 import * as api from '../lib/api';
 
-type Phase =
-  | { kind: 'idle' }
-  | { kind: 'authenticating' }
-  | { kind: 'error'; message: string };
+type Phase = { kind: 'idle' } | { kind: 'authenticating' } | { kind: 'error'; message: string };
 
 export function Login(): preact.JSX.Element {
   const [phase, setPhase] = useState<Phase>({ kind: 'idle' });
@@ -37,7 +34,10 @@ export function Login(): preact.JSX.Element {
         will prompt you to confirm.
       </p>
       {phase.kind === 'error' && (
-        <div class="terminal" style="border-color: var(--color-danger); color: var(--color-danger);">
+        <div
+          class="terminal"
+          style="border-color: var(--color-danger); color: var(--color-danger);"
+        >
           {phase.message}
         </div>
       )}

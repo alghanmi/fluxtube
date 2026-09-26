@@ -23,9 +23,7 @@ export interface MinifluxInstancesEnv extends DashboardAuthEnv {
   D1_KEYCHAIN?: string;
 }
 
-export function attachMinifluxInstanceRoutes(
-  app: Hono<{ Bindings: MinifluxInstancesEnv }>,
-): void {
+export function attachMinifluxInstanceRoutes(app: Hono<{ Bindings: MinifluxInstancesEnv }>): void {
   app.get('/api/miniflux/instances', async (c) => {
     const session = await requireAuth(c.req.raw, c.env);
     if (!session) return c.json({ error: 'unauthorized' }, 401);
@@ -150,9 +148,7 @@ export function attachMinifluxInstanceRoutes(
 
 // ─── Helpers ────────────────────────────────────────────────────────────
 
-type KeychainResult =
-  | { ok: true; keychain: Keychain }
-  | { ok: false; error: string };
+type KeychainResult = { ok: true; keychain: Keychain } | { ok: false; error: string };
 
 function loadKeychain(env: MinifluxInstancesEnv): KeychainResult {
   if (!env.D1_KEYCHAIN) return { ok: false, error: 'keychain_not_configured' };
