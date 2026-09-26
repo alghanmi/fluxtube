@@ -22,6 +22,12 @@ updates:
     ignore:
       - dependency-name: 'typescript'
         update-types: ['version-update:semver-major']
+      # @cloudflare/vitest-pool-workers (0.22.x) declares a peer of
+      # vitest ^4.1.0; under vitest 5 every workerd test isolate dies with
+      # `SyntaxError: Unexpected identifier 'file'`. Revisit when
+      # `npm view @cloudflare/vitest-pool-workers peerDependencies` accepts ^5.
+      - dependency-name: 'vitest'
+        update-types: ['version-update:semver-major']
 
   # Note: no per-workspace `npm` entries. This is a pnpm workspace — the
   # lockfile lives at the repo root, and Dependabot's per-directory npm
