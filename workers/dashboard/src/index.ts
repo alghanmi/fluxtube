@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { requireAuth } from './auth/require_auth';
+import { claimCookieHeader, signChallenge } from './auth/challenge';
 import { clearSessionCookieHeader } from './auth/session';
 import { AdminPasskeyRepo } from './repos/admin_passkey';
 import { generateBackup } from './backup';
@@ -103,6 +104,23 @@ app.get('/api/health', (c) =>
   }),
 );
 
+// ─── Origin check on state-changing requests ─────────────────────────────
+// SameSite=Lax stops cross-SITE form posts but not same-site ones (any
+// sibling subdomain of the registrable domain). Browsers always send Origin
+// on POST/PUT/DELETE, so reject any whose Origin isn't the dashboard's own.
+// Requests with no Origin at all (operator scripts, the service-binding
+// hop) are unaffected.
+
+app.use('/api/*', async (c, next) => {
+  const method = c.req.method;
+  if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') return next();
+  const origin = c.req.header('Origin');
+  if (origin !== undefined && c.env.RP_ID && origin !== `https://${c.env.RP_ID}`) {
+    return c.json({ error: 'origin_not_allowed' }, 403);
+  }
+  return next();
+});
+
 // ─── WebAuthn passkey ceremonies (Phase 4b) ──────────────────────────────
 // register/begin, register/finish, authenticate/begin, authenticate/finish.
 // Register is gated to admin_passkey being empty.
@@ -138,7 +156,7 @@ attachBackupRoutes(app);
  * synthetic session with credentialId 'bearer:manual-trigger-token'.
  */
 app.get('/api/me', async (c) => {
-  const session = await requireAuth(c.req.raw, c.env);
+  const session = await requireAuth(c.req.raw, c.env, { bearer: true });
   if (!session) return c.json({ error: 'unauthorized' }, 401);
   return c.json({ session });
 });
@@ -164,7 +182,11 @@ app.post('/api/auth/logout', (_c) => {
  *
  * Body: { recovery_code: string }
  * Returns:
- *   200 { wiped: number } — recovery_code matched, N rows wiped
+ *   200 { wiped: number } — recovery_code matched, N rows wiped. Also sets
+ *       a 15-minute signed claim-ticket cookie so the same browser can
+ *       register a replacement passkey without the operator Bearer token.
+ *       Wiping the table also revokes every outstanding session (sessions
+ *       are only valid while their credential exists).
  *   401 { error: 'invalid_recovery_code' } — no match; table intact
  *
  * Intentionally NOT protected by auth — the whole point is that the operator
@@ -188,7 +210,18 @@ app.post('/api/auth/recovery', async (c) => {
     Math.floor(Date.now() / 1000),
   );
   if (wiped === 0) return c.json({ error: 'invalid_recovery_code' }, 401);
-  return c.json({ wiped });
+
+  const headers = new Headers({ 'Content-Type': 'application/json' });
+  headers.append('Set-Cookie', clearSessionCookieHeader());
+  if (c.env.SESSION_SIGNING_KEY) {
+    const nonce = crypto.randomUUID();
+    const ticket = await signChallenge(
+      { purpose: 'claim', value: nonce, issuedAt: Math.floor(Date.now() / 1000) },
+      c.env.SESSION_SIGNING_KEY,
+    );
+    headers.append('Set-Cookie', claimCookieHeader(ticket));
+  }
+  return new Response(JSON.stringify({ wiped }), { status: 200, headers });
 });
 
 // ─── Helpers ─────────────────────────────────────────────────────────────

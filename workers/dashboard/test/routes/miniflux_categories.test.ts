@@ -4,7 +4,7 @@ import app from '../../src/index';
 import { signSession } from '../../src/auth/session';
 import { encrypt, parseKeychain } from '../../src/crypto';
 import { MinifluxInstancesRepo } from '../../src/repos/miniflux_instances';
-import { resetV1Schema, TEST_KEYCHAIN_JSON } from '../support/schema';
+import { resetV1Schema, TEST_KEYCHAIN_JSON, seedSessionPasskey } from '../support/schema';
 
 const db = (env as unknown as { DB: D1Database }).DB;
 
@@ -22,6 +22,7 @@ function testEnv(overrides: Record<string, unknown> = {}): AppEnv {
 }
 
 async function sessionCookie(): Promise<string> {
+  await seedSessionPasskey(db);
   const token = await signSession(
     { sub: 'admin', credentialId: 'cred-1', issuedAt: Math.floor(Date.now() / 1000) },
     HMAC_KEY,

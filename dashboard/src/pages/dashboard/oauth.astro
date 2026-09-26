@@ -6,7 +6,7 @@
 //                                              redirects to
 //                                              /dashboard/settings
 //                                              after 1.5s.
-//   ?state=denied&reason=<code>[&message=] → error screen; Try Again
+//   ?state=denied&reason=<code>            → error screen; Try Again
 //                                              re-enters /api/auth/youtube.
 //
 // The Worker's success path writes the encrypted refresh token to D1
@@ -20,11 +20,10 @@ import { OAuthSplash } from '../../components/OAuthSplash';
 const url = Astro.url;
 const state = url.searchParams.get('state') === 'connected' ? 'connected' : 'denied';
 const reason = url.searchParams.get('reason') ?? undefined;
-const message = url.searchParams.get('message') ?? undefined;
 ---
 
 <BaseLayout title={state === 'connected' ? 'YouTube connected' : 'YouTube consent declined'}>
-  <OAuthSplash client:load state={state} reason={reason} message={message} />
+  <OAuthSplash client:load state={state} reason={reason} />
 
   <script is:inline>
     (async () => {

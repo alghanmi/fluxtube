@@ -19,6 +19,10 @@
 #   - `Cross-Origin-Embedder-Policy: require-corp` still safe: the
 #     only cross-origin fetches are Google Fonts, which already emit
 #     the correct CORP/CORS headers upstream.
+#   - HSTS without `preload`: preload is a one-way commitment for the whole
+#     registrable domain and only means something once the domain is
+#     submitted to hstspreload.org. The dashboard lives on a shared personal
+#     domain, so opt in there deliberately, not from one subdomain's headers.
 #   - `X-Robots-Tag: noindex, nofollow` — dashboard is private per
 #     tenant; robots.txt disallow is not enough (some crawlers ignore
 #     it), the response header is authoritative.
@@ -29,7 +33,7 @@
 #   - HTTP → HTTPS 301 redirect
 
 /*
-  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
   Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; script-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests
   Cross-Origin-Opener-Policy: same-origin
   Cross-Origin-Embedder-Policy: require-corp

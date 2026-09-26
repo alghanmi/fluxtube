@@ -1,6 +1,7 @@
 // WebAuthn passkey ceremony routes.
 //
-// Register (first boot only, gated by admin_passkey being empty):
+// Register (only while admin_passkey is empty, AND only with proof of
+// operator authority — see `claimAuthorized`):
 //   POST /api/auth/passkey/register/begin   → options + challenge cookie
 //   POST /api/auth/passkey/register/finish  → verifies, stores credential,
 //                                             issues a one-time recovery code,
@@ -30,18 +31,24 @@ import {
 } from '@simplewebauthn/server';
 import type { AuthenticationResponseJSON, RegistrationResponseJSON } from '@simplewebauthn/server';
 import {
+  CLAIM_MAX_AGE_SECONDS,
   challengeCookieHeader,
   clearChallengeCookieHeader,
+  clearClaimCookieHeader,
   readChallengeCookie,
+  readClaimCookie,
   signChallenge,
   verifyChallenge,
 } from '../auth/challenge';
+import { isOperatorBearer } from '../auth/require_auth';
 import { sessionCookieHeader, signSession } from '../auth/session';
 import { AdminPasskeyRepo } from '../repos/admin_passkey';
+import { ConfigRepo } from '../repos/config';
 
 export interface WebauthnEnv {
   DB: D1Database;
   SESSION_SIGNING_KEY?: string;
+  MANUAL_TRIGGER_TOKEN?: string;
   RP_ID?: string;
   RP_NAME?: string;
 }
@@ -58,6 +65,16 @@ export function attachWebauthnRoutes(app: Hono<{ Bindings: WebauthnEnv }>): void
     const count = await new AdminPasskeyRepo(c.env.DB).count();
     if (count > 0) {
       return c.json({ error: 'instance_already_claimed' }, 409);
+    }
+
+    // An empty admin_passkey table is not by itself permission to claim:
+    // a fresh deploy and the window right after a recovery wipe would both
+    // belong to whoever registers first. Require the operator Bearer token
+    // or the claim ticket that a successful recovery just issued. /finish
+    // needs no separate check — it requires the register challenge cookie,
+    // which only this (gated) route mints.
+    if (!(await claimAuthorized(c.req.raw, c.env, cfg.signingKey))) {
+      return c.json({ error: 'claim_not_authorized' }, 401);
     }
 
     const options = await generateRegistrationOptions({
@@ -148,6 +165,10 @@ export function attachWebauthnRoutes(app: Hono<{ Bindings: WebauthnEnv }>): void
       recoveryHash,
       createdAt: nowSec(),
     });
+    // Durable record that this instance is D1-managed. The sync Worker used
+    // to infer that from admin_passkey being non-empty, so a recovery wipe
+    // silently flipped it back to the legacy env-binding config.
+    await new ConfigRepo(c.env.DB).setPlain('config_mode', 'd1', nowSec());
 
     // Mint the initial session cookie so the browser is logged in already.
     const sessionToken = await signSession(
@@ -162,6 +183,7 @@ export function attachWebauthnRoutes(app: Hono<{ Bindings: WebauthnEnv }>): void
     // Silent session-cookie loss; login loops back to /login.
     const headers = new Headers({ 'Content-Type': 'application/json' });
     headers.append('Set-Cookie', clearChallengeCookieHeader());
+    headers.append('Set-Cookie', clearClaimCookieHeader());
     headers.append('Set-Cookie', sessionCookieHeader(sessionToken));
 
     return new Response(
@@ -307,6 +329,24 @@ function requireCryptoConfig(env: WebauthnEnv): CryptoConfigOk | CryptoConfigErr
     rpName: env.RP_NAME ?? 'FluxTube',
     signingKey: env.SESSION_SIGNING_KEY,
   };
+}
+
+async function claimAuthorized(
+  request: Request,
+  env: WebauthnEnv,
+  signingKey: string,
+): Promise<boolean> {
+  if (isOperatorBearer(request, { DB: env.DB, MANUAL_TRIGGER_TOKEN: env.MANUAL_TRIGGER_TOKEN })) {
+    return true;
+  }
+  const ticket = await verifyChallenge(
+    readClaimCookie(request),
+    signingKey,
+    'claim',
+    nowSec(),
+    CLAIM_MAX_AGE_SECONDS,
+  );
+  return ticket !== null;
 }
 
 function nowSec(): number {

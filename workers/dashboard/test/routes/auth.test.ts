@@ -14,6 +14,26 @@ interface TestEnv {
   SESSION_SIGNING_KEY?: string;
   MANUAL_TRIGGER_TOKEN?: string;
   D1_KEYCHAIN?: string;
+  RP_ID?: string;
+}
+
+async function seedCredential(credentialId: string): Promise<void> {
+  await new AdminPasskeyRepo(db).insert({
+    credentialId,
+    publicKey: 'pk',
+    signCount: 0,
+    transports: null,
+    recoveryHash: 'h',
+    createdAt: 1_700_000_000,
+  });
+}
+
+async function sessionCookieFor(credentialId: string): Promise<string> {
+  const token = await signSession(
+    { sub: 'admin', credentialId, issuedAt: Math.floor(Date.now() / 1000) },
+    HMAC_KEY,
+  );
+  return `fluxtube_session=${token}`;
 }
 
 function testEnv(overrides: Partial<TestEnv> = {}): TestEnv {
@@ -66,6 +86,7 @@ describe('GET /api/me', () => {
   });
 
   it('returns 200 with a valid session cookie', async () => {
+    await seedCredential('cred-abc');
     const token = await signSession(
       { sub: 'admin', credentialId: 'cred-abc', issuedAt: Math.floor(Date.now() / 1000) },
       HMAC_KEY,
@@ -80,6 +101,19 @@ describe('GET /api/me', () => {
     expect(res.status).toBe(200);
     const body = (await res.json()) as { session: { credentialId: string } };
     expect(body.session.credentialId).toBe('cred-abc');
+  });
+
+  it('returns 401 for a validly signed session whose passkey no longer exists', async () => {
+    // Signature + TTL are fine; the credential was removed (e.g. by a
+    // recovery wipe). The session must die with it.
+    const res = await app.fetch(
+      new Request('http://d.test/api/me', {
+        headers: { Cookie: await sessionCookieFor('cred-gone') },
+      }),
+      testEnv() as unknown as Env,
+      {} as ExecutionContext,
+    );
+    expect(res.status).toBe(401);
   });
 
   it('returns 200 with a valid Bearer token', async () => {
@@ -206,6 +240,103 @@ describe('POST /api/auth/recovery', () => {
     const body = (await res.json()) as { wiped: number };
     expect(body.wiped).toBe(1);
     expect(await new AdminPasskeyRepo(db).count()).toBe(0);
+
+    const cookies = res.headers.getSetCookie();
+    // Issues a claim ticket so this browser can register a replacement...
+    expect(cookies.some((c) => c.startsWith('fluxtube_claim=') && !c.includes('Max-Age=0'))).toBe(
+      true,
+    );
+    // ...and clears the caller's own session cookie.
+    expect(cookies.some((c) => c.startsWith('fluxtube_session=') && c.includes('Max-Age=0'))).toBe(
+      true,
+    );
+  });
+
+  it('revokes sessions minted before the recovery', async () => {
+    await seedRow();
+    const cookie = await sessionCookieFor('cred-1');
+    const before = await app.fetch(
+      new Request('http://d.test/api/me', { headers: { Cookie: cookie } }),
+      testEnv() as unknown as Env,
+      {} as ExecutionContext,
+    );
+    expect(before.status).toBe(200);
+
+    await app.fetch(
+      new Request('http://d.test/api/auth/recovery', {
+        method: 'POST',
+        body: JSON.stringify({ recovery_code: CODE }),
+      }),
+      testEnv() as unknown as Env,
+      {} as ExecutionContext,
+    );
+
+    const after = await app.fetch(
+      new Request('http://d.test/api/me', { headers: { Cookie: cookie } }),
+      testEnv() as unknown as Env,
+      {} as ExecutionContext,
+    );
+    expect(after.status).toBe(401);
+  });
+});
+
+describe('Origin check on state-changing /api requests', () => {
+  const env = (): Env => testEnv({ RP_ID: 'dash.test.example' }) as unknown as Env;
+
+  it('403 when a POST carries a foreign Origin', async () => {
+    const res = await app.fetch(
+      new Request('http://d.test/api/auth/logout', {
+        method: 'POST',
+        headers: { Origin: 'https://evil.test.example' },
+      }),
+      env(),
+      {} as ExecutionContext,
+    );
+    expect(res.status).toBe(403);
+    expect(((await res.json()) as { error: string }).error).toBe('origin_not_allowed');
+  });
+
+  it('allows a POST from the dashboard origin', async () => {
+    const res = await app.fetch(
+      new Request('http://d.test/api/auth/logout', {
+        method: 'POST',
+        headers: { Origin: 'https://dash.test.example' },
+      }),
+      env(),
+      {} as ExecutionContext,
+    );
+    expect(res.status).toBe(200);
+  });
+
+  it('allows a POST with no Origin (operator scripts, service binding)', async () => {
+    const res = await app.fetch(
+      new Request('http://d.test/api/auth/logout', { method: 'POST' }),
+      env(),
+      {} as ExecutionContext,
+    );
+    expect(res.status).toBe(200);
+  });
+
+  it('does not apply to GET', async () => {
+    const res = await app.fetch(
+      new Request('http://d.test/api/health', { headers: { Origin: 'https://evil.test.example' } }),
+      env(),
+      {} as ExecutionContext,
+    );
+    expect(res.status).toBe(200);
+  });
+});
+
+describe('Bearer token scope', () => {
+  it('is rejected on routes that require a passkey session', async () => {
+    const res = await app.fetch(
+      new Request('http://d.test/api/config', {
+        headers: { Authorization: `Bearer ${BEARER_TOKEN}` },
+      }),
+      testEnv() as unknown as Env,
+      {} as ExecutionContext,
+    );
+    expect(res.status).toBe(401);
   });
 });
 

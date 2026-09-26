@@ -32,10 +32,11 @@ export function Recovery(): preact.JSX.Element {
       <div class="claim">
         <h1 class="claim-hero">Recovery complete.</h1>
         <p class="claim-lede">
-          Your old passkey is invalidated. Register a new one to regain access.
+          Your old passkey is invalidated and every signed-in session is ended. Register a new
+          passkey in the next 15 minutes, from this browser, to regain access.
         </p>
         <div class="claim-actions">
-          <a href="/claim" class="claim-primary">
+          <a href="/claim?from=recovery" class="claim-primary">
             Register a new passkey
           </a>
         </div>

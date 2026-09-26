@@ -181,6 +181,9 @@ function InstanceForm(props: {
   const [apiToken, setApiToken] = useState('');
   const [busy, setBusy] = useState(false);
   const isEdit = !!instance;
+  // The Worker only sends the stored token to the URL it was entered for,
+  // so changing the URL means re-entering the token.
+  const tokenRequired = !isEdit || url !== instance.url;
 
   async function onSubmit(e: Event): Promise<void> {
     e.preventDefault();
@@ -229,17 +232,25 @@ function InstanceForm(props: {
           value={url}
           onInput={(e) => setUrl((e.currentTarget as HTMLInputElement).value)}
           placeholder="https://miniflux.example"
+          pattern="https://.*"
+          title="Must start with https://"
           required
         />
       </div>
       <div class="field">
-        <label>API token {isEdit && '(leave blank to keep the current one)'}</label>
+        <label>
+          API token{' '}
+          {isEdit &&
+            (tokenRequired
+              ? '(required — the URL changed)'
+              : '(leave blank to keep the current one)')}
+        </label>
         <input
           type="password"
           value={apiToken}
           onInput={(e) => setApiToken((e.currentTarget as HTMLInputElement).value)}
           autocomplete="off"
-          required={!isEdit}
+          required={tokenRequired}
         />
       </div>
       <div class="row">

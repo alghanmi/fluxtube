@@ -102,3 +102,19 @@ export const TEST_KEYCHAIN_JSON = JSON.stringify({
   current: 1,
   keys: { '1': 'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=' },
 });
+
+/**
+ * Sessions are only valid while their credential exists in admin_passkey
+ * (see requireAuth). Tests that mint a session cookie seed the matching row
+ * first. INSERT OR IGNORE so helpers can call it on every cookie mint.
+ */
+export async function seedSessionPasskey(db: D1Database, credentialId = 'cred-1'): Promise<void> {
+  await db
+    .prepare(
+      `INSERT OR IGNORE INTO admin_passkey
+         (credential_id, public_key, sign_count, transports, recovery_hash, created_at)
+       VALUES (?, 'pk-test', 0, NULL, 'hash-test', 1700000000)`,
+    )
+    .bind(credentialId)
+    .run();
+}

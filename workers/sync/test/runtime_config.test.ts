@@ -95,6 +95,19 @@ describe('loadRuntimeConfig — env-mode (admin_passkey empty)', () => {
   });
 });
 
+describe('loadRuntimeConfig — config_mode flag survives a recovery wipe', () => {
+  it('stays in D1 mode when admin_passkey is empty but config_mode = d1', async () => {
+    // A recovery wipe empties admin_passkey. Before the flag, that silently
+    // flipped sync back to the env bindings below.
+    await new ConfigRepo(db).setPlain('config_mode', 'd1', 1700000000);
+    await seedMinifluxInstance('https://miniflux.d1.example', 'd1-miniflux-token');
+    await seedYouTubeRefreshToken('d1-yt-refresh');
+    const rt = await loadRuntimeConfig(baseEnv({ D1_KEYCHAIN: KEYCHAIN_JSON }));
+    expect(rt.mode).toBe('d1');
+    expect(rt.minifluxUrl).toBe('https://miniflux.d1.example');
+  });
+});
+
 describe('loadRuntimeConfig — D1-mode (admin_passkey populated) — THE fallback safety proof', () => {
   it('IGNORES env vars entirely when admin_passkey has any row', async () => {
     await seedPasskey();

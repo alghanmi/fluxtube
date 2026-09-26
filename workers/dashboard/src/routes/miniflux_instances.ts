@@ -101,6 +101,12 @@ export function attachMinifluxInstanceRoutes(app: Hono<{ Bindings: MinifluxInsta
     if (!parsed.ok) return c.json({ error: parsed.error }, 400);
 
     if (parsed.url !== undefined && parsed.url !== existing.url) {
+      // The stored token is only ever sent to the URL it was entered for.
+      // Changing the URL without re-entering the token would forward the
+      // decrypted credential to the new host on the next category fetch.
+      if (parsed.apiToken === undefined) {
+        return c.json({ error: 'apiToken_required_when_url_changes' }, 400);
+      }
       const clash = await repo.getByUrl(parsed.url);
       if (clash && clash.id !== id) return c.json({ error: 'url_already_exists' }, 409);
     }
@@ -221,10 +227,13 @@ function parseUpdateBody(body: unknown): UpdateResult {
   return out;
 }
 
+// HTTPS only: the Worker sends the decrypted API token to this URL in an
+// Authorization header, so plain http would put it on the wire in clear.
+// (A Worker can't reach a LAN-only Miniflux anyway, so there's no local
+// http use case to preserve.)
 function isHttpUrl(s: string): boolean {
   try {
-    const u = new URL(s);
-    return u.protocol === 'http:' || u.protocol === 'https:';
+    return new URL(s).protocol === 'https:';
   } catch {
     return false;
   }
