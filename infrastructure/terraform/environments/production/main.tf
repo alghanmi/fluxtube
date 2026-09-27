@@ -3,8 +3,16 @@ terraform {
 
   required_providers {
     cloudflare = {
-      source  = "cloudflare/cloudflare"
-      version = "~> 5.21"
+      source = "cloudflare/cloudflare"
+      # v5.26.0 can't refresh a wrangler-deployed cloudflare_workers_script:
+      # "main script part "worker.js" is missing from multipart response"
+      # (the resource declares a placeholder main_module; wrangler uploads the
+      # real bundle under its own name). Excluded until a release fixes it.
+      # The committed .terraform.lock.hcl pins the version actually used
+      # (5.24.0, last proven against live state); bump it only after a real
+      # `terraform plan` against production succeeds — CI's validate can't
+      # catch a refresh failure.
+      version = "~> 5.21, != 5.26.0"
     }
   }
 

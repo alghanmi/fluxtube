@@ -53,6 +53,13 @@ updates:
     open-pull-requests-limit: 5
     commit-message:
       prefix: 'chore(terraform)'
+    # cloudflare/cloudflare 5.26.0 can't refresh wrangler-deployed Worker
+    # scripts (see environments/production/main.tf). Revisit when a later
+    # release fixes it; a lockfile bump needs a real `terraform plan`
+    # against production before merge, since CI only validates.
+    ignore:
+      - dependency-name: 'cloudflare/cloudflare'
+        versions: ['5.26.0']
 
   - package-ecosystem: 'terraform'
     directory: '/infrastructure/terraform/_modules/fluxtube-environment'
