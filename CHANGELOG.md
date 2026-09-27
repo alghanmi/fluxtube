@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.3](https://github.com/alghanmi/fluxtube/compare/v1.1.2...v1.1.3) (2026-09-27)
+
+
+### Bug Fixes
+
+* **terraform:** pin the Cloudflare provider with a committed lockfile ([#190](https://github.com/alghanmi/fluxtube/issues/190)) ([1228ee2](https://github.com/alghanmi/fluxtube/commit/1228ee2190ac6b78130f1811aba2096cbc6614fa))
+
 ## [1.1.2](https://github.com/alghanmi/fluxtube/compare/v1.1.1...v1.1.2) (2026-09-26)
 
 
