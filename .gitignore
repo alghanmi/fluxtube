@@ -24,7 +24,11 @@ coverage/
 
 # ── Terraform ─────────────────────────────────────────────────────────────────
 .terraform/
+# Lock files are ignored for modules but COMMITTED for root configurations,
+# so every init (CI and local) uses the same provider version. Floating to a
+# new provider release on every deploy is how v5.26.0 broke one.
 .terraform.lock.hcl
+!infrastructure/terraform/environments/*/.terraform.lock.hcl
 # `*.tfstate*` catches the canonical names AND any manually-suffixed backup
 # (e.g. `pre-v5-state.tfstate-2.bak` from a provider-migration session).
 *.tfstate*
