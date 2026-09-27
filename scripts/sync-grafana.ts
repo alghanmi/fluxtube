@@ -234,6 +234,15 @@ interface GrafanaOpts {
   acceptNotFound?: boolean;
 }
 
+// Grafana Cloud answers 503 {"code":"Loading"} while a stack wakes up or
+// restarts for an upgrade — that failed the v1.1.3 deploy's sync step even
+// though Grafana was healthy a minute later. Retry transient statuses and
+// network errors with linear backoff (~3 min total). Every call this script
+// makes is an upsert, so a retry can't double-apply anything.
+const RETRYABLE_STATUS = new Set([429, 502, 503, 504]);
+const MAX_ATTEMPTS = 8;
+const BACKOFF_STEP_MS = 5_000;
+
 async function grafana(
   baseUrl: string,
   token: string,
@@ -242,16 +251,34 @@ async function grafana(
   body?: unknown,
   opts: GrafanaOpts = {},
 ): Promise<Response> {
-  const res = await fetch(`${baseUrl}${path}`, {
-    method,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    },
-    body: body === undefined ? undefined : JSON.stringify(body),
-    signal: AbortSignal.timeout(30_000),
-  });
+  let res: Response | undefined;
+  for (let attempt = 1; ; attempt++) {
+    let failure: string;
+    try {
+      res = await fetch(`${baseUrl}${path}`, {
+        method,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: body === undefined ? undefined : JSON.stringify(body),
+        signal: AbortSignal.timeout(30_000),
+      });
+      if (!RETRYABLE_STATUS.has(res.status)) break;
+      failure = `${res.status} ${res.statusText}`;
+    } catch (err) {
+      if (attempt >= MAX_ATTEMPTS) throw err;
+      failure = err instanceof Error ? err.message : String(err);
+    }
+    if (attempt >= MAX_ATTEMPTS) break;
+    const waitMs = BACKOFF_STEP_MS * attempt;
+    console.error(
+      `  … ${method} ${path}: ${failure}; retrying in ${waitMs / 1000}s (${attempt}/${MAX_ATTEMPTS - 1})`,
+    );
+    await new Promise((resolve) => setTimeout(resolve, waitMs));
+  }
+  if (!res) throw new Error(`Grafana ${method} ${path} failed: no response`);
   if (!res.ok) {
     if (opts.acceptNotFound && res.status === 404) return res;
     const text = await res.text().catch(() => '<no body>');
