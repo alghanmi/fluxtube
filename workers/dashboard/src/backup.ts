@@ -217,6 +217,13 @@ export async function restoreBackup(
     throw new Error(`backup_schema_invalid: ${parsed.error.message}`);
   }
   const payload = parsed.data;
+  // Same single-instance limit as POST /api/miniflux/instances: restoring
+  // two would make every sync run fail at config load.
+  if (payload.miniflux_instances.length > 1) {
+    throw new Error(
+      'backup_schema_invalid: backup has more than one Miniflux instance; only one is supported',
+    );
+  }
 
   const instancesRepo = new MinifluxInstancesRepo(env.DB);
   const mappingsRepo = new MappingsRepo(env.DB);

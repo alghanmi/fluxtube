@@ -210,6 +210,31 @@ describe('POST /api/miniflux/instances', () => {
     );
     expect(res.status).toBe(409);
   });
+
+  it('409 multi_instance_not_supported when an instance already exists', async () => {
+    // A second row makes every sync run fail at config load (#179).
+    await new MinifluxInstancesRepo(db).insert({
+      displayName: 'Home',
+      url: 'https://home.example',
+      apiTokenCt: 'ct',
+      apiTokenIv: 'iv',
+      apiTokenKv: 1,
+      createdAt: 1,
+      updatedAt: 1,
+    });
+    const res = await app.fetch(
+      new Request('http://d.test/api/miniflux/instances', {
+        method: 'POST',
+        body: JSON.stringify({ displayName: 'Work', url: 'https://work.example', apiToken: 't' }),
+        headers: { Cookie: await sessionCookie() },
+      }),
+      testEnv(),
+      {} as ExecutionContext,
+    );
+    expect(res.status).toBe(409);
+    expect(((await res.json()) as { error: string }).error).toBe('multi_instance_not_supported');
+    expect(await new MinifluxInstancesRepo(db).list()).toHaveLength(1);
+  });
 });
 
 describe('PUT /api/miniflux/instances/:id', () => {

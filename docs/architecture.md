@@ -149,7 +149,7 @@ async function isD1Managed(env: Env): Promise<boolean> {
 }
 ```
 
-- **D1-managed** (a passkey has been claimed): mappings + Miniflux instances + the YouTube refresh token all read from D1 (`mappings`, `miniflux_instances`, `config.youtube_refresh_token` decrypted). Multiple Miniflux instances supported. Env bindings for legacy fields are **ignored**.
+- **D1-managed** (a passkey has been claimed): mappings + Miniflux instances + the YouTube refresh token all read from D1 (`mappings`, `miniflux_instances`, `config.youtube_refresh_token` decrypted). **One Miniflux instance** per FluxTube instance: the dashboard refuses a second (`409 multi_instance_not_supported`), as does restoring a backup that contains two, because the sync loader does not implement multi-instance sync yet (#179). Env bindings for legacy fields are **ignored**.
 - **Env-managed** (no passkey row): fall back to `CATEGORY_PLAYLIST_MAPPING` + `MINIFLUX_*` env bindings. Single-Miniflux only. Same shape as v0.x.
 
 The env-managed path exists for cold-start / recovery — the first cron tick after `terraform apply` on a fresh instance is env-managed until the operator claims the passkey via the dashboard.
