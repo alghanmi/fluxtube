@@ -261,6 +261,19 @@ export async function setConfig(
   });
 }
 
+// ─── Encryption keychain ────────────────────────────────────────────────
+
+export interface RotateKeysResult {
+  current: number;
+  rotated: number;
+  alreadyCurrent: number;
+}
+
+/** Re-encrypt every stored secret under D1_KEYCHAIN's current version. */
+export async function rotateKeys(): Promise<RotateKeysResult> {
+  return await req('/api/config/rotate-keys', { method: 'POST' });
+}
+
 // ─── Sync trigger ───────────────────────────────────────────────────────
 
 export async function triggerSync(): Promise<unknown> {
