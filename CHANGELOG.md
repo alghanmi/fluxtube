@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.2.0](https://github.com/alghanmi/fluxtube/compare/v1.1.3...v1.2.0) (2026-09-28)
+
+
+### Features
+
+* **dashboard:** implement key rotation (POST /api/config/rotate-keys) ([#195](https://github.com/alghanmi/fluxtube/issues/195)) ([b45ffde](https://github.com/alghanmi/fluxtube/commit/b45ffde91e4922ec9ac037a155b3bafa979a2908))
+
+
+### Bug Fixes
+
+* **dashboard:** refuse a second Miniflux instance ([#194](https://github.com/alghanmi/fluxtube/issues/194)) ([e061abf](https://github.com/alghanmi/fluxtube/commit/e061abfa50bc96659d0d8d504444d7102ebea423))
+* **terraform:** cap the Cloudflare provider below 5.25.0 ([#198](https://github.com/alghanmi/fluxtube/issues/198)) ([35eb277](https://github.com/alghanmi/fluxtube/commit/35eb2777a19d14d2739eadf5098f6e191fa75f68))
+
 ## [1.1.3](https://github.com/alghanmi/fluxtube/compare/v1.1.2...v1.1.3) (2026-09-27)
 
 
