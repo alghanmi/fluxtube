@@ -83,7 +83,8 @@ function MinifluxSection(props: {
     <section class="card">
       <h2 class="card-title">Miniflux instances</h2>
       <p class="card-subtitle">
-        One or more Miniflux servers. Each is polled independently on every tick.
+        The Miniflux server FluxTube reads from. One instance is supported today; edit it to point
+        FluxTube at a different server.
       </p>
       {instances.length === 0 && <p class="muted xs">No instances configured yet.</p>}
       <div class="stack">
@@ -102,9 +103,11 @@ function MinifluxSection(props: {
           onError={(m) => popToast({ kind: 'err', message: m })}
         />
       ) : (
-        <div class="row" style="margin-top: var(--space-4);">
-          <button onClick={() => setAdding(true)}>+ Add instance</button>
-        </div>
+        instances.length === 0 && (
+          <div class="row" style="margin-top: var(--space-4);">
+            <button onClick={() => setAdding(true)}>+ Add instance</button>
+          </div>
+        )
       )}
     </section>
   );

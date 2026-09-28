@@ -241,6 +241,34 @@ describe('restoreBackup', () => {
     ).rejects.toThrow(/backup_schema_invalid/);
   });
 
+  it('rejects a backup with more than one Miniflux instance, leaving state untouched', async () => {
+    await seed();
+    const before = await new MinifluxInstancesRepo(db).list();
+    const { bucket } = stubBucket([
+      {
+        key: 'two.json',
+        body: JSON.stringify({
+          schema_version: 1,
+          exported_at: '2026-07-01T00:00:00.000Z',
+          instance_id: 'test-instance',
+          miniflux_instances: [
+            { display_name: 'A', url: 'https://a.example' },
+            { display_name: 'B', url: 'https://b.example' },
+          ],
+          mappings: [],
+          mapping_history: [],
+          config: { sync_log_level: 'info', history_window: 10 },
+        }),
+        uploaded: new Date(),
+        size: 300,
+      },
+    ]);
+    await expect(
+      restoreBackup({ DB: db, BACKUPS: bucket }, 'two.json', 1_700_000_000),
+    ).rejects.toThrow(/more than one Miniflux instance/);
+    expect(await new MinifluxInstancesRepo(db).list()).toEqual(before);
+  });
+
   it('restores instances + mappings + history + config; snapshots pre-restore', async () => {
     // Seed pre-existing state that should be wiped/replaced by restore.
     await seed();

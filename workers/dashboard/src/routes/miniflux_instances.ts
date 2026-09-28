@@ -61,6 +61,13 @@ export function attachMinifluxInstanceRoutes(app: Hono<{ Bindings: MinifluxInsta
     if (await repo.getByUrl(parsed.url)) {
       return c.json({ error: 'url_already_exists' }, 409);
     }
+    // The sync Worker handles exactly one Miniflux instance (see
+    // workers/sync/src/runtime_config.ts): a second row makes every sync
+    // run fail at config load. Refuse it here until multi-instance sync
+    // exists. Edit the existing instance to point it elsewhere.
+    if ((await repo.list()).length > 0) {
+      return c.json({ error: 'multi_instance_not_supported' }, 409);
+    }
 
     const encrypted = await encrypt(parsed.apiToken, kc.keychain);
     const now = nowSec();
