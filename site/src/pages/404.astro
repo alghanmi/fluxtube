@@ -19,22 +19,27 @@ const requested = Astro.url.pathname.replace(/^\//, '') || 'index';
 
       <div class="nf">
         <h1>
-          No such<br />
+          No such
+          <br />
           <em>page.</em>
         </h1>
 
-        <pre
-          class="nf-shell"><span class="prompt">$</span> man <span class="hl">{requested}</span>
+        <pre class="nf-shell"><span class="prompt">$</span> man <span class="hl">{requested}</span>
 <span class="err">No manual entry for {requested}</span></pre>
 
         <p class="nf-prose">
           That path doesn't match anything on this domain. Where you might have wanted to be:
         </p>
         <ul class="nf-options">
-          <li><a href="/">/</a> — the FluxTube landing</li>
-          <li><a href="https://forklabs.cc">forklabs.cc</a> — the umbrella's project index</li>
           <li>
-            <a href="https://github.com/alghanmi/fluxtube">github.com/alghanmi/fluxtube</a> — the source
+            <a href="/">/</a> — the FluxTube landing
+          </li>
+          <li>
+            <a href="https://forklabs.cc">forklabs.cc</a> — the umbrella's project index
+          </li>
+          <li>
+            <a href="https://github.com/alghanmi/fluxtube">github.com/alghanmi/fluxtube</a> — the
+            source
           </li>
         </ul>
       </div>

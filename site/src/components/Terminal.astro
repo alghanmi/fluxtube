@@ -46,15 +46,13 @@ const LINES = [
   </header>
 
   <ol class="log" data-log>
-    {
-      LINES.map(([ts, tag, text]) => (
-        <li class="row" data-line>
-          <span class="ts">{ts}</span>
-          <span class={`tag tag-${tag}`}>{tag}</span>
-          <span class="text">{text}</span>
-        </li>
-      ))
-    }
+    {LINES.map(([ts, tag, text]) => (
+      <li class="row" data-line>
+        <span class="ts">{ts}</span>
+        <span class={`tag tag-${tag}`}>{tag}</span>
+        <span class="text">{text}</span>
+      </li>
+    ))}
     <li class="row prompt" aria-hidden="true">
       <span class="ts">14:30:04</span>
       <span class="caret">▌</span>
@@ -64,7 +62,9 @@ const LINES = [
   <div class="stats" aria-label="run statistics">
     <div class="cell">
       <span class="cell-label">next tick</span>
-      <span class="cell-value cell-amber" data-countdown>29:47</span>
+      <span class="cell-value cell-amber" data-countdown>
+        29:47
+      </span>
     </div>
     <div class="cell">
       <span class="cell-label">added today</span>
