@@ -18,7 +18,9 @@ const today = new Date().toISOString().slice(0, 10);
       </div>
 
       <header class="legal-head">
-        <h1>Privacy <em>policy.</em></h1>
+        <h1>
+          Privacy <em>policy.</em>
+        </h1>
         <p class="muted updated">
           <span class="updated-label">Last reviewed</span>
           <time datetime={lastUpdated}>{lastUpdated}</time>
@@ -29,8 +31,9 @@ const today = new Date().toISOString().slice(0, 10);
         <h2>The short answer</h2>
         <p>
           FluxTube is a single-tenant, self-hosted piece of software. There is no
-          <em>FluxTube service</em> that collects data about you. The author runs his own instance against
-          his own YouTube account and his own Miniflux instance. You can run your own; the source is on
+          <em>FluxTube service</em> that collects data about you. The author runs his own instance
+          against his own YouTube account and his own Miniflux instance. You can run your own; the
+          source is on
           <a href="https://github.com/alghanmi/fluxtube">GitHub</a>.
         </p>
         <p>
@@ -91,23 +94,24 @@ const today = new Date().toISOString().slice(0, 10);
         <p>FluxTube has no central server. Every instance is the operator's own infrastructure:</p>
         <ul>
           <li>
-            <strong>Compute:</strong> the operator's Cloudflare Workers account. The code is the public
-            source — auditable.
+            <strong>Compute:</strong> the operator's Cloudflare Workers account. The code is the
+            public source — auditable.
           </li>
           <li>
-            <strong>Tracking state:</strong> the operator's Cloudflare D1 (SQLite) database. Schema is
-            documented in the repo. The only data stored is which RSS entries map to which YouTube playlist
-            items, plus timestamps.
+            <strong>Tracking state:</strong> the operator's Cloudflare D1 (SQLite) database. Schema
+            is documented in the repo. The only data stored is which RSS entries map to which
+            YouTube playlist items, plus timestamps.
           </li>
           <li>
-            <strong>OAuth refresh token:</strong> stored as a Cloudflare Worker secret on the operator's
-            account. Never transmitted anywhere outside Google's OAuth endpoints and the operator's Worker.
+            <strong>OAuth refresh token:</strong> stored as a Cloudflare Worker secret on the
+            operator's account. Never transmitted anywhere outside Google's OAuth endpoints and the
+            operator's Worker.
           </li>
           <li>
-            <strong>Logs and metrics:</strong> if the operator opts in by configuring Grafana Cloud, structured
-            logs and gauge metrics are shipped to the operator's Grafana Cloud tenant. Otherwise logs
-            stay in Cloudflare's stdout and are ephemeral. No logs or metrics are shipped to any other
-            party.
+            <strong>Logs and metrics:</strong> if the operator opts in by configuring Grafana Cloud,
+            structured logs and gauge metrics are shipped to the operator's Grafana Cloud tenant.
+            Otherwise logs stay in Cloudflare's stdout and are ephemeral. No logs or metrics are
+            shipped to any other party.
           </li>
         </ul>
         <p>
@@ -121,17 +125,18 @@ const today = new Date().toISOString().slice(0, 10);
         <p>FluxTube communicates with exactly three external services:</p>
         <ul>
           <li>
-            <strong>YouTube Data API (Google)</strong> — to manage the operator's own playlists. Subject
-            to
+            <strong>YouTube Data API (Google)</strong> — to manage the operator's own playlists.
+            Subject to
             <a href="https://policies.google.com/privacy">Google's Privacy Policy</a>.
           </li>
           <li>
-            <strong>Miniflux</strong> — whichever instance the operator points it at, using the operator's
-            own API token. Subject to whatever privacy policy that Miniflux instance follows.
+            <strong>Miniflux</strong> — whichever instance the operator points it at, using the
+            operator's own API token. Subject to whatever privacy policy that Miniflux instance
+            follows.
           </li>
           <li>
-            <strong>Healthchecks.io</strong> — for the dead-man's-switch heartbeat. Only the run's success
-            or failure code is transmitted; never any RSS or YouTube content. Subject to
+            <strong>Healthchecks.io</strong> — for the dead-man's-switch heartbeat. Only the run's
+            success or failure code is transmitted; never any RSS or YouTube content. Subject to
             <a href="https://healthchecks.io/privacy/">Healthchecks.io's Privacy Policy</a>.
           </li>
         </ul>
@@ -168,14 +173,15 @@ const today = new Date().toISOString().slice(0, 10);
         <p>
           The author of FluxTube is Rami AlGhanmi. For privacy questions, OAuth verification
           queries, or anything else, email
-          <a href="mailto:alghanmi@gmail.com">alghanmi@gmail.com</a>. Source and issue tracker: <a
-            href="https://github.com/alghanmi/fluxtube">github.com/alghanmi/fluxtube</a
-          >.
+          <a href="mailto:alghanmi@gmail.com">alghanmi@gmail.com</a>. Source and issue tracker:{' '}
+          <a href="https://github.com/alghanmi/fluxtube">github.com/alghanmi/fluxtube</a>.
         </p>
       </section>
 
       <section aria-labelledby="see-also-h" class="see-also">
-        <h2 id="see-also-h" class="manh2">See also</h2>
+        <h2 id="see-also-h" class="manh2">
+          See also
+        </h2>
         <ul class="see-list" role="list">
           <li>
             <a href="/">/</a>

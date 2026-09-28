@@ -34,9 +34,9 @@ const year = new Date().getUTCFullYear();
         </div>
         <h1 class="hero-title">FluxTube</h1>
         <p class="hero-lead">
-          A serverless sync job that bridges <em>Miniflux</em> with YouTube playlists. Reads unread RSS
-          entries from your Miniflux categories on a cron tick, adds them to mapped playlists, and marks
-          them read after you watch and remove them on YouTube.
+          A serverless sync job that bridges <em>Miniflux</em> with YouTube playlists. Reads unread
+          RSS entries from your Miniflux categories on a cron tick, adds them to mapped playlists,
+          and marks them read after you watch and remove them on YouTube.
         </p>
         <div class="stamp-slot" aria-hidden="true">
           <SyncedStamp />
@@ -46,38 +46,42 @@ const year = new Date().getUTCFullYear();
       <Terminal />
 
       <section aria-labelledby="description-h" class="section">
-        <h2 id="description-h" class="manh2">Description</h2>
+        <h2 id="description-h" class="manh2">
+          Description
+        </h2>
         <p class="section-lead">
-          One run, two passes. <em>Pass 1 only adds. Pass 2 only removes.</em> Each pass is idempotent
-          — re-running mid-failure is safe.
+          One run, two passes. <em>Pass 1 only adds. Pass 2 only removes.</em> Each pass is
+          idempotent — re-running mid-failure is safe.
         </p>
         <div class="pass-grid">
           <article class="pass pass-1">
             <h3 class="pass-label">Pass 1 · insert</h3>
             <p class="pass-body">
               For each unread Miniflux entry whose URL points at a YouTube video, call
-              <code>playlistItems.insert</code> on the mapped playlist and write a tracked-row to D1.
-              The D1 row keeps a per-entry ledger so Pass 2 knows what's already on the playlist.
+              <code>playlistItems.insert</code> on the mapped playlist and write a tracked-row to
+              D1. The D1 row keeps a per-entry ledger so Pass 2 knows what's already on the
+              playlist.
             </p>
           </article>
           <article class="pass pass-2">
             <h3 class="pass-label">Pass 2 · reconcile</h3>
             <p class="pass-body">
               For each row in D1, ask YouTube whether the video is still on the playlist. If
-              <em>you removed the video</em> (watched and dismissed), mark the Miniflux entry read and
-              delete the D1 row. No video deletion is ever issued from this side.
+              <em>you removed the video</em> (watched and dismissed), mark the Miniflux entry read
+              and delete the D1 row. No video deletion is ever issued from this side.
             </p>
           </article>
         </div>
       </section>
 
       <section aria-labelledby="config-h" class="section">
-        <h2 id="config-h" class="manh2">Configuration</h2>
+        <h2 id="config-h" class="manh2">
+          Configuration
+        </h2>
         <p class="section-lead">
           One file. A list of <em>category → playlist</em> pairs. Reload by re-deploying the Worker.
         </p>
-        <pre
-          class="config-pre"><span class="cfg-comment"># category → playlist pairs (toml)</span>
+        <pre class="config-pre"><span class="cfg-comment"># category → playlist pairs (toml)</span>
 <span class="cfg-key">[[sync]]</span>
 category  = <span class="cfg-string">"tech"</span>
 playlist  = <span class="cfg-string">"PL_tech_watch_later"</span>
@@ -87,7 +91,9 @@ playlist  = <span class="cfg-string">"PL_rides"</span></pre>
       </section>
 
       <section aria-labelledby="observability-h" class="section">
-        <h2 id="observability-h" class="manh2">Observability</h2>
+        <h2 id="observability-h" class="manh2">
+          Observability
+        </h2>
         <p class="section-lead">
           A silent process needs loud logs. Four surfaces, layered: console, dead-man's-switch,
           structured shipping, metrics.
@@ -113,7 +119,9 @@ playlist  = <span class="cfg-string">"PL_rides"</span></pre>
       </section>
 
       <section aria-labelledby="see-also-h" class="section see-also">
-        <h2 id="see-also-h" class="manh2">See also</h2>
+        <h2 id="see-also-h" class="manh2">
+          See also
+        </h2>
         <ul class="see-list" role="list">
           <li>
             <a href="https://github.com/alghanmi/fluxtube">github.com/alghanmi/fluxtube</a>
@@ -136,8 +144,12 @@ playlist  = <span class="cfg-string">"PL_rides"</span></pre>
 
       <footer class="site-foot">
         <span class="site-foot-left">fluxtube.forklabs.cc</span>
-        <span class="site-foot-center">© {year} · v{version}</span>
-        <a class="site-foot-right" href="https://forklabs.cc">↖ forklabs(7)</a>
+        <span class="site-foot-center">
+          © {year} · v{version}
+        </span>
+        <a class="site-foot-right" href="https://forklabs.cc">
+          ↖ forklabs(7)
+        </a>
       </footer>
     </div>
   </main>

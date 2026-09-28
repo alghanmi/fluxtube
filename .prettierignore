@@ -8,7 +8,3 @@ coverage/
 pnpm-lock.yaml
 CHANGELOG.md
 
-# prettier-plugin-astro fails to parse the inline logout <script> nested in a
-# conditional block (SyntaxError at the `try {`). Re-check after the plugin
-# major bump lands and drop this line once it parses.
-dashboard/src/layouts/BaseLayout.astro

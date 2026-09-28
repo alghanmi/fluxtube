@@ -47,53 +47,48 @@ const currentPath = Astro.url.pathname;
           />
           <span class="shell-brand-wordmark">FluxTube</span>
         </a>
-        {
-          nav && (
-            <nav class="shell-nav" aria-label="Primary">
-              <a href="/dashboard" aria-current={currentPath === '/dashboard' ? 'page' : undefined}>
-                mappings
-              </a>
-              <a
-                href="/dashboard/settings"
-                aria-current={currentPath.startsWith('/dashboard/settings') ? 'page' : undefined}
-              >
-                settings
-              </a>
-              <a
-                href="/dashboard/history"
-                aria-current={currentPath.startsWith('/dashboard/history') ? 'page' : undefined}
-              >
-                history
-              </a>
-              <a
-                href="/dashboard/backup"
-                aria-current={currentPath.startsWith('/dashboard/backup') ? 'page' : undefined}
-              >
-                backup
-              </a>
-              <button
-                type="button"
-                id="logout-btn"
-                style="background: transparent; border: none; color: var(--color-fg-muted); padding: 0; font-family: inherit; font-size: inherit; cursor: pointer;"
-                >logout</button
-              >
-            </nav>
-          )
-        }
-        {
-          nav && (
-            <script is:inline>
-              document.getElementById('logout-btn')?.addEventListener('click', async () => {
-                try {
-                  await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
-                } catch (_e) {
-                  /* ignore */
-                }
-                window.location.replace('/');
-              });
-            </script>
-          )
-        }
+        {nav && (
+          <nav class="shell-nav" aria-label="Primary">
+            <a href="/dashboard" aria-current={currentPath === '/dashboard' ? 'page' : undefined}>
+              mappings
+            </a>
+            <a
+              href="/dashboard/settings"
+              aria-current={currentPath.startsWith('/dashboard/settings') ? 'page' : undefined}
+            >
+              settings
+            </a>
+            <a
+              href="/dashboard/history"
+              aria-current={currentPath.startsWith('/dashboard/history') ? 'page' : undefined}
+            >
+              history
+            </a>
+            <a
+              href="/dashboard/backup"
+              aria-current={currentPath.startsWith('/dashboard/backup') ? 'page' : undefined}
+            >
+              backup
+            </a>
+            <button
+              type="button"
+              id="logout-btn"
+              style="background: transparent; border: none; color: var(--color-fg-muted); padding: 0; font-family: inherit; font-size: inherit; cursor: pointer;"
+            >
+              logout
+            </button>
+          </nav>
+        )}
+        {nav && <script is:inline>
+          document.getElementById('logout-btn')?.addEventListener('click', async () => {
+            try {
+              await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
+            } catch (_e) {
+              /* ignore */
+            }
+            window.location.replace('/');
+          });
+        </script>}
       </header>
       <main>
         <slot />
