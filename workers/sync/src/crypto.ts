@@ -17,7 +17,7 @@
 // re-encrypting under the new current.
 //
 // Old key versions stay in the keychain until the operator confirms every
-// row has been rewritten (see docs/encryption-keychain.md — added in Phase 8).
+// row has been rewritten (see docs/encryption-keychain.md).
 //
 // This file lives in TWO worker workspaces byte-identical:
 //   * workers/dashboard/src/crypto.ts (canonical — where encryption happens)

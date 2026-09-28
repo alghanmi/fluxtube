@@ -65,6 +65,7 @@ export function Settings(): preact.JSX.Element {
         }}
         popToast={popToast}
       />
+      <EncryptionSection popToast={popToast} />
       {toast && <div class={`toast ${toast.kind}`}>{toast.message}</div>}
     </div>
   );
@@ -348,6 +349,50 @@ function ConfigSection(props: {
       <div class="row">
         <button class="primary" onClick={save} disabled={busy}>
           {busy ? 'Saving…' : 'Save config'}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+// ─── Encryption ─────────────────────────────────────────────────────────
+
+// Step 3 of a keychain rotation: after the new key version is in D1_KEYCHAIN
+// on both Workers (as `current`, with the old version still listed),
+// re-encrypt every stored secret. All-or-nothing on the server: if any
+// secret can't be decrypted, nothing is written and the error says which.
+function EncryptionSection(props: { popToast: (t: Toast) => void }): preact.JSX.Element {
+  const { popToast } = props;
+  const [busy, setBusy] = useState(false);
+
+  async function rotate(): Promise<void> {
+    setBusy(true);
+    try {
+      const r = await api.rotateKeys();
+      popToast({
+        kind: 'ok',
+        message:
+          r.rotated === 0
+            ? `All secrets already use key v${r.current}`
+            : `Re-encrypted ${r.rotated} secret(s) under key v${r.current}`,
+      });
+    } catch (err) {
+      popToast({ kind: 'err', message: err instanceof Error ? err.message : String(err) });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section class="card">
+      <h2 class="card-title">Encryption</h2>
+      <p class="card-subtitle">
+        After adding a new key version to the Worker keychain, re-encrypt stored credentials under
+        it. Keep the old version in the keychain until this reports success.
+      </p>
+      <div class="row">
+        <button onClick={rotate} disabled={busy}>
+          {busy ? 'Re-encrypting…' : 'Re-encrypt with current key'}
         </button>
       </div>
     </section>

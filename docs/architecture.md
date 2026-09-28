@@ -162,12 +162,13 @@ Every sensitive D1 column carries a `_ct` / `_iv` / `_kv` triple:
 - `_iv` — base64 12-byte IV, fresh per write
 - `_kv` — integer key version
 
-The `D1_KEYCHAIN` Worker secret is a JSON object shaped `{ "current": 2, "keys": { "1": "<b64 key>", "2": "<b64 key>" } }`. Encryption uses `current`; decryption accepts any listed version. Rotation:
+The `D1_KEYCHAIN` Worker secret is a JSON object shaped `{ "current": 2, "keys": { "1": "<b64 key>", "2": "<b64 key>" } }`. Encryption uses `current`; decryption accepts any listed version. Rotation, in short:
 
-1. Add key `n+1` to the keychain via Bitwarden → wrangler secret put.
-2. Bump `current` to `n+1`; redeploy.
-3. `POST /api/config/rotate-keys` — the dashboard Worker walks every encrypted row, re-encrypts under `n+1`, writes back.
-4. Once the next backup confirms no rows still reference the old key version, remove key `n` from the keychain.
+1. Add key `n+1` as `current`, keeping `n`. Push to both Workers, sync Worker first.
+2. `POST /api/config/rotate-keys` (or Settings → Encryption). It decrypts every row before writing anything, so it's all-or-nothing, then re-encrypts under `n+1` in one D1 batch. A re-run returns `rotated: 0`.
+3. Drop key `n` and push again.
+
+The full runbook, including what to do if rotation reports failures, is in [encryption-keychain.md](encryption-keychain.md).
 
 `workers/dashboard/src/crypto.ts` owns encrypt + decrypt. `workers/sync/src/crypto.ts` mirrors the decrypt half for read-side use.
 
@@ -196,7 +197,7 @@ Auth model:
 
 - **Auth**: `/api/auth/passkey/{register,authenticate}/{begin,finish}`, `/api/auth/recovery` (single-use hashed recovery code wipes `admin_passkey`), `/api/auth/logout`, `/api/me`
 - **YouTube OAuth**: `/api/auth/youtube` (302 to Google), `/api/auth/youtube/callback` (exchange + persist encrypted refresh_token, 302 to `/dashboard/oauth?state=connected|denied&reason=<code>`)
-- **Config**: `/api/miniflux/instances` (CRUD), `/api/miniflux/categories?instance_id=N` (live via decrypted token), `/api/youtube/playlists` (live), `/api/mappings` (grouped view + full-replace save), `/api/mappings/history` (last N snapshots + restore). `/api/config/rotate-keys` is documented elsewhere but **not implemented yet** (#178)
+- **Config**: `/api/miniflux/instances` (CRUD), `/api/miniflux/categories?instance_id=N` (live via decrypted token), `/api/youtube/playlists` (live), `/api/mappings` (grouped view + full-replace save), `/api/mappings/history` (last N snapshots + restore), `/api/config/rotate-keys` (re-encrypt under the current key; also accepts the operator Bearer)
 - **Ops**: `/api/sync/trigger` (invokes sync Worker via Service Binding), `/api/backup/{now,restore/:file,list}`, `/api/backup/:filename` (download)
 
 ### Cross-instance dedup

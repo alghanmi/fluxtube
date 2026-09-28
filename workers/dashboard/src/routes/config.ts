@@ -1,7 +1,10 @@
 // Non-encrypted config CRUD.
 //
-//   GET /api/config          → returns the plain-value config rows
-//   PUT /api/config/:key     → upsert a plain value (whitelist-gated)
+//   GET  /api/config              → returns the plain-value config rows
+//   PUT  /api/config/:key         → upsert a plain value (whitelist-gated)
+//   POST /api/config/rotate-keys  → re-encrypt every secret under the
+//                                   keychain's current version (see
+//                                   ../rotate_keys.ts)
 //
 // Encrypted keys (youtube_refresh_token) are set via the OAuth flow in
 // Phase 4d, never through PUT. Reserved plain keys (backup_last_success_at,
@@ -11,10 +14,13 @@
 import type { Hono } from 'hono';
 import { requireAuth } from '../auth/require_auth';
 import type { DashboardAuthEnv } from '../auth/require_auth';
+import { parseKeychain } from '../crypto';
 import { ConfigRepo } from '../repos/config';
+import { rotateKeys } from '../rotate_keys';
 
 export interface ConfigEnv extends DashboardAuthEnv {
   DB: D1Database;
+  D1_KEYCHAIN?: string;
 }
 
 const LOG_LEVELS = ['debug', 'info', 'warn', 'error'] as const;
@@ -36,6 +42,40 @@ const READABLE_KEYS = [
 ] as const;
 
 export function attachConfigRoutes(app: Hono<{ Bindings: ConfigEnv }>): void {
+  // Operator route: accepts the Bearer token so rotation can run straight
+  // after `make worker-secrets` pushes a new keychain. It can't read or
+  // redirect any credential — only re-encrypt in place.
+  //
+  //   200 { current, rotated, alreadyCurrent }
+  //   500 { error: 'rotation_incomplete', current, failed: [...] }  — nothing written
+  //   500 { error: 'keychain_not_configured' | 'keychain_invalid: …' }
+  app.post('/api/config/rotate-keys', async (c) => {
+    const session = await requireAuth(c.req.raw, c.env, { bearer: true });
+    if (!session) return c.json({ error: 'unauthorized' }, 401);
+    if (!c.env.D1_KEYCHAIN) return c.json({ error: 'keychain_not_configured' }, 500);
+    let keychain;
+    try {
+      keychain = parseKeychain(c.env.D1_KEYCHAIN);
+    } catch (err) {
+      return c.json(
+        { error: `keychain_invalid: ${err instanceof Error ? err.message : String(err)}` },
+        500,
+      );
+    }
+    const result = await rotateKeys(c.env.DB, keychain, nowSec());
+    if (!result.ok) {
+      return c.json(
+        { error: 'rotation_incomplete', current: result.current, failed: result.failed },
+        500,
+      );
+    }
+    return c.json({
+      current: result.current,
+      rotated: result.rotated,
+      alreadyCurrent: result.alreadyCurrent,
+    });
+  });
+
   app.get('/api/config', async (c) => {
     const session = await requireAuth(c.req.raw, c.env);
     if (!session) return c.json({ error: 'unauthorized' }, 401);
