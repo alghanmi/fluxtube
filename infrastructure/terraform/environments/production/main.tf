@@ -4,15 +4,18 @@ terraform {
   required_providers {
     cloudflare = {
       source = "cloudflare/cloudflare"
-      # v5.26.0 can't refresh a wrangler-deployed cloudflare_workers_script:
-      # "main script part "worker.js" is missing from multipart response"
-      # (the resource declares a placeholder main_module; wrangler uploads the
-      # real bundle under its own name). Excluded until a release fixes it.
-      # The committed .terraform.lock.hcl pins the version actually used
-      # (5.24.0, last proven against live state); bump it only after a real
-      # `terraform plan` against production succeeds — CI's validate can't
-      # catch a refresh failure.
-      version = "~> 5.21, != 5.26.0"
+      # 5.25.0 and 5.26.0 can't refresh a wrangler-deployed
+      # cloudflare_workers_script: "main script part "worker.js" is missing
+      # from multipart response". 5.25.0 changed how the resource reads the
+      # multipart upload; it now looks for the part named by main_module (our
+      # placeholder, worker.js), but wrangler uploads the real bundle under its
+      # own name. Capped below 5.25.0 until a release fixes it (#197).
+      #
+      # The committed .terraform.lock.hcl pins 5.24.0, the last version proven
+      # against live state. Bump it only after `make plan` (fluxtube-deploy)
+      # succeeds against production: CI's validate can't catch a refresh
+      # failure, which is how the 5.25.0 bump (#192) got merged.
+      version = "~> 5.21, < 5.25.0"
     }
   }
 
