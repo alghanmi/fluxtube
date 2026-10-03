@@ -15,7 +15,7 @@ terraform {
       # against live state. Bump it only after `make plan` (fluxtube-deploy)
       # succeeds against production: CI's validate can't catch a refresh
       # failure, which is how the 5.25.0 bump (#192) got merged.
-      version = "~> 5.21, < 5.25.0"
+      version = "~> 5.21"
     }
   }
 
@@ -26,6 +26,7 @@ terraform {
   # endpoints URL inline, and passes all three. Keeps real values out of this
   # repo entirely.
   backend "s3" {
+    use_lockfile                = true
     region                      = "auto"
     skip_credentials_validation = true
     skip_metadata_api_check     = true
@@ -115,3 +116,18 @@ output "sync_cron_schedule" {
 output "dashboard_cron_schedule" {
   value = module.fluxtube.dashboard_cron_schedule
 }
+
+output "var_MINIFLUX_URL" { value = module.fluxtube.var_MINIFLUX_URL }
+output "var_CATEGORY_PLAYLIST_MAPPING" { value = module.fluxtube.var_CATEGORY_PLAYLIST_MAPPING }
+output "var_SYNC_LOG_LEVEL" { value = module.fluxtube.var_SYNC_LOG_LEVEL }
+output "var_INSTANCE_ID" { value = module.fluxtube.var_INSTANCE_ID }
+output "var_HEARTBEAT_URL" { value = module.fluxtube.var_HEARTBEAT_URL }
+output "var_HEARTBEAT_URL_AUTH" { value = module.fluxtube.var_HEARTBEAT_URL_AUTH }
+output "var_HEARTBEAT_URL_QUOTA" { value = module.fluxtube.var_HEARTBEAT_URL_QUOTA }
+output "var_GRAFANA_LOKI_URL" { value = module.fluxtube.var_GRAFANA_LOKI_URL }
+output "var_GRAFANA_LOKI_USER" { value = module.fluxtube.var_GRAFANA_LOKI_USER }
+output "var_GRAFANA_OTLP_URL" { value = module.fluxtube.var_GRAFANA_OTLP_URL }
+output "var_GRAFANA_OTLP_USER" { value = module.fluxtube.var_GRAFANA_OTLP_USER }
+
+output "var_RP_ID" { value = module.fluxtube.var_RP_ID }
+output "var_RP_NAME" { value = module.fluxtube.var_RP_NAME }

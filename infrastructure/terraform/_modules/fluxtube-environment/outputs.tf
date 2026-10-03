@@ -52,3 +52,19 @@ output "dashboard_cron_schedule" {
   description = "Active cron schedule for the dashboard Worker's nightly backup."
   value       = var.dashboard_cron_schedule
 }
+
+# Migrated from bindings
+output "var_MINIFLUX_URL" { value = var.miniflux_url }
+output "var_CATEGORY_PLAYLIST_MAPPING" { value = var.category_playlist_mapping }
+output "var_SYNC_LOG_LEVEL" { value = var.sync_log_level }
+output "var_INSTANCE_ID" { value = var.instance_id }
+output "var_HEARTBEAT_URL" { value = var.heartbeat_url }
+output "var_HEARTBEAT_URL_AUTH" { value = var.heartbeat_url_auth }
+output "var_HEARTBEAT_URL_QUOTA" { value = var.heartbeat_url_quota }
+output "var_GRAFANA_LOKI_URL" { value = var.grafana_loki_url }
+output "var_GRAFANA_LOKI_USER" { value = var.grafana_loki_user }
+output "var_GRAFANA_OTLP_URL" { value = var.grafana_otlp_url }
+output "var_GRAFANA_OTLP_USER" { value = var.grafana_otlp_user }
+
+output "var_RP_ID" { value = var.dashboard_domain }
+output "var_RP_NAME" { value = "FluxTube" }
