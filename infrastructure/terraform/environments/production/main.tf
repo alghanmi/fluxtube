@@ -26,6 +26,7 @@ terraform {
   # endpoints URL inline, and passes all three. Keeps real values out of this
   # repo entirely.
   backend "s3" {
+    use_lockfile                = true
     region                      = "auto"
     skip_credentials_validation = true
     skip_metadata_api_check     = true
