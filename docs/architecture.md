@@ -326,4 +326,4 @@ The deploy companion runs a workflow that listens for `repository_dispatch` even
 
 Cron schedules are **not** set by `wrangler deploy` — neither `wrangler.toml` declares `[triggers]`, so Terraform's `cloudflare_workers_cron_trigger` resources (and their `cron_enabled` kill switches) are the only owner.
 
-The compromise model: this repo holds **one secret**, `DEPLOY_DISPATCH_TOKEN`, scoped to fire dispatches on the deploy companion only. Because of step 1, leaking it lets an attacker re-deploy an already-released tag; it does not grant the ability to deploy arbitrary code.
+The compromise model: this repo holds **one secret**, `DEPLOY_DISPATCH_TOKEN`, scoped to fire dispatches on the deploy companion only. Because of step 1, leaking it lets an attacker re-deploy an already-released tag; it does not grant the ability to deploy arbitrary code. `DEPLOY_TARGET_REPO`, the name of the repository the dispatch goes to, is also an environment secret. It grants nothing; it is a secret only so that no workflow or log spells the destination out.

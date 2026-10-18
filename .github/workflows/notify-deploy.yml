@@ -35,13 +35,15 @@ jobs:
       - name: Send repository_dispatch
         env:
           GH_TOKEN: ${{ secrets.DEPLOY_DISPATCH_TOKEN }}
+          DEPLOY_TARGET_REPO: ${{ secrets.DEPLOY_TARGET_REPO }}
           TAG: ${{ inputs.tag }}
           SHA: ${{ github.sha }}
           ACTOR: ${{ github.actor }}
         run: |
           set -euo pipefail
+          : "${DEPLOY_TARGET_REPO:?DEPLOY_TARGET_REPO is not set in the production environment}"
           version="${TAG#v}"
-          gh api repos/alghanmi/fluxtube-deploy/dispatches \
+          gh api "repos/${DEPLOY_TARGET_REPO}/dispatches" \
             -f event_type=deploy-release \
             -f "client_payload[version]=${version}" \
             -f "client_payload[sha]=${SHA}" \
@@ -51,5 +53,4 @@ jobs:
             echo "### Dispatched deploy-release"
             echo "- version: \`${version}\`"
             echo "- ref: \`${TAG}\`"
-            echo "- target: alghanmi/fluxtube-deploy"
           } >> "$GITHUB_STEP_SUMMARY"
