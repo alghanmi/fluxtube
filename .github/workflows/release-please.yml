@@ -6,7 +6,8 @@ name: release-please
 # (the latter via `extra-files` in release-please-config.json).
 #
 # When release-please cuts a release in the same run, this workflow ALSO
-# fires the deploy-release `repository_dispatch` event at fluxtube-deploy.
+# fires the deploy-release `repository_dispatch` event at the deployment
+# repository named by the DEPLOY_TARGET_REPO secret.
 # Chaining the dispatch inside this workflow (rather than via a separate
 # `on: release: [published]` workflow) is the documented workaround for
 # GitHub's anti-recursion safeguard: releases created by GITHUB_TOKEN don't
@@ -36,17 +37,19 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Dispatch deploy-release event to fluxtube-deploy
+      - name: Dispatch deploy-release event
         if: ${{ steps.release.outputs.release_created == 'true' }}
         env:
           GH_TOKEN: ${{ secrets.DEPLOY_DISPATCH_TOKEN }}
+          DEPLOY_TARGET_REPO: ${{ secrets.DEPLOY_TARGET_REPO }}
           VERSION: ${{ steps.release.outputs.version }}
           TAG: ${{ steps.release.outputs.tag_name }}
           SHA: ${{ steps.release.outputs.sha }}
           ACTOR: ${{ github.actor }}
         run: |
           set -euo pipefail
-          gh api repos/alghanmi/fluxtube-deploy/dispatches \
+          : "${DEPLOY_TARGET_REPO:?DEPLOY_TARGET_REPO is not set in the production environment}"
+          gh api "repos/${DEPLOY_TARGET_REPO}/dispatches" \
             -f event_type=deploy-release \
             -f "client_payload[version]=${VERSION}" \
             -f "client_payload[sha]=${SHA}" \
@@ -57,5 +60,4 @@ jobs:
             echo "- version: \`${VERSION}\`"
             echo "- ref: \`${TAG}\`"
             echo "- sha: \`${SHA}\`"
-            echo "- target: alghanmi/fluxtube-deploy"
           } >> "$GITHUB_STEP_SUMMARY"

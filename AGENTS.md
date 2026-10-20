@@ -194,7 +194,7 @@ Pinned versions — don't drift without explicit instruction:
 | `release-please.yml`  | push to main                                  | Maintains the release PR via Conventional Commits                                            |
 | `notify-deploy.yml`   | `release: published`                          | Fires `repository_dispatch` of type `deploy-release` to the configured deploy companion repo |
 
-Auth surface: this repo holds **exactly one secret**, `DEPLOY_DISPATCH_TOKEN`, a fine-scoped PAT with `repository_dispatch:write` on the deploy companion repo only. Compromise lets an attacker redeploy already-released code — nothing more.
+Auth surface: this repo holds **one credential**, `DEPLOY_DISPATCH_TOKEN`, a fine-scoped PAT with `repository_dispatch:write` on the deploy companion repo only. Compromise lets an attacker redeploy already-released code — nothing more. `DEPLOY_TARGET_REPO`, the name of the repository the dispatch goes to, is also an environment secret. It grants nothing; it is a secret only so that no workflow or log spells the destination out.
 
 Grafana provisioning (dashboards + alerts under `docs/grafana/`) is pushed by a workflow that lives in the **deploy companion**, not here — the API token that powers it is a private-side secret. See `docs/observability.md` for the sync flow.
 

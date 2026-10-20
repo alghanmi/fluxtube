@@ -4,8 +4,8 @@ name: Terraform check
 # No credentials needed — `terraform validate` doesn't require a backend
 # init when run with `-backend=false`.
 #
-# Actual plan/apply happens in the private deploy companion repo
-# (alghanmi/fluxtube-deploy) where the operational secrets live.
+# Actual plan/apply happens outside this repository, where the operational
+# secrets live.
 
 on:
   pull_request:
