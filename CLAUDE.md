@@ -237,3 +237,114 @@ Out of scope; will be rejected without a new requirements discussion:
 - release-please: https://github.com/googleapis/release-please
 - SimpleWebAuthn (server + browser): https://simplewebauthn.dev/
 - Hono: https://hono.dev/
+
+<!-- shared-conventions-public: v2 (2026-10-18). One source, copied verbatim into
+     every public repo's CLAUDE.md. Edit the source and re-sync; never edit a
+     copy in place. Repo-specific rules elsewhere in this file override it. -->
+
+## Shared conventions (public repository)
+
+**Classification: public.** This repository is public or written to be
+published. Every file, commit message, PR, issue, comment and workflow log is
+permanent public record: rewriting history does not unsend notification email
+or remove a commit reachable from a PR. The rest of this file adds rules for
+this repo; where they conflict, the stricter rule wins.
+
+### What never appears here
+
+- **Anything about where or how this project is operated.** No other
+  repository that deploys, configures or monitors it is named, linked,
+  described or implied. Say only that deployment happens outside this
+  repository.
+- **The operator's tooling and vendors.** No password manager, secrets store,
+  monitoring or hosting account, beyond the services the published source
+  itself integrates with.
+- **Identifiers.** No hostnames, account or zone IDs, resource UUIDs, bucket
+  names, instance URLs, personal paths, or contact details outside a
+  deliberate `SECURITY.md`. Configs carry placeholders.
+- **The specifics of one deployment's security.** Which of our credentials
+  does what, which account or vault item holds it, where our trust boundaries
+  sit, what we deliberately leave unmonitored. Describe symptoms and fixes,
+  never the map.
+
+### What belongs here
+
+- **The software's security model, in general terms.** `SECURITY.md` and
+  docs describe what the project protects and how: authentication,
+  encryption at rest, which secrets an operator must provide and why,
+  least-privilege token scopes, the threat model, and how to report a
+  vulnerability. That is what lets a stranger run it safely. It is written
+  for any deployment, never as a description of ours.
+- **Tooling that helps a contributor or operator do the work**, under the
+  rules below.
+
+Before pushing, read the diff, the commit message and the PR body once with
+the question "what does this tell someone who wants to attack the deployment
+that they did not already know?"
+
+### Tooling and the Makefile
+
+- **Tooling is welcome; specifics are not.** A `Makefile` and scripts may do
+  anything a contributor or a self-hosting operator needs: build, test,
+  generate docs, run Terraform, deploy. Every value comes from the
+  environment or a gitignored file the operator creates from a committed
+  `*.example`; nothing names our accounts, hosts, vault items or other
+  repositories. Read every target as a stranger would run it.
+- **The Makefile is the interface where one exists.** Each target has a
+  `## description` and is listed by `make help` (the first target); README
+  usage documents targets, not raw commands. Thin recipes over
+  `set -euo pipefail` scripts; `printf`, never `echo -e`; parameters are
+  upper-case make variables validated with a working example.
+- **No target prompts**, and a target that changes live state without a
+  saved, reviewed plan requires `CONFIRM=1`.
+- **Common target names**, used whenever the operation exists:
+  `help`, `install`, `dev`, `fmt`/`format`, `lint`, `typecheck`, `test`,
+  `check` (everything CI runs), `docs`, `tf-check` (`fmt -check` +
+  `validate -backend=false`), `tf-upgrade` (provider upgrade + lock for
+  `linux_amd64` and `darwin_arm64`), `clean`.
+- **CI needs no secret beyond what the release mechanism requires**, and
+  the release mechanism's destination is itself a secret: a dispatch target
+  is read from `secrets.*`, never written into a workflow.
+
+### Git and pull requests
+
+- **Never commit or push to `main`.** Every change starts on a branch from an
+  up-to-date `main` and lands through a pull request. No hotfix exception.
+- **Branch names** use the Conventional Commit type as prefix:
+  `feat/…`, `fix/…`, `chore/…`, `docs/…`, `ci/…`.
+- **Squash-merge only.** The PR title becomes the commit subject on `main`,
+  so it must be a valid Conventional Commit subject on its own. Commit bodies
+  survive the squash, so the reasoning belongs in the commits too.
+- **The prefix is a release decision.** `feat:` only for a change a user of
+  the released artifact would notice; tooling, CI and docs are
+  `chore:`/`ci:`/`docs:`. State the intended bump in the PR.
+- **Squash destroys ancestry.** Check whether a branch merged against the PR
+  list, never `git rev-list main..HEAD`.
+- **Verification happens before the PR opens.** The PR body says which checks
+  were run.
+
+### Code
+
+- **No real values in tracked files.** Variables have no defaults that
+  encode a real value; backends are fully partial; resource IDs in tool
+  configs are placeholders.
+- **Terraform:** `fmt -check` and `validate -backend=false` in CI;
+  `required_version = ">= 1.10"`; provider lock files committed; outputs read
+  attributes off resources, never echo variables.
+- **Dependencies:** resolve versions from the registry, never from memory.
+  A held-back major gets an `ignore` rule in `.github/dependabot.yml` with
+  the reason and an issue for the migration.
+
+### Issues
+
+- **An issue is a published document.** Symptom and fix only; nothing from
+  "What never appears here".
+- Written for a cold reader: evidence with `file:line`, the change, and a
+  closing condition stated as a command.
+
+### Repository hygiene
+
+- `AGENTS.md` is a symlink to `CLAUDE.md`, never a copy.
+- Dependabot covers every ecosystem present, including `github-actions`.
+- `main` has a ruleset: PRs only, required checks, no force-push or deletion.
+- Secret scanning and push protection are on (free for public repos).
