@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/alghanmi/fluxtube/compare/v1.2.0...v1.2.1) (2026-10-20)
+
+
+### Bug Fixes
+
+* **deps:** clear the open security advisories in the lockfile ([f863445](https://github.com/alghanmi/fluxtube/commit/f8634457a3136997c1f26a49870f47703d03ebbc))
+
 ## [1.2.0](https://github.com/alghanmi/fluxtube/compare/v1.1.3...v1.2.0) (2026-09-28)
 
 
