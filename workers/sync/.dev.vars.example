@@ -2,9 +2,7 @@
 # scoped to a development account, never production credentials.
 #
 # In production:
-#   - Secrets (the 5 below) come from `wrangler secret put` via
-#     scripts/sync-worker-secrets.sh, sourced from Bitwarden item
-#     "FluxTube / Worker Secrets / Production".
+#   - Secrets (the 5 below) are set with `wrangler secret put --name <worker>`.
 #   - Non-secret vars (MINIFLUX_URL, CATEGORY_PLAYLIST_MAPPING, etc.) are set
 #     by Terraform as plain_text bindings; `wrangler deploy --keep-vars`
 #     preserves them across deploys.

@@ -1,6 +1,5 @@
 # Local dev secrets for workers/dashboard. Copy to `.dev.vars` (gitignored) and
-# fill in real values. Production values come from Bitwarden → GitHub Secrets
-# → `wrangler secret put` via fluxtube-deploy (Phase 8).
+# fill in real values. Production values are set with `wrangler secret put`.
 
 # JSON keychain for AES-GCM encryption of D1 config values.
 # See workers/dashboard/src/crypto.ts + docs/encryption-keychain.md.

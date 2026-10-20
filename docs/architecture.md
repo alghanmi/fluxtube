@@ -299,31 +299,30 @@ The Workers free tier's 10ms CPU limit is irrelevant here — almost all wall ti
 
 ## What lives where
 
-| Source of truth                                                                  | Owns                                                                                                                                                                                                                                                 |
-| -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| This repo (public)                                                               | Worker source, Terraform code, dashboards + alerts JSON, release-please config                                                                                                                                                                       |
-| The deploy companion (private)                                                   | The values Terraform consumes (CF account ID, R2 bucket, etc.), the secrets the Worker reads, the deploy workflow that stitches it all together                                                                                                      |
-| Terraform HCL (here, applied from the deploy companion)                          | All Cloudflare resources: D1, Worker scripts, **cron triggers (sole owner)**, plain_text bindings                                                                                                                                                    |
-| Wrangler (`wrangler deploy --keep-vars`, run by the deploy companion's workflow) | The Worker's JS bundle. `--keep-vars` means Terraform's plain_text bindings survive every deploy                                                                                                                                                     |
-| Dashboard `POST /api/auth/youtube` flow (v1)                                     | Runs the YouTube OAuth handshake in-browser after the operator signs into the dashboard PWA. The dashboard Worker exchanges the code with Google, encrypts the refresh token under the D1 keychain, and writes it to `config.youtube_refresh_token`. |
+| Source of truth                                              | Owns                                                                                                                                                                                                                                                 |
+| ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| This repo (public)                                           | Worker source, Terraform code, dashboards + alerts JSON, release-please config                                                                                                                                                                       |
+| The deployment (outside this repo)                           | The values Terraform consumes (CF account ID, R2 bucket, etc.), the secrets the Worker reads, and whatever runs the deploy steps below                                                                                                               |
+| Terraform HCL (here, applied at deploy time)                 | All Cloudflare resources: D1, Worker scripts, **cron triggers (sole owner)**, plain_text bindings                                                                                                                                                    |
+| Wrangler (`wrangler deploy --keep-vars`, run at deploy time) | The Worker's JS bundle. `--keep-vars` means Terraform's plain_text bindings survive every deploy                                                                                                                                                     |
+| Dashboard `POST /api/auth/youtube` flow (v1)                 | Runs the YouTube OAuth handshake in-browser after the operator signs into the dashboard PWA. The dashboard Worker exchanges the code with Google, encrypts the refresh token under the D1 keychain, and writes it to `config.youtube_refresh_token`. |
 
 Nothing sensitive is ever committed to this repository or persisted on disk after a script run completes.
 
-## How the public + private split works
+## Deploying a release
 
-The deploy companion runs a workflow that listens for `repository_dispatch` events from this repo's `notify-deploy.yml`. On receipt, it:
+Deployment happens outside this repository. On a release, `notify-deploy.yml` sends a `repository_dispatch` of type `deploy-release` with `{ version, sha, actor, ref }` to the repository named in the `DEPLOY_TARGET_REPO` environment secret. Whatever receives it, or an operator deploying by hand, needs to do the following, in this order:
 
-1. Validates the payload: the ref must be a release tag (`vX.Y.Z`) that exists on this repo, and the version must match it. Anything else (a branch, a `refs/pull/*` ref) fails before any code is checked out.
-2. Checks out **itself** for its config and ops scripts, and **this repo at the released tag** for Terraform code, Worker source, the PWA and `docs/grafana/`.
-3. Runs `terraform init` + `terraform apply` against this repo's HCL.
-4. Reads resource names and IDs back from `terraform output` (`sync_worker_name`, `dashboard_worker_name`, `d1_database_name`/`_id`, `backup_bucket_name`, `pages_project_name`) and writes them into both `wrangler.toml`s. `wrangler deploy` re-uploads bindings from the file, so the placeholders must never reach it.
-5. Applies D1 migrations (`wrangler d1 migrations apply --remote`) **before** any code that depends on them.
-6. Deploys both Workers: `wrangler deploy --name <output> --keep-vars --define VERSION:'"X.Y.Z"'`. `--name` is mandatory — the committed names are placeholders.
-7. Builds `dashboard/` and deploys it with `wrangler pages deploy` (which also bundles the `/api/*` Pages Function).
-8. Smoke-tests the dashboard: `GET /api/health` must report the version just deployed.
-9. Runs `pnpm sync-grafana` against the checked-out dashboards + alerts.
-10. Pushes an OTLP `fluxtube.deploys` metric attributing the deploy.
+1. Validate the payload: the ref must be a release tag (`vX.Y.Z`) that exists on this repo, the version must match it, and the checked-out commit must equal the payload's `sha`. Rejecting anything else (a branch, a `refs/pull/*` ref) before checkout is what limits a leaked dispatch token to redeploying an existing release.
+2. Check out this repo at the released tag for Terraform code, Worker source, the PWA and `docs/grafana/`.
+3. Run `terraform init` + `terraform apply` against this repo's HCL.
+4. Read resource names and IDs back from `terraform output` (`sync_worker_name`, `dashboard_worker_name`, `d1_database_name`/`_id`, `backup_bucket_name`, `pages_project_name`) and write them into both `wrangler.toml`s. `wrangler deploy` re-uploads bindings from the file, so the placeholders must never reach it.
+5. Apply D1 migrations (`wrangler d1 migrations apply --remote`) **before** any code that depends on them.
+6. Deploy both Workers: `wrangler deploy --name <output> --keep-vars --define VERSION:'"X.Y.Z"'`. `--name` is mandatory — the committed names are placeholders.
+7. Build `dashboard/` and deploy it with `wrangler pages deploy` (which also bundles the `/api/*` Pages Function).
+8. Smoke-test the dashboard: `GET /api/health` must report the version just deployed.
+9. Optionally run `pnpm sync-grafana` against the checked-out dashboards + alerts, and push an OTLP `fluxtube.deploys` metric.
 
 Cron schedules are **not** set by `wrangler deploy` — neither `wrangler.toml` declares `[triggers]`, so Terraform's `cloudflare_workers_cron_trigger` resources (and their `cron_enabled` kill switches) are the only owner.
 
-The compromise model: this repo holds **one secret**, `DEPLOY_DISPATCH_TOKEN`, scoped to fire dispatches on the deploy companion only. Because of step 1, leaking it lets an attacker re-deploy an already-released tag; it does not grant the ability to deploy arbitrary code. `DEPLOY_TARGET_REPO`, the name of the repository the dispatch goes to, is also an environment secret. It grants nothing; it is a secret only so that no workflow or log spells the destination out.
+The compromise model: this repo's CI holds **one credential**, `DEPLOY_DISPATCH_TOKEN`, which should be scoped to firing dispatches at the target repository only. With step 1 in place, leaking it lets an attacker re-deploy an already-released tag; it does not grant the ability to deploy arbitrary code. `DEPLOY_TARGET_REPO` is also an environment secret. It grants nothing; it is a secret only so that no workflow or log spells the destination out.

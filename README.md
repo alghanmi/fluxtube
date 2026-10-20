@@ -32,7 +32,7 @@ For running the Workers against your own Cloudflare account, you'll need:
 - A registrable domain for the dashboard (WebAuthn RP ID)
 - Optional: [Healthchecks.io](https://healthchecks.io/), [Grafana Cloud](https://grafana.com/products/cloud/) for observability
 
-Deployment is automated via a companion deploy repo — see [Deploying your own instance](#deploying-your-own-instance) below.
+Deployment happens outside this repository — see [Deploying your own instance](#deploying-your-own-instance) below.
 
 ## Repo layout
 
@@ -53,19 +53,20 @@ Deployment is automated via a companion deploy repo — see [Deploying your own 
     ├── pr-checks.yml            # typecheck + lint + test + audit (all workspaces)
     ├── terraform-check.yml      # fmt + validate on PR
     ├── release-please.yml       # version + CHANGELOG management
-    └── notify-deploy.yml        # fires on release → dispatches to deploy repo
+    └── notify-deploy.yml        # on release → repository_dispatch to DEPLOY_TARGET_REPO
 ```
 
 ## Deploying your own instance
 
-Production deploys live in a **private companion repo** that holds your account-specific values (D1 UUID, R2 bucket, API tokens, dashboard credentials). When you publish a release on this repo, that deploy repo's workflow listens for a `repository_dispatch` event and runs the full pipeline: `terraform apply` → `wrangler deploy --define VERSION:'"X.Y.Z"'` → push Grafana dashboards + alerts → emit deploy metric.
+Deployment happens outside this repository. Everything account-specific (the Cloudflare account and resource IDs, the R2 bucket, API tokens, dashboard credentials) is supplied by you at deploy time; nothing in this repo encodes a real value.
 
-The deploy companion is one of:
+What this repo gives a deployment:
 
-- Yours: fork or create a `*-deploy` repo, mirror the shape from your favourite operator runbook (Bitwarden, 1Password, `pass`, or any vault).
-- Mine: see [`alghanmi/fluxtube-deploy`](https://github.com/alghanmi/fluxtube-deploy) (private; you can't browse it but its `TODO.md` is the operator checklist).
+- **The Terraform module** in `infrastructure/terraform/`, with a fully partial backend and `*.example` files showing every input.
+- **A release hook.** When release-please publishes a release, `notify-deploy.yml` sends a `repository_dispatch` of type `deploy-release` with `{ version, sha, actor, ref }` to the repository named in the `DEPLOY_TARGET_REPO` environment secret, authenticated with `DEPLOY_DISPATCH_TOKEN`. Point it at whatever runs your deploy, or leave both unset and deploy by hand.
+- **The deploy steps**, whatever drives them: `terraform apply`, then `wrangler deploy --name <worker> --define VERSION:'"X.Y.Z"'` for both Workers, `wrangler pages deploy` for the dashboard, and optionally `scripts/sync-grafana.ts` for dashboards and alerts.
 
-The split-repo pattern is described in [`docs/architecture.md` → "How the public + private split works"](./docs/architecture.md#how-the-public--private-split-works).
+[`docs/architecture.md`](./docs/architecture.md) explains which tool owns which resource and why.
 
 ## Observability
 
@@ -82,7 +83,7 @@ See [`docs/observability.md`](./docs/observability.md) for LogQL + PromQL recipe
 
 ## Contributing
 
-PRs welcome. Conventional Commits (`feat:` / `fix:` / `chore:`). release-please opens a release PR after each commit on `main` — merging it cuts a tag + GH release + CHANGELOG entry, which fires the deploy if you have a companion repo wired up.
+PRs welcome. Conventional Commits (`feat:` / `fix:` / `chore:`). release-please opens a release PR after each commit on `main` — merging it cuts a tag + GH release + CHANGELOG entry, which fires the deploy dispatch if `DEPLOY_TARGET_REPO` is set.
 
 ## License
 

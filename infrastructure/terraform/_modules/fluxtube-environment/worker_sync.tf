@@ -59,9 +59,8 @@ resource "cloudflare_workers_script" "sync" {
       },
       # Secrets (D1_KEYCHAIN, MANUAL_TRIGGER_TOKEN, MINIFLUX_API_TOKEN,
       # YOUTUBE_*, GRAFANA_*_TOKEN, etc.) are wrangler-managed, not
-      # Terraform-managed — pushed via the deploy companion's
-      # scripts/sync-worker-secrets.sh (which iterates Bitwarden's
-      # `FluxTube / Worker Secrets / Production` item). Rationale:
+      # Terraform-managed — set with `wrangler secret put --name <worker>`
+      # on both Workers. Rationale:
       # wrangler deploy's interaction with secret_text bindings set
       # out-of-band via Terraform isn't well-documented; the wrangler
       # path is well-worn from v0 and single-owns the secret_text

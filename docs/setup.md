@@ -1,6 +1,6 @@
 # Local development
 
-For contributors and people forking the project. **Deploying your own instance** is a separate flow handled by a deploy companion repo — see [the README](../README.md#deploying-your-own-instance) for that side.
+For contributors and people forking the project. **Deploying your own instance** is covered in [the README](../README.md#deploying-your-own-instance).
 
 ## Prerequisites
 

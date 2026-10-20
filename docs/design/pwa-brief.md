@@ -377,10 +377,10 @@ Requirements:
   centered, generous whitespace around. Above it: a Fraunces `--type-hero`
   headline ("Save this recovery code."). Below it: two short paragraphs
   explaining what it is and where to keep it.
-- **Bitwarden shortcut** — a small, honest hint: "Recommended: save it
-  as a Note in your password manager under a Bitwarden item named
+- **Password-manager hint** — a small, honest hint: "Recommended: save it
+  as a Note in your password manager under an item named
   'FluxTube / recovery / <instance>'." Not a button, not a widget.
-  A sentence. Rami's stack is Bitwarden-first; this respects that.
+  A sentence.
 - **Confirmation gate** — no "next" button until the operator has:
   1. Clicked "Copy to clipboard" (which flashes an amber confirmation).
   2. Actively checked a checkbox labelled "I've saved this in a place

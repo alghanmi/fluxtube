@@ -116,10 +116,9 @@ variable "backup_retention_days" {
 #
 # SESSION_SIGNING_KEY, D1_KEYCHAIN, MANUAL_TRIGGER_TOKEN,
 # YOUTUBE_CLIENT_ID/SECRET, GRAFANA_LOKI_TOKEN, GRAFANA_OTLP_TOKEN,
-# MINIFLUX_API_TOKEN, YOUTUBE_REFRESH_TOKEN — all live in Bitwarden's
-# `FluxTube / Worker Secrets / Production` item and get pushed to the
-# running Workers via the deploy companion's sync-worker-secrets.sh
-# (which loops over both worker names). This module deliberately does
+# MINIFLUX_API_TOKEN, YOUTUBE_REFRESH_TOKEN — are set on both running
+# Workers with `wrangler secret put --name <worker>`, by whatever
+# secrets tooling the operator uses. This module deliberately does
 # NOT accept them as variables — Terraform's role stops at the D1 /
 # R2 / KV / service bindings; the secret_text lifecycle is single-
 # owned by wrangler.

@@ -1895,7 +1895,7 @@ button.danger:hover {
  *
  * The recovery-code display is the safety-critical hero moment in the
  * whole product. Fraunces headline, 40px amber code in a bordered
- * surface, Bitwarden hint by item-name convention, Copy button with
+ * surface, password-manager hint by item-name convention, Copy button with
  * 1.8s green-text feedback, and a Continue button that CONDITIONALLY
  * MOUNTS (not just disables) once the trust checkbox is ticked.
  * ──────────────────────────────────────────────────────────────────── */
