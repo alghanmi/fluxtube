@@ -79,10 +79,8 @@ resource "cloudflare_workers_script" "dashboard" {
       },
       # Secrets (SESSION_SIGNING_KEY, D1_KEYCHAIN, MANUAL_TRIGGER_TOKEN,
       # YOUTUBE_CLIENT_ID/SECRET, GRAFANA_*_TOKEN, etc.) are wrangler-
-      # managed, not Terraform-managed — pushed via the deploy
-      # companion's scripts/sync-worker-secrets.sh (which iterates
-      # Bitwarden's `FluxTube / Worker Secrets / Production` item and
-      # loops over both worker names). See worker_sync.tf for the full
+      # managed, not Terraform-managed — set with `wrangler secret put
+      # --name <worker>` on both Workers. See worker_sync.tf for the full
       # rationale.
     ],
   )

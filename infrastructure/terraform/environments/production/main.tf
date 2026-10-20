@@ -12,19 +12,16 @@ terraform {
       # own name. Capped below 5.25.0 until a release fixes it (#197).
       #
       # The committed .terraform.lock.hcl pins 5.24.0, the last version proven
-      # against live state. Bump it only after `make plan` (fluxtube-deploy)
-      # succeeds against production: CI's validate can't catch a refresh
+      # against live state. Bump it only after a plan succeeds against a
+      # real deployment: CI's validate can't catch a refresh
       # failure, which is how the 5.25.0 bump (#192) got merged.
       version = "~> 5.21, < 5.25.0"
     }
   }
 
   # Partial backend: every identifying value (`bucket`, `key`, `endpoints`) is
-  # supplied at `terraform init` time via -backend-config flags from CI. The
-  # deploy workflow (in alghanmi/fluxtube-deploy) reads TF_STATE_BUCKET +
-  # TF_STATE_KEY from variables and CF_ACCOUNT_ID from a secret, builds the
-  # endpoints URL inline, and passes all three. Keeps real values out of this
-  # repo entirely.
+  # supplied at `terraform init` time via -backend-config flags (see
+  # backend.hcl.example), so no real value lives in this repo.
   backend "s3" {
     use_lockfile                = true
     region                      = "auto"

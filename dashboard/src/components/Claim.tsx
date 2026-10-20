@@ -6,7 +6,7 @@
 //   2. Recovery code — displayed exactly once. This is the safety-critical
 //                      moment in the whole product: Phase 10 design's hero
 //                      screen. Fraunces headline, 40px amber code in a
-//                      bordered surface, Bitwarden hint, Copy button with
+//                      bordered surface, password-manager hint, Copy button with
 //                      1.8s green-text feedback, and a Continue button
 //                      that CONDITIONALLY MOUNTS (does not merely disable)
 //                      only after the trust checkbox is ticked.
@@ -174,8 +174,8 @@ function RecoveryCodeScreen(props: { code: string; backedUp: boolean }): preact.
         </p>
         <p>
           Save it as a <em>Note</em> in your password manager under an item named{' '}
-          <code>FluxTube / recovery / &lt;instance&gt;</code>. If you use Bitwarden, that convention
-          keeps it findable alongside the rest of the FluxTube secrets.
+          <code>FluxTube / recovery / &lt;instance&gt;</code>. That convention keeps it findable
+          alongside the rest of your FluxTube secrets.
         </p>
       </div>
 

@@ -40,9 +40,8 @@ dashboard_cron_enabled  = true
 backup_retention_days   = 120
 
 # ── Worker secrets ──────────────────────────────────────────────────────────
-# Not Terraform-managed. Live in Bitwarden's `FluxTube / Worker Secrets /
-# Production` item and get pushed via the deploy companion's
-# scripts/sync-worker-secrets.sh (which loops over both worker names).
+# Not Terraform-managed. Set them on both Workers with
+# `wrangler secret put --name <worker>`.
 
 # ── Healthchecks.io ─────────────────────────────────────────────────────────
 heartbeat_url       = "https://hc-ping.com/00000000-0000-0000-0000-000000000000"

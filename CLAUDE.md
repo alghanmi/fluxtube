@@ -13,31 +13,28 @@ Since v1.0.0 (2026-07-11) the runtime has two Workers instead of one:
 
 Both Workers share one D1 database. The dashboard PWA lets the operator manage Miniflux instances, YouTube playlist mappings, and encrypted-at-rest secrets without a redeploy.
 
-This is the **public source repo**. It holds the Worker + dashboard source, tests, Terraform module, dashboards-as-code, and release flow. Production deploys happen in a separate **private deploy companion** repo that holds account-specific values and the secrets they resolve from.
+This is the **public source repo**. It holds the Worker + dashboard source, tests, Terraform module, dashboards-as-code, and release flow. Deployment happens outside this repository; nothing here holds an account-specific value or a credential beyond the release dispatch token.
 
 ## Architecture
 
 ```
-public (this repo)              private (deploy companion)
-  workers/sync/         ───┐    config/deploy.env (non-secrets)
-  workers/dashboard/    ───┤    GitHub Secrets (CF, Grafana, ...)
-  dashboard/            ───┤    deploy-on-release.yml
-  site/                 ───┤    sync-grafana.yml
-  infrastructure/tf/    ───┤
-  docs/grafana/         ───┤
-  release-please           │
-       ↓                   │
-  tag vX.Y.Z + release     │
-       ↓                   │
-  notify-deploy.yml ─────dispatch───→ deploy-on-release.yml
-                                       ├── terraform apply (multi-instance)
-                                       ├── wrangler deploy (sync)   --define VERSION
-                                       ├── wrangler deploy (dashboard) --define VERSION
-                                       ├── sync-grafana
-                                       └── push OTLP deploy metric
+this repo
+  workers/sync/, workers/dashboard/, dashboard/, site/
+  infrastructure/terraform/   (module + production env, fully partial backend)
+  docs/grafana/               (dashboards + alerts as JSON)
+  release-please
+       ↓
+  tag vX.Y.Z + release
+       ↓
+  release-please.yml / notify-deploy.yml ──repository_dispatch──→ DEPLOY_TARGET_REPO
+                                                                 (deployment, outside this repo)
+                                                                 ├── terraform apply
+                                                                 ├── wrangler deploy (sync, dashboard) --define VERSION
+                                                                 ├── wrangler pages deploy
+                                                                 └── sync-grafana (optional)
 ```
 
-The deploy workflow does a "two-checkout dance": it checks out the deploy companion (for `config/deploy.env` + secrets) AND this repo (for Terraform code + Worker source + dashboards) at the released ref, then stitches them at runtime.
+The deploy steps and their order are in `docs/architecture.md` → _Deploying a release_.
 
 See `docs/architecture.md` for the deeper algorithmic dive (Pass 1 / Pass 2, D1 schema, quota budget, dual-mode config, encryption at rest, R2 backups).
 
@@ -82,14 +79,14 @@ Pinned versions — don't drift without explicit instruction:
 │   │   ├── pr-checks.yml              # PR: typecheck + lint + test + audit across workspaces
 │   │   ├── terraform-check.yml        # PR: terraform fmt + validate
 │   │   ├── release-please.yml         # push to main → release PR
-│   │   └── notify-deploy.yml          # release published → dispatch to deploy repo
+│   │   └── notify-deploy.yml          # release published → dispatch to DEPLOY_TARGET_REPO
 │   └── dependabot.yml
 ├── docs/
 │   ├── architecture.md                # design deep-dive (Pass 1/2, D1, dual-mode, crypto, backups)
 │   ├── observability.md               # LogQL + PromQL recipes + grafana sync workflow
 │   ├── setup.md                       # local-dev quick start
 │   └── grafana/
-│       ├── dashboards/                # JSON dashboards; pushed by deploy repo's sync-grafana workflow
+│       ├── dashboards/                # JSON dashboards; pushed by scripts/sync-grafana.ts at deploy time
 │       └── alerts/                    # JSON alert rules
 ├── infrastructure/terraform/
 │   ├── _modules/fluxtube-environment/
@@ -107,7 +104,7 @@ Pinned versions — don't drift without explicit instruction:
 │       ├── terraform.tfvars.example
 │       └── backend.hcl.example
 ├── scripts/
-│   ├── sync-grafana.ts                # push dashboards + alerts to Grafana (invoked by deploy repo)
+│   ├── sync-grafana.ts                # push dashboards + alerts to Grafana (run at deploy time)
 │   └── package.json
 ├── site/                              # fluxtube.forklabs.cc — Astro 7.x marketing site
 │   ├── astro.config.mjs
@@ -183,35 +180,30 @@ Pinned versions — don't drift without explicit instruction:
 - **No `any`**. Use `unknown` for external JSON, narrow with type guards.
 - **Terraform**: `terraform fmt -recursive` clean at all times. CI enforces.
 - **No real identifiers in tracked files**: D1 UUID + R2 bucket name in both `wrangler.toml`s are placeholders; Terraform sets the real bindings. No backend bucket name, no account ID, no real instance URL anywhere committed.
-- **Issues are published documents.** This repo is public, so an issue is indexed, quoted in notification email, and permanent — editing it does not unsend the mail. The same scrubbing that applies to commits and PRs applies to issue titles, bodies, and comments, and issues are the easiest surface to get wrong because prose invites explaining _how things work_. Never name a vault item or field, quote deploy-side config, or describe where the trust boundary sits. **File the symptom here and the mechanism on the private side**, and cross-reference only from private to public. Before opening one, re-read it asking what it tells an attacker that they did not already know.
+- **Issues are published documents.** This repo is public, so an issue is indexed, quoted in notification email, and permanent — editing it does not unsend the mail. The same scrubbing that applies to commits and PRs applies to issue titles, bodies, and comments, and issues are the easiest surface to get wrong because prose invites explaining _how things work_. Never name a vault item or field, quote deploy-side config, or describe where the trust boundary sits. **File the symptom here and keep the mechanism out of this repository.** Before opening one, re-read it asking what it tells an attacker that they did not already know.
 
 ## Public-side CI
 
-| Workflow              | Trigger                                       | What                                                                                         |
-| --------------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `pr-checks.yml`       | PR                                            | typecheck + lint + test + audit across workspaces                                            |
-| `terraform-check.yml` | PR with `infrastructure/terraform/**` changes | `terraform fmt -check` + `validate` (no creds needed)                                        |
-| `release-please.yml`  | push to main                                  | Maintains the release PR via Conventional Commits                                            |
-| `notify-deploy.yml`   | `release: published`                          | Fires `repository_dispatch` of type `deploy-release` to the configured deploy companion repo |
+| Workflow              | Trigger                                       | What                                                                                           |
+| --------------------- | --------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `pr-checks.yml`       | PR                                            | typecheck + lint + test + audit across workspaces                                              |
+| `terraform-check.yml` | PR with `infrastructure/terraform/**` changes | `terraform fmt -check` + `validate` (no creds needed)                                          |
+| `release-please.yml`  | push to main                                  | Maintains the release PR via Conventional Commits                                              |
+| `notify-deploy.yml`   | `release: published`                          | Fires `repository_dispatch` of type `deploy-release` to the repository in `DEPLOY_TARGET_REPO` |
 
-Auth surface: this repo holds **one credential**, `DEPLOY_DISPATCH_TOKEN`, a fine-scoped PAT with `repository_dispatch:write` on the deploy companion repo only. Compromise lets an attacker redeploy already-released code — nothing more. `DEPLOY_TARGET_REPO`, the name of the repository the dispatch goes to, is also an environment secret. It grants nothing; it is a secret only so that no workflow or log spells the destination out.
+Auth surface: this repo holds **one credential**, `DEPLOY_DISPATCH_TOKEN`, a fine-scoped PAT that can fire dispatches at the target repository only. Compromise lets an attacker redeploy already-released code — nothing more. `DEPLOY_TARGET_REPO`, the name of the repository the dispatch goes to, is also an environment secret. It grants nothing; it is a secret only so that no workflow or log spells the destination out.
 
-Grafana provisioning (dashboards + alerts under `docs/grafana/`) is pushed by a workflow that lives in the **deploy companion**, not here — the API token that powers it is a private-side secret. See `docs/observability.md` for the sync flow.
+Grafana provisioning (dashboards + alerts under `docs/grafana/`) is pushed by `scripts/sync-grafana.ts` at deploy time, never from this repo's CI: the Grafana API token it needs is not a secret this repo holds. See `docs/observability.md`.
 
-## What lives in the deploy companion (not here)
+## What does not live here
 
-- `config/deploy.env` with real account ID, R2 bucket, cron schedule, per-instance vars
-- Real CF account ID, Worker secrets (`D1_KEYCHAIN`, `SESSION_SIGNING_KEY`, `RP_ID`, `INSTANCE_ID`, `DASHBOARD_DOMAIN`, `MANUAL_TRIGGER_TOKEN`, YouTube + Miniflux credentials, Grafana + Healthchecks URLs)
-- `deploy-on-release.yml` (consumes the dispatch, runs `terraform apply` + `wrangler deploy` for both Workers + `sync-grafana` + deploy metric)
-- `terraform-apply.yml` and `sync-grafana.yml` — manual `workflow_dispatch` entrypoints
-- Ops scripts that touch a password manager (`sync-github-secrets.sh`, `sync-worker-secrets.sh`, `bootstrap-local-tf.sh`, `trigger-sync.sh`)
-- Operator runbook (`TODO.md`, `docs/bootstrap.md`, `docs/cutover-v1.md`, `docs/alerting.md`)
+Real account and resource IDs, Worker secrets, the deploy pipeline, the secrets tooling and the operator runbook all live with the deployment, outside this repository. If a task here seems to need any of them, it belongs there.
 
 ## Operational notes worth knowing
 
-- **Both `wrangler.toml`s carry placeholders**. `workers/sync/wrangler.toml`'s `database_id` and `workers/dashboard/wrangler.toml`'s `database_id` + `r2_buckets[].bucket_name` are all `00000000-…` / `fluxtube-placeholder-*`. Terraform sets the real bindings on `cloudflare_workers_script.{sync,dashboard}`; the deploy workflow `sed`s in the real values immediately before `wrangler deploy` because `--keep-vars` covers `vars`, not bindings.
+- **Both `wrangler.toml`s carry placeholders**. `workers/sync/wrangler.toml`'s `database_id` and `workers/dashboard/wrangler.toml`'s `database_id` + `r2_buckets[].bucket_name` are all `00000000-…` / `fluxtube-placeholder-*`. Terraform sets the real bindings on `cloudflare_workers_script.{sync,dashboard}`; a deploy writes the real values in from `terraform output` immediately before `wrangler deploy` because `--keep-vars` covers `vars`, not bindings.
 - **YouTube OAuth refresh tokens no longer expire on a fixed cycle** — the Google Cloud OAuth app is published to In Production (Google-verified). The dashboard's `/api/auth/youtube` flow is the canonical path for minting refresh tokens; they land in D1 encrypted under `config.youtube_refresh_token`. The old `scripts/oauth-bootstrap.ts` local-CLI flow was retired in v1.
-- **D1-managed vs env-managed config.** The sync Worker's `runtime_config.ts` checks for `config.config_mode = 'd1'` (written at first claim; migration `0003` backfills it) or, failing that, an `admin_passkey` row. The flag is what keeps a recovery wipe of `admin_passkey` from flipping sync back to env bindings. If D1-managed → all runtime config is read from D1 (one Miniflux instance — the API refuses a second, see #179 — encrypted YouTube token, per-mapping `skip_shorts`). If no → legacy `CATEGORY_PLAYLIST_MAPPING` + `MINIFLUX_*` env bindings still work (single-Miniflux). Post-cutover we're D1-managed; the env-managed path exists for cold-start / recovery.
+- **D1-managed vs env-managed config.** The sync Worker's `runtime_config.ts` checks for `config.config_mode = 'd1'` (written at first claim; migration `0003` backfills it) or, failing that, an `admin_passkey` row. The flag is what keeps a recovery wipe of `admin_passkey` from flipping sync back to env bindings. If D1-managed → all runtime config is read from D1 (one Miniflux instance — the API refuses a second, see #179 — encrypted YouTube token, per-mapping `skip_shorts`). If no → legacy `CATEGORY_PLAYLIST_MAPPING` + `MINIFLUX_*` env bindings still work (single-Miniflux). A claimed dashboard is D1-managed; the env-managed path exists for cold-start / recovery.
 - **Encryption at rest.** Every sensitive D1 column has a `_ct` / `_iv` / `_kv` triple. AES-GCM under a JSON keychain in the `D1_KEYCHAIN` Worker secret. Rotation: add the new version as `current` (keep the old one) on both Workers, then `POST /api/config/rotate-keys` or Settings → Encryption (all-or-nothing), then drop the old version. See `docs/encryption-keychain.md`.
 - **Cron triggers fire at most once per minute.** Sync default `*/30 * * * *`; backup default `15 4 * * *` (offset from the sync tick to avoid CPU contention).
 - **No `playlistItems.delete` calls** — the user removes videos from the playlist manually; that's the signal Pass 2 listens for.
@@ -221,7 +213,7 @@ Grafana provisioning (dashboards + alerts under `docs/grafana/`) is pushed by a 
 Out of scope; will be rejected without a new requirements discussion:
 
 - Downloading videos, replacing YouTube's offline feature, uploading or modifying videos
-- Multi-user support within a single instance (multi-instance IS supported via distinct `var.instance_id` in the deploy companion)
+- Multi-user support within a single instance (multi-instance IS supported via a distinct `var.instance_id` per deployment)
 - Custom alert channels beyond Healthchecks.io and Grafana
 - Watch Later (`WL`) — not API-accessible since 2016
 - Non-YouTube video URLs

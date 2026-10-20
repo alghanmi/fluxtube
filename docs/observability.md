@@ -47,7 +47,7 @@ Missing any of the three → the sink is not constructed and the Worker stays on
 
 1. Grafana Cloud → My Account → Loki → copy the URL and User ID.
 2. Generate an API token: Account → Access Policies → Add token. Scope: `logs:write`. Save the value.
-3. Push the URL + USER as plain_text bindings via Terraform (`TF_VAR_grafana_loki_url`, `TF_VAR_grafana_loki_user`), and the TOKEN as a Worker secret via `wrangler secret put GRAFANA_LOKI_TOKEN`. The exact flow depends on your operator setup — see your deploy companion's runbook.
+3. Push the URL + USER as plain_text bindings via Terraform (`TF_VAR_grafana_loki_url`, `TF_VAR_grafana_loki_user`), and the TOKEN as a Worker secret via `wrangler secret put GRAFANA_LOKI_TOKEN`. How you set them is up to your deployment.
 4. Wait for the next cron tick. Open Grafana → Explore → datasource = your Loki → run `{app="fluxtube"}`.
 
 ### Labels
@@ -212,7 +212,7 @@ A starter dashboard ships in this repo: `docs/grafana/dashboards/fluxtube-overvi
 | Items added            | `sum_over_time(fluxtube_items_added[$__interval])`                  |
 | Items marked read      | `sum_over_time(fluxtube_items_marked_read[$__interval])`            |
 
-Installation is automatic via the `sync-grafana.yml` workflow (which lives in the deploy companion, since the Grafana API token is a private-side secret) — see the **Grafana sync workflow** section below. You don't import dashboards via the UI; you edit JSON in this repo and merge.
+Installation is by `scripts/sync-grafana.ts` — see the **Grafana sync** section below. You don't import dashboards via the UI; you edit JSON in this repo and merge.
 
 ### Failure mode
 
@@ -278,7 +278,7 @@ One file per rule under `docs/grafana/alerts/`. Each rule has `for: 15m` debounc
 
 ### Importing the rules
 
-You don't. The `sync-grafana.yml` workflow handles it — every PR touching `docs/grafana/**` dry-runs, every merge to main pushes. See the **Grafana sync workflow** section below for setup.
+You don't. `scripts/sync-grafana.ts` pushes them, run as part of each release deploy. See the **Grafana sync** section below for setup.
 
 `${DS_PROMETHEUS}` placeholders in the JSON are substituted at push time with the auto-discovered Prometheus datasource UID from your Grafana instance. The `folderUID` is auto-resolved from a folder named `fluxtube` that you create once.
 
@@ -288,14 +288,14 @@ You don't. The `sync-grafana.yml` workflow handles it — every PR touching `doc
 2. For Grafana: write the PromQL in **Explore** first, iterate until it's a single boolean expression that returns 1 when alarming. Wrap with `$A > N` math expression in the rule definition.
 3. Add `for: 15m` to avoid flapping on transient spikes.
 4. Add a new file `docs/grafana/alerts/<slug>.json` matching the shape of the existing rules. The `uid` field is what makes the push idempotent — pick `fluxtube-<slug>`.
-5. Open a PR. The `sync-grafana` workflow dry-runs against your real Grafana on the PR; merging applies it.
+5. Dry-run the push against your Grafana (see **Trying it locally** below), then open a PR. The next sync applies it.
 6. Update the table above and the rule's `summary` / `description` annotations.
 
-## Grafana sync workflow
+## Grafana sync
 
-`sync-grafana.yml` — a workflow that lives in the **deploy companion** (`fluxtube-deploy/.github/workflows/sync-grafana.yml`) — pushes everything under this repo's `docs/grafana/` to Grafana Cloud. The workflow does a two-checkout dance (deploy companion for the Grafana API token, this repo for the JSON files) and calls `scripts/sync-grafana.ts` from this repo. The public repo is the source of truth for dashboard + alert JSON; UI edits are blocked by Grafana (no `X-Disable-Provenance` header is sent), so the dashboard pencil-with-slash icon means "edit the repo, not me."
+`scripts/sync-grafana.ts` pushes everything under this repo's `docs/grafana/` to Grafana. This repo is the source of truth for dashboard + alert JSON; UI edits are blocked by Grafana (no `X-Disable-Provenance` header is sent), so the dashboard pencil-with-slash icon means "edit the repo, not me."
 
-The `deploy-on-release.yml` workflow (also on the deploy companion) calls the same script on every release deploy, so a `feat(observability): …` PR that only edits `docs/grafana/**` still lands its changes on the next tag. For dashboard-only iteration between releases, `gh workflow run sync-grafana.yml --repo alghanmi/fluxtube-deploy -f ref=<sha-or-tag>` re-pushes without cutting a release.
+It needs `GRAFANA_API_URL` and `GRAFANA_API_TOKEN` in the environment, so it runs wherever your deploy runs, not in this repo's CI. Run it on every release deploy, so a `feat(observability): …` PR that only edits `docs/grafana/**` lands on the next tag, and run it by hand at any ref to iterate on dashboards between releases.
 
 ### What it manages
 
@@ -313,13 +313,13 @@ The `deploy-on-release.yml` workflow (also on the deploy companion) calls the sa
 
 ### Setup (one-time)
 
-The `sync-grafana.ts` script in this repo takes care of pushing every JSON file under `docs/grafana/` to your Grafana instance. The **workflow that runs it** lives in the deploy companion (since the Grafana API token lives there). What you need to do once:
+The `sync-grafana.ts` script in this repo takes care of pushing every JSON file under `docs/grafana/` to your Grafana instance. What you need to do once:
 
 1. **Service account** in Grafana → Administration → Users and access → Service accounts → Add. Name: `fluxtube-sync`. Assign the **Editor** role on the org (or the fine-grained scopes: `dashboards:write`, `alert.rules:read`, `alert.rules:write`, `datasources:read`, `folders:read`).
 2. **Generate a token** under that service account. Save it.
 3. **Create the `fluxtube` folder** in Grafana → Dashboards → New → New folder → "fluxtube". The script looks up its UID by name; case-insensitive match with a diagnostic dump on failure.
 4. **Grant the service account Editor access on the `fluxtube` folder.** Open the folder → Folder actions → **Permissions** → Add → Service accounts → pick `fluxtube-sync` → role **Editor**. Org-level Editor doesn't automatically inherit on user-created folders in Grafana Cloud's RBAC model; if you skip this step the script fails with `Folder "fluxtube" not found` because the folder is invisible to the service account.
-5. Hand `GRAFANA_API_URL` (e.g. `https://<stack>.grafana.net`) and `GRAFANA_API_TOKEN` to your deploy companion's secret-management flow. The companion's `deploy-on-release.yml` reads them.
+5. Make `GRAFANA_API_URL` (e.g. `https://<stack>.grafana.net`) and `GRAFANA_API_TOKEN` available to whatever runs your deploy. The token is a credential: keep it in a secret store, never in a variable or a committed file.
 
 ### Trying it locally
 

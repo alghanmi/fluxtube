@@ -9,8 +9,8 @@
 # Worker via the Service Binding declared below.
 #
 # `production_branch = "main"` means every push to main triggers a Pages
-# build. In practice the fluxtube-deploy workflow runs `wrangler pages
-# deploy` explicitly after a release, so the branch is more of a naming
+# build. In practice a release deploy runs `wrangler pages deploy`
+# explicitly, so the branch is more of a naming
 # convention than an active trigger.
 #
 # Deployment source (`build_config.build_command` etc.) is intentionally

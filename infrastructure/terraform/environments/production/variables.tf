@@ -99,9 +99,8 @@ variable "backup_retention_days" {
 
 # ── Worker secrets ──────────────────────────────────────────────────────────
 #
-# All Worker runtime secrets live in Bitwarden's `FluxTube / Worker Secrets /
-# Production` item and get pushed to both workers via the deploy companion's
-# scripts/sync-worker-secrets.sh. Terraform's role stops at the D1/R2/KV/
+# All Worker runtime secrets are set on both Workers with
+# `wrangler secret put --name <worker>`. Terraform's role stops at the D1/R2/KV/
 # service bindings — see the module's variables.tf for the full rationale.
 
 # ── Observability ───────────────────────────────────────────────────────────
