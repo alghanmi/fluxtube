@@ -79,7 +79,7 @@ Pinned versions — don't drift without explicit instruction:
 │   │   ├── pr-checks.yml              # PR: typecheck + lint + test + audit across workspaces
 │   │   ├── terraform-check.yml        # PR: terraform fmt + validate
 │   │   ├── release-please.yml         # push to main → release PR
-│   │   └── notify-deploy.yml          # release published → dispatch to DEPLOY_TARGET_REPO
+│   │   └── notify-deploy.yml          # manual: re-send the deploy dispatch for an existing tag
 │   └── dependabot.yml
 ├── docs/
 │   ├── architecture.md                # design deep-dive (Pass 1/2, D1, dual-mode, crypto, backups)
@@ -182,14 +182,18 @@ Pinned versions — don't drift without explicit instruction:
 - **No real identifiers in tracked files**: D1 UUID + R2 bucket name in both `wrangler.toml`s are placeholders; Terraform sets the real bindings. No backend bucket name, no account ID, no real instance URL anywhere committed.
 - **Issues are published documents.** This repo is public, so an issue is indexed, quoted in notification email, and permanent — editing it does not unsend the mail. The same scrubbing that applies to commits and PRs applies to issue titles, bodies, and comments, and issues are the easiest surface to get wrong because prose invites explaining _how things work_. Never name a vault item or field, quote deploy-side config, or describe where the trust boundary sits. **File the symptom here and keep the mechanism out of this repository.** Before opening one, re-read it asking what it tells an attacker that they did not already know.
 
+## Documentation
+
+`README.md` is the manual (shared rule _Documentation: the README is the manual_ below): how it works, the architecture, every root `package.json` script, the Worker secrets and the deploy steps for a self-hosting operator. When a change adds a script, a binding, a secret, a migration rule or a deploy step, update the README in the same PR. `pnpm docs:check` runs in `pr-checks.yml`. `docs/architecture.md` → _Deploying a release_ and the README's deploy section must stay in step.
+
 ## Public-side CI
 
-| Workflow              | Trigger                                       | What                                                                                           |
-| --------------------- | --------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `pr-checks.yml`       | PR                                            | typecheck + lint + test + audit across workspaces                                              |
-| `terraform-check.yml` | PR with `infrastructure/terraform/**` changes | `terraform fmt -check` + `validate` (no creds needed)                                          |
-| `release-please.yml`  | push to main                                  | Maintains the release PR via Conventional Commits                                              |
-| `notify-deploy.yml`   | `release: published`                          | Fires `repository_dispatch` of type `deploy-release` to the repository in `DEPLOY_TARGET_REPO` |
+| Workflow              | Trigger                                       | What                                                                                                         |
+| --------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `pr-checks.yml`       | PR                                            | typecheck + lint + test + audit across workspaces                                                            |
+| `terraform-check.yml` | PR with `infrastructure/terraform/**` changes | `terraform fmt -check` + `validate` (no creds needed)                                                        |
+| `release-please.yml`  | push to main                                  | Maintains the release PR; on a release, fires `repository_dispatch` `deploy-release` at `DEPLOY_TARGET_REPO` |
+| `notify-deploy.yml`   | manual `workflow_dispatch` (tag)              | Re-sends the same dispatch for an existing tag                                                               |
 
 Auth surface: this repo holds **one credential**, `DEPLOY_DISPATCH_TOKEN`, a fine-scoped PAT that can fire dispatches at the target repository only. Compromise lets an attacker redeploy already-released code — nothing more. `DEPLOY_TARGET_REPO`, the name of the repository the dispatch goes to, is also an environment secret. It grants nothing; it is a secret only so that no workflow or log spells the destination out.
 
@@ -230,9 +234,10 @@ Out of scope; will be rejected without a new requirements discussion:
 - SimpleWebAuthn (server + browser): https://simplewebauthn.dev/
 - Hono: https://hono.dev/
 
-<!-- shared-conventions-public: v2 (2026-10-18). One source, copied verbatim into
+<!-- shared-conventions-public: v3 (2026-10-23). One source, copied verbatim into
      every public repo's CLAUDE.md. Edit the source and re-sync; never edit a
-     copy in place. Repo-specific rules elsewhere in this file override it. -->
+     copy in place. Repo-specific rules elsewhere in this file override it.
+     v3: adds "Documentation: the README is the manual". -->
 
 ## Shared conventions (public repository)
 
@@ -297,6 +302,23 @@ that they did not already know?"
 - **CI needs no secret beyond what the release mechanism requires**, and
   the release mechanism's destination is itself a secret: a dispatch target
   is read from `secrets.*`, never written into a workflow.
+
+### Documentation: the README is the manual
+
+- **The README runs the project from a fresh clone.** It covers what the
+  project does, its architecture (a Mermaid diagram wherever a flow is easier
+  to see than to read), local development, every `make` target or root
+  `package.json` script, and how a self-hosting operator deploys it: the
+  resources, the secrets to provide, the order. It describes any deployment
+  in general terms, never ours.
+- **Every change reviews the README.** Before opening a PR, read the README
+  sections the change touches against the diff. A new, renamed or removed
+  target, script, variable, secret, workflow or deploy step updates the
+  README in the same PR, never in a follow-up.
+- **`docs-check` enforces the mechanical half** (`make docs-check`, or
+  `pnpm docs:check` where there is no Makefile). It fails when a documented
+  target or root script is missing from the README, or a relative link points
+  at nothing. CI runs it. Only reading catches a stale procedure.
 
 ### Git and pull requests
 

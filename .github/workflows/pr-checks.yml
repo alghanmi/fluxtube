@@ -33,6 +33,9 @@ jobs:
       # PWA, the marketing site and scripts all ship to production, and a
       # Dependabot bump that only breaks one of them must fail here rather
       # than at deploy time.
+      - name: README covers every root script and every link resolves
+        run: pnpm docs:check
+
       - name: Format check
         run: pnpm format:check
 
