@@ -19,7 +19,7 @@
     "@astrojs/check": "^0.9.12",
     "@astrojs/preact": "^6.1.1",
     "@simplewebauthn/browser": "^14.0.0",
-    "astro": "^7.3.8",
+    "astro": "^7.4.2",
     "preact": "^11.0.1",
     "typescript": "^6.0.3"
   }
