@@ -16,7 +16,7 @@
     "lint": "echo 'astro check covers it'"
   },
   "dependencies": {
-    "@astrojs/check": "^0.9.10",
+    "@astrojs/check": "^0.9.12",
     "@astrojs/mdx": "^8.1.1",
     "astro": "^7.3.8",
     "typescript": "^6.0.3"

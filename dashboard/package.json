@@ -16,7 +16,7 @@
     "lint": "echo 'astro check covers it'"
   },
   "dependencies": {
-    "@astrojs/check": "^0.9.10",
+    "@astrojs/check": "^0.9.12",
     "@astrojs/preact": "^6.1.1",
     "@simplewebauthn/browser": "^14.0.0",
     "astro": "^7.3.8",
