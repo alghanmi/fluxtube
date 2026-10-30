@@ -13,7 +13,9 @@
     "check": "astro check",
     "astro": "astro",
     "typecheck": "astro check",
-    "lint": "echo 'astro check covers it'"
+    "lint": "echo 'astro check covers it'",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.12",
@@ -22,5 +24,9 @@
     "astro": "^7.4.2",
     "preact": "^11.0.1",
     "typescript": "^6.0.3"
+  },
+  "devDependencies": {
+    "happy-dom": "^21.0.4",
+    "vitest": "~4.1.12"
   }
 }
