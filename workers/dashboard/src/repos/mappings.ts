@@ -85,20 +85,43 @@ export class MappingsRepo {
   }
 
   /**
-   * Full-replacement save for a single Miniflux instance. Used by the
-   * dashboard's PUT /api/mappings when the user hits "Save" — the caller
-   * wraps this + a mapping_history snapshot in one D1 batch/transaction.
-   * Returns the ids of the newly-inserted rows.
+   * Full-replacement save for a single Miniflux instance, as statements: one
+   * DELETE for the instance's rows, then one INSERT per row. An empty `rows`
+   * clears the instance.
+   *
+   * Nothing is executed here. The caller runs these in a single
+   * `db.batch()`, together with anything else that must commit with them
+   * (the mapping_history snapshot, other instances), so a failure part-way
+   * through rolls the whole save back instead of leaving the instance with
+   * only some of its rows.
    */
-  async replaceForInstance(minifluxInstanceId: number, rows: MappingInsert[]): Promise<number[]> {
-    await this.db
-      .prepare('DELETE FROM mappings WHERE miniflux_instance_id = ?')
-      .bind(minifluxInstanceId)
-      .run();
-    const ids: number[] = [];
+  replaceForInstanceStatements(
+    minifluxInstanceId: number,
+    rows: MappingInsert[],
+  ): D1PreparedStatement[] {
+    const statements: D1PreparedStatement[] = [
+      this.db
+        .prepare('DELETE FROM mappings WHERE miniflux_instance_id = ?')
+        .bind(minifluxInstanceId),
+    ];
     for (const row of rows) {
-      ids.push(await this.insert(row));
+      statements.push(
+        this.db
+          .prepare(
+            `INSERT INTO mappings
+               (miniflux_instance_id, miniflux_category, youtube_playlist_id, skip_shorts, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+          )
+          .bind(
+            minifluxInstanceId,
+            row.minifluxCategory,
+            row.youtubePlaylistId,
+            row.skipShorts ? 1 : 0,
+            row.createdAt,
+            row.updatedAt,
+          ),
+      );
     }
-    return ids;
+    return statements;
   }
 }

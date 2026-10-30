@@ -51,6 +51,16 @@ export class MappingHistoryRepo {
     return res.id;
   }
 
+  /** `append` as a statement, for callers that write it in a `db.batch()`. */
+  appendStatement(row: HistoryInsert): D1PreparedStatement {
+    return this.db
+      .prepare(
+        `INSERT INTO mapping_history (snapshot_json, actor, created_at)
+         VALUES (?, ?, ?)`,
+      )
+      .bind(row.snapshotJson, row.actor, row.createdAt);
+  }
+
   async get(id: number): Promise<HistoryRow | null> {
     const r = await this.db
       .prepare('SELECT * FROM mapping_history WHERE id = ?')
@@ -73,14 +83,18 @@ export class MappingHistoryRepo {
    * with `keep = history_window` after a new snapshot has been appended.
    */
   async pruneToLatestN(keep: number): Promise<void> {
-    await this.db
+    await this.pruneToLatestNStatement(keep).run();
+  }
+
+  /** `pruneToLatestN` as a statement, for callers that write it in a `db.batch()`. */
+  pruneToLatestNStatement(keep: number): D1PreparedStatement {
+    return this.db
       .prepare(
         `DELETE FROM mapping_history
          WHERE id NOT IN (
            SELECT id FROM mapping_history ORDER BY created_at DESC, id DESC LIMIT ?
          )`,
       )
-      .bind(keep)
-      .run();
+      .bind(keep);
   }
 }
