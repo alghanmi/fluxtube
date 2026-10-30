@@ -269,7 +269,7 @@ Every significant event emits one JSON line to stdout, structured:
 When `GRAFANA_LOKI_URL` / `_USER` / `_TOKEN` are set, every line is also fanned out to Grafana Cloud Loki via the `LokiSink` (see `workers/sync/src/logsink.ts`):
 
 - Buffered in memory during the run.
-- Flushed via `ctx.waitUntil(fetch(...))` at end-of-run (success **or** fatal).
+- Flushed via `ctx.waitUntil(fetch(...))` at end-of-run (success **or** fatal). A background `POST /sync` returns 202 before its run has finished, so it flushes again when that run settles; the metric sink follows the same rule.
 - One stream per invocation, labels `{app: "fluxtube", env: "production", run_id: "<uuid>"}`.
 - Fire-and-forget; a Loki outage logs `loki_push_failed` at warn and never affects the sync.
 
