@@ -311,7 +311,7 @@ Nothing sensitive is ever committed to this repository or persisted on disk afte
 
 ## Deploying a release
 
-Deployment happens outside this repository. On a release, `notify-deploy.yml` sends a `repository_dispatch` of type `deploy-release` with `{ version, sha, actor, ref }` to the repository named in the `DEPLOY_TARGET_REPO` environment secret. Whatever receives it, or an operator deploying by hand, needs to do the following, in this order:
+Deployment happens outside this repository. On a release, `release-please.yml` sends a `repository_dispatch` of type `deploy-release` with `{ version, sha, actor, ref }` to the repository named in the `DEPLOY_TARGET_REPO` environment secret. `notify-deploy.yml` re-sends the same payload for an existing tag; in both, `sha` is the tag's own commit, never the HEAD of the branch the workflow ran on. Whatever receives it, or an operator deploying by hand, needs to do the following, in this order:
 
 1. Validate the payload: the ref must be a release tag (`vX.Y.Z`) that exists on this repo, the version must match it, and the checked-out commit must equal the payload's `sha`. Rejecting anything else (a branch, a `refs/pull/*` ref) before checkout is what limits a leaked dispatch token to redeploying an existing release.
 2. Check out this repo at the released tag for Terraform code, Worker source, the PWA and `docs/grafana/`.

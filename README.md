@@ -138,7 +138,7 @@ The same steps, with the reasoning for each, are in [`docs/architecture.md`](./d
 
 ### Automating it
 
-When release-please cuts a release, `release-please.yml` itself sends a `repository_dispatch` of type `deploy-release` with `{ version, sha, actor, ref }`. It goes to the repository named in the `DEPLOY_TARGET_REPO` environment secret, authenticated with `DEPLOY_DISPATCH_TOKEN`. Point it at whatever runs the steps above, or leave both unset and deploy by hand. The dispatch is fired from that workflow because GitHub does not trigger other workflows for a release created with `GITHUB_TOKEN`. To re-send it for an existing tag, run **Notify deploy (manual)** (`notify-deploy.yml`) with the tag.
+When release-please cuts a release, `release-please.yml` itself sends a `repository_dispatch` of type `deploy-release` with `{ version, sha, actor, ref }`. It goes to the repository named in the `DEPLOY_TARGET_REPO` environment secret, authenticated with `DEPLOY_DISPATCH_TOKEN`. Point it at whatever runs the steps above, or leave both unset and deploy by hand. The dispatch is fired from that workflow because GitHub does not trigger other workflows for a release created with `GITHUB_TOKEN`. To re-send it for an existing tag, run **Notify deploy (manual)** (`notify-deploy.yml`) with the tag (`v1.2.1`, or a bare `1.2.1`). It sends the tag's own commit as `sha`, so the payload passes step 1 even when `main` has moved on.
 
 Scope `DEPLOY_DISPATCH_TOKEN` to firing dispatches at that repository and nothing else. With step 1 in place, a leaked token can only redeploy a release that already exists.
 
