@@ -206,9 +206,11 @@ export default {
   // Intentionally does NOT ping Healthchecks — those are the cron's dead-man
   // switch; satisfying them from a manual call would mask a stuck schedule.
   // The MetricsSink is built but only emitted from inside `runSync` paths
-  // (the router calls runSync for /sync, but not for /audit) — flushed
-  // unconditionally in `finally` so any buffered points (e.g. a manual /sync
-  // run) ship before the request returns.
+  // (the router calls runSync for /sync, but not for /audit). The `finally`
+  // below flushes whatever the synchronous paths buffered (`/audit`,
+  // `/sync?wait=1`) as the request returns. A background `POST /sync` has
+  // not logged its outcome by then, so the router flushes again when that
+  // run settles.
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     // Authenticate before loading runtime config. Loading reads D1 and
     // decrypts secrets, and its failure message describes the instance's

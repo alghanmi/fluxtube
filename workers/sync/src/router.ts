@@ -16,7 +16,8 @@ export type RouterDeps = SyncDeps;
  *
  * `POST /sync`         — kicks off a sync run in the background, returns 202.
  *                        No Healthchecks ping (those signal cron liveness,
- *                        not manual runs).
+ *                        not manual runs). Logs and metrics are flushed
+ *                        when the background run settles.
  * `POST /sync?wait=1`  — runs synchronously and returns 200 + the run summary
  *                        (counts of added / marked_read / errors / quota).
  * `GET  /audit`        — read-only diagnostic dump, returns JSON.
@@ -99,6 +100,14 @@ export async function handleFetch(
             reason,
             message: err instanceof Error ? err.message : String(err),
           });
+        })
+        // The fetch handler's own flush runs when the 202 is returned, before
+        // this run has logged or pushed anything. Flush again once it
+        // settles, or the outcome line and the fluxtube.runs point never
+        // ship. Both flushes drain the buffer, so nothing is sent twice.
+        .finally(() => {
+          metrics?.flush(ctx);
+          logger.flush(ctx);
         }),
     );
     return jsonResponse({ status: 'accepted', request_id: requestId }, 202);
