@@ -16,7 +16,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag to deploy (e.g. v0.1.0)'
+        description: 'Tag to deploy (e.g. v1.2.1; a bare 1.2.1 also works)'
         required: true
         default: 'v0.1.0'
         type: string
@@ -36,13 +36,25 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.DEPLOY_DISPATCH_TOKEN }}
           DEPLOY_TARGET_REPO: ${{ secrets.DEPLOY_TARGET_REPO }}
+          READ_TOKEN: ${{ github.token }}
           TAG: ${{ inputs.tag }}
-          SHA: ${{ github.sha }}
           ACTOR: ${{ github.actor }}
         run: |
           set -euo pipefail
           : "${DEPLOY_TARGET_REPO:?DEPLOY_TARGET_REPO is not set in the production environment}"
+          # Accept a bare semver (1.2.1) as well as the tag (v1.2.1).
+          case "${TAG}" in [0-9]*) TAG="v${TAG}" ;; esac
+          if ! [[ "${TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::'${TAG}' is not a release tag (vX.Y.Z)."
+            exit 1
+          fi
           version="${TAG#v}"
+          # The tag's own commit, the same value release-please.yml sends.
+          # github.sha is the HEAD of the branch this run was started from,
+          # which is ahead of the tag as soon as main moves on, and a deploy
+          # that checks the commit against the payload then refuses it.
+          # GITHUB_TOKEN reads this repo; the dispatch token is only for the POST.
+          SHA="$(GH_TOKEN="${READ_TOKEN}" gh api "repos/${GITHUB_REPOSITORY}/commits/refs/tags/${TAG}" --jq .sha)"
           gh api "repos/${DEPLOY_TARGET_REPO}/dispatches" \
             -f event_type=deploy-release \
             -f "client_payload[version]=${version}" \
@@ -53,4 +65,5 @@ jobs:
             echo "### Dispatched deploy-release"
             echo "- version: \`${version}\`"
             echo "- ref: \`${TAG}\`"
+            echo "- sha: \`${SHA}\`"
           } >> "$GITHUB_STEP_SUMMARY"
