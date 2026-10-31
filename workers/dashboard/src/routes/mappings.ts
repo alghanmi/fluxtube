@@ -8,9 +8,11 @@
 //   POST /api/mappings/history/:id/restore      → restore from snapshot,
 //                                                 snapshots current first
 //
-// All routes require auth (session cookie OR Bearer). Save + restore paths
-// wrap their D1 writes in a batch so a mid-run failure doesn't leave the
-// mappings table half-mutated.
+// All routes require a passkey session. Save + restore build every write
+// (the history snapshot, the prune, and each instance's DELETE + INSERTs)
+// as statements and run them in one db.batch(), which D1 executes as a
+// single transaction: a failure part-way rolls the whole save back rather
+// than leaving an instance with only some of its rows.
 
 import type { Hono } from 'hono';
 import { requireAuth } from '../auth/require_auth';
@@ -52,9 +54,10 @@ export function attachMappingsRoutes(app: Hono<{ Bindings: MappingsEnv }>): void
   // ─── PUT /api/mappings ──────────────────────────────────────────────
   //
   // Payload: { mappings: MappingPayload[] }
-  // Semantics: for every instance id present in the payload, its full set of
-  // mappings is replaced. Instances not mentioned in the payload keep their
-  // existing mappings — omit an instance and its mappings survive unchanged.
+  // Semantics: the payload is the complete set of mappings. Every configured
+  // instance is replaced with the rows sent for it, so an instance with no
+  // rows in the payload ends up with none. (The editor always sends every
+  // instance's rows, and deleting an instance's last row must stick.)
 
   app.put('/api/mappings', async (c) => {
     const session = await requireAuth(c.req.raw, c.env);
@@ -72,32 +75,25 @@ export function attachMappingsRoutes(app: Hono<{ Bindings: MappingsEnv }>): void
     // Validate every referenced instance actually exists — a save that
     // silently drops rows because a client typo'd an id would be worse
     // than a 409.
-    const instanceIds = uniqueInstanceIds(parsed.mappings);
-    const instances = new MinifluxInstancesRepo(c.env.DB);
-    for (const id of instanceIds) {
-      const row = await instances.get(id);
-      if (!row) {
+    const configured = (await new MinifluxInstancesRepo(c.env.DB).list()).map((i) => i.id);
+    const known = new Set(configured);
+    for (const id of uniqueInstanceIds(parsed.mappings)) {
+      if (!known.has(id)) {
         return c.json({ error: 'unknown_instance', minifluxInstanceId: id }, 409);
       }
     }
 
     const now = nowSec();
-    await snapshotAndPrune(c.env.DB, 'ui', now);
-
     const mappingsRepo = new MappingsRepo(c.env.DB);
-    for (const instanceId of instanceIds) {
-      const forInstance = parsed.mappings
-        .filter((m) => m.minifluxInstanceId === instanceId)
-        .map<MappingInsert>((m) => ({
-          minifluxInstanceId: m.minifluxInstanceId,
-          minifluxCategory: m.minifluxCategory,
-          youtubePlaylistId: m.youtubePlaylistId,
-          skipShorts: m.skipShorts,
-          createdAt: now,
-          updatedAt: now,
-        }));
-      await mappingsRepo.replaceForInstance(instanceId, forInstance);
+    const statements = await snapshotStatements(c.env.DB, 'ui', now);
+    for (const instanceId of configured) {
+      const forInstance = toInserts(
+        parsed.mappings.filter((m) => m.minifluxInstanceId === instanceId),
+        now,
+      );
+      statements.push(...mappingsRepo.replaceForInstanceStatements(instanceId, forInstance));
     }
+    await c.env.DB.batch(statements);
 
     return c.json({ instances: await currentGrouped(c.env.DB) });
   });
@@ -140,35 +136,32 @@ export function attachMappingsRoutes(app: Hono<{ Bindings: MappingsEnv }>): void
     if (!snapshot) return c.json({ error: 'corrupt_snapshot' }, 500);
 
     // Snapshot the CURRENT state before overwriting so restore itself is
-    // undoable via the same history list.
+    // undoable via the same history list. It commits with the restore.
     const now = nowSec();
-    await snapshotAndPrune(c.env.DB, 'restore', now);
+    const statements = await snapshotStatements(c.env.DB, 'restore', now);
 
     // Reconcile snapshot instance ids against current miniflux_instances.
     // An instance in the snapshot might have been deleted since — skip its
-    // mappings and report them so the UI can surface the discrepancy.
-    const instancesRepo = new MinifluxInstancesRepo(c.env.DB);
+    // mappings and report them so the UI can surface the discrepancy. An
+    // instance the snapshot lists with no mappings is restored to none.
+    const current = new Set((await new MinifluxInstancesRepo(c.env.DB).list()).map((i) => i.id));
     const mappingsRepo = new MappingsRepo(c.env.DB);
     const skipped: Array<{ minifluxInstanceId: number; count: number }> = [];
 
-    const affectedIds = uniqueInstanceIds(snapshot.mappings);
+    const affectedIds = Array.from(
+      new Set([...snapshot.instances.map((i) => i.id), ...uniqueInstanceIds(snapshot.mappings)]),
+    ).sort((a, b) => a - b);
     for (const instanceId of affectedIds) {
-      const current = await instancesRepo.get(instanceId);
       const rows = snapshot.mappings.filter((m) => m.minifluxInstanceId === instanceId);
-      if (!current) {
-        skipped.push({ minifluxInstanceId: instanceId, count: rows.length });
+      if (!current.has(instanceId)) {
+        if (rows.length > 0) skipped.push({ minifluxInstanceId: instanceId, count: rows.length });
         continue;
       }
-      const inserts = rows.map<MappingInsert>((m) => ({
-        minifluxInstanceId: m.minifluxInstanceId,
-        minifluxCategory: m.minifluxCategory,
-        youtubePlaylistId: m.youtubePlaylistId,
-        skipShorts: m.skipShorts,
-        createdAt: now,
-        updatedAt: now,
-      }));
-      await mappingsRepo.replaceForInstance(instanceId, inserts);
+      statements.push(
+        ...mappingsRepo.replaceForInstanceStatements(instanceId, toInserts(rows, now)),
+      );
     }
+    await c.env.DB.batch(statements);
 
     return c.json({
       instances: await currentGrouped(c.env.DB),
@@ -210,11 +203,13 @@ async function currentGrouped(db: D1Database): Promise<
   }));
 }
 
-async function snapshotAndPrune(
+// The history snapshot of the current state, and the prune that keeps
+// history_window rows, as statements to run at the head of the save's batch.
+async function snapshotStatements(
   db: D1Database,
   actor: 'ui' | 'restore' | 'migration',
   now: number,
-): Promise<void> {
+): Promise<D1PreparedStatement[]> {
   const instances = await new MinifluxInstancesRepo(db).list();
   const mappings = await new MappingsRepo(db).list();
   const snapshot: SnapshotPayload = {
@@ -227,12 +222,21 @@ async function snapshotAndPrune(
     })),
   };
   const historyRepo = new MappingHistoryRepo(db);
-  await historyRepo.append({
-    snapshotJson: JSON.stringify(snapshot),
-    actor,
+  return [
+    historyRepo.appendStatement({ snapshotJson: JSON.stringify(snapshot), actor, createdAt: now }),
+    historyRepo.pruneToLatestNStatement(await readHistoryWindow(db)),
+  ];
+}
+
+function toInserts(rows: MappingPayload[], now: number): MappingInsert[] {
+  return rows.map((m) => ({
+    minifluxInstanceId: m.minifluxInstanceId,
+    minifluxCategory: m.minifluxCategory,
+    youtubePlaylistId: m.youtubePlaylistId,
+    skipShorts: m.skipShorts,
     createdAt: now,
-  });
-  await historyRepo.pruneToLatestN(await readHistoryWindow(db));
+    updatedAt: now,
+  }));
 }
 
 async function readHistoryWindow(db: D1Database): Promise<number> {
@@ -249,12 +253,19 @@ function uniqueInstanceIds(mappings: MappingPayload[]): number[] {
 
 type ParseResult = { ok: true; mappings: MappingPayload[] } | { ok: false; error: string };
 
+// A custom YouTube playlist id: `PL` and then the id body, from YouTube's
+// base64url alphabet (16 or 32 characters in practice). The sync Worker's
+// env-managed config enforces the same `PL` prefix. Watch Later (`WL`) and
+// pasted URLs are refused here, before anything is written.
+const PLAYLIST_ID_RE = /^PL[A-Za-z0-9_-]{10,62}$/;
+
 function parseMappingsPayload(body: unknown): ParseResult {
   if (typeof body !== 'object' || body === null) return { ok: false, error: 'invalid_body' };
   const raw = (body as { mappings?: unknown }).mappings;
   if (!Array.isArray(raw)) return { ok: false, error: 'mappings_not_array' };
 
   const out: MappingPayload[] = [];
+  const seen = new Set<string>();
   for (const entry of raw) {
     if (typeof entry !== 'object' || entry === null) {
       return { ok: false, error: 'mapping_entry_not_object' };
@@ -266,12 +277,17 @@ function parseMappingsPayload(body: unknown): ParseResult {
     if (typeof e.minifluxCategory !== 'string' || e.minifluxCategory.length === 0) {
       return { ok: false, error: 'missing_or_invalid_minifluxCategory' };
     }
-    if (typeof e.youtubePlaylistId !== 'string' || e.youtubePlaylistId.length === 0) {
+    if (typeof e.youtubePlaylistId !== 'string' || !PLAYLIST_ID_RE.test(e.youtubePlaylistId)) {
       return { ok: false, error: 'missing_or_invalid_youtubePlaylistId' };
     }
     if (typeof e.skipShorts !== 'boolean') {
       return { ok: false, error: 'missing_or_invalid_skipShorts' };
     }
+    // The table is UNIQUE on this tuple; a duplicate would otherwise surface
+    // as a 500 from the batch.
+    const key = JSON.stringify([e.minifluxInstanceId, e.minifluxCategory, e.youtubePlaylistId]);
+    if (seen.has(key)) return { ok: false, error: 'duplicate_mapping' };
+    seen.add(key);
     out.push({
       minifluxInstanceId: e.minifluxInstanceId,
       minifluxCategory: e.minifluxCategory,
