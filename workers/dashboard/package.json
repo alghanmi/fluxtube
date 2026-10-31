@@ -1,6 +1,6 @@
 {
   "name": "@fluxtube/dashboard",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "private": true,
   "description": "Hono API worker for the FluxTube configuration dashboard.",
   "license": "MIT",
