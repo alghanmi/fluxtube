@@ -13,7 +13,7 @@
       },
       "model": {
         "refId": "A",
-        "expr": "sum by (instance_id) (sum_over_time(fluxtube_backup_runs_total{outcome=\"success\"}[7d]))",
+        "expr": "((group by (instance_id) (count_over_time(fluxtube_runs[2h])) and group by (instance_id) (count_over_time(fluxtube_runs[1d] offset 6d))) unless group by (instance_id) (count_over_time(fluxtube_backup_runs_total{outcome=\"success\"}[7d]))) or (absent_over_time(fluxtube_backup_runs_total{outcome=\"success\"}[7d]) unless on () count(count_over_time(fluxtube_runs[2h])))",
         "instant": true
       }
     },
@@ -28,7 +28,7 @@
       "model": {
         "refId": "B",
         "type": "math",
-        "expression": "$A == 0"
+        "expression": "$A > 0"
       }
     }
   ],
@@ -37,7 +37,7 @@
   "for": "30m",
   "annotations": {
     "summary": "No successful FluxTube backup in the last 7 days.",
-    "description": "The dashboard Worker's nightly cron (default `15 4 * * *` UTC) hasn't recorded a successful backup in the 7-day evaluation window. Check the /dashboard/backup page for the last-attempted timestamp, tail the worker logs (`wrangler tail --name fluxtube-{{ $labels.instance_id }}-dashboard`), and verify the BACKUPS R2 binding is intact via `wrangler r2 object list fluxtube-{{ $labels.instance_id }}-backups`. `noDataState: OK` avoids false alarms during the Phase 9 cutover window when the dashboard Worker's OTLP emission is being wired; flip to `Alerting` once backup metrics are confirmed flowing so a full metric-shipping outage also fires this."
+    "description": "No successful backup in the last 7 days. The query returns a row only when a backup is missing, so an empty result (NoData) means healthy and `noDataState` is `OK`; do not flip it to `Alerting`, which would fire whenever backups are fine. Two branches: (1) an instance whose sync Worker is reporting runs now and was already reporting them 6 to 7 days ago (so a new instance is not flagged in its first week), but which has no successful backup in 7 days, labelled with its `instance_id`; (2) no successful backup anywhere and no sync runs either, which is a full metric-shipping outage or a stopped stack, with no `instance_id` label. A failing backup still counts as missing: only `outcome=\"success\"` clears it. Check the /dashboard/backup page for the last-attempted timestamp, tail the dashboard Worker's logs (`wrangler tail --name fluxtube-<instance_id>-dashboard`), and verify the BACKUPS R2 binding (`wrangler r2 object list fluxtube-<instance_id>-backups`)."
   },
   "labels": {
     "app": "fluxtube",
