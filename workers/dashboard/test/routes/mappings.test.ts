@@ -12,6 +12,12 @@ const db = (env as unknown as { DB: D1Database }).DB;
 
 const HMAC_KEY = 'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=';
 
+// Well-formed custom playlist ids (`PL` + 16 or 32 base64url characters).
+const PL_A = 'PLaaaaaaaaaaaaaaaa';
+const PL_B = 'PLbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+const PL_NEW = 'PLnewnewnewnewnew1';
+const PL_KEEP = 'PLkeep-keep_keep02';
+
 interface TestEnv {
   DB: D1Database;
   SESSION_SIGNING_KEY?: string;
@@ -48,6 +54,18 @@ async function seedInstance(url: string): Promise<number> {
     createdAt: 1_700_000_000,
     updatedAt: 1_700_000_000,
   });
+}
+
+async function putMappings(mappings: unknown[]): Promise<Response> {
+  return await app.fetch(
+    new Request('http://d.test/api/mappings', {
+      method: 'PUT',
+      body: JSON.stringify({ mappings }),
+      headers: { Cookie: await sessionCookie() },
+    }),
+    testEnv(),
+    {} as ExecutionContext,
+  );
 }
 
 async function seedMapping(
@@ -155,7 +173,7 @@ describe('PUT /api/mappings', () => {
             {
               minifluxInstanceId: 999,
               minifluxCategory: 'Videos',
-              youtubePlaylistId: 'PL-x',
+              youtubePlaylistId: PL_A,
               skipShorts: false,
             },
           ],
@@ -168,30 +186,20 @@ describe('PUT /api/mappings', () => {
     expect(res.status).toBe(409);
   });
 
-  it('replaces mappings for the referenced instance and preserves untouched instances', async () => {
+  it('replaces every instance with the rows sent, clearing an instance with none', async () => {
     const id1 = await seedInstance('https://home.example');
     const id2 = await seedInstance('https://work.example');
-    await seedMapping(id1, 'Old', 'PL-old');
-    await seedMapping(id2, 'Keep', 'PL-keep');
+    await seedMapping(id1, 'Old', PL_A);
+    await seedMapping(id2, 'Gone', PL_KEEP);
 
-    const res = await app.fetch(
-      new Request('http://d.test/api/mappings', {
-        method: 'PUT',
-        body: JSON.stringify({
-          mappings: [
-            {
-              minifluxInstanceId: id1,
-              minifluxCategory: 'New',
-              youtubePlaylistId: 'PL-new',
-              skipShorts: true,
-            },
-          ],
-        }),
-        headers: { Cookie: await sessionCookie() },
-      }),
-      testEnv(),
-      {} as ExecutionContext,
-    );
+    const res = await putMappings([
+      {
+        minifluxInstanceId: id1,
+        minifluxCategory: 'New',
+        youtubePlaylistId: PL_NEW,
+        skipShorts: true,
+      },
+    ]);
     expect(res.status).toBe(200);
 
     const home = await new MappingsRepo(db).listByInstance(id1);
@@ -199,9 +207,62 @@ describe('PUT /api/mappings', () => {
     expect(home[0]?.minifluxCategory).toBe('New');
     expect(home[0]?.skipShorts).toBe(true);
 
-    const work = await new MappingsRepo(db).listByInstance(id2);
-    expect(work).toHaveLength(1);
-    expect(work[0]?.minifluxCategory).toBe('Keep');
+    // The editor sends every instance's rows; work's last row was deleted.
+    expect(await new MappingsRepo(db).listByInstance(id2)).toEqual([]);
+  });
+
+  it('saving [] clears every mapping', async () => {
+    const id1 = await seedInstance('https://home.example');
+    await seedMapping(id1, 'Videos', PL_A);
+    await seedMapping(id1, 'Talks', PL_B);
+
+    const res = await putMappings([]);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { instances: Array<{ id: number; mappings: unknown[] }> };
+    expect(body.instances).toEqual([expect.objectContaining({ id: id1, mappings: [] })]);
+    expect(await new MappingsRepo(db).listByInstance(id1)).toEqual([]);
+  });
+
+  it('400 on a duplicate row, leaving the existing rows and history unchanged', async () => {
+    const id1 = await seedInstance('https://home.example');
+    await seedMapping(id1, 'Videos', PL_A);
+    await seedMapping(id1, 'Talks', PL_B);
+
+    const dup = {
+      minifluxInstanceId: id1,
+      minifluxCategory: 'Videos',
+      youtubePlaylistId: PL_NEW,
+      skipShorts: false,
+    };
+    const res = await putMappings([dup, { ...dup, skipShorts: true }]);
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'duplicate_mapping' });
+
+    const rows = await new MappingsRepo(db).listByInstance(id1);
+    expect(rows.map((m) => m.minifluxCategory).sort()).toEqual(['Talks', 'Videos']);
+    expect(await new MappingHistoryRepo(db).listLatest(10)).toEqual([]);
+  });
+
+  it.each([
+    ['Watch Later', 'WL'],
+    ['a URL', 'https://www.youtube.com/playlist?list=PLaaaaaaaaaaaaaaaa'],
+    ['too short', 'PL123'],
+    ['a stray space', 'PLaaaaaaaa aaaaaaa'],
+  ])('400 on a malformed playlist id (%s)', async (_label, playlistId) => {
+    const id1 = await seedInstance('https://home.example');
+    await seedMapping(id1, 'Videos', PL_A);
+
+    const res = await putMappings([
+      {
+        minifluxInstanceId: id1,
+        minifluxCategory: 'Videos',
+        youtubePlaylistId: playlistId,
+        skipShorts: false,
+      },
+    ]);
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'missing_or_invalid_youtubePlaylistId' });
+    expect(await new MappingsRepo(db).listByInstance(id1)).toHaveLength(1);
   });
 
   it('writes a history snapshot before mutating and prunes to history_window', async () => {
@@ -216,7 +277,7 @@ describe('PUT /api/mappings', () => {
         {
           minifluxInstanceId: id1,
           minifluxCategory: 'Videos',
-          youtubePlaylistId: 'PL-a',
+          youtubePlaylistId: PL_A,
           skipShorts: false,
         },
       ],
@@ -382,5 +443,57 @@ describe('POST /api/mappings/history/:id/restore', () => {
     // state under actor='restore'.
     const historyRows = await new MappingHistoryRepo(db).listLatest(10);
     expect(historyRows.some((r) => r.actor === 'restore')).toBe(true);
+  });
+});
+
+describe('MappingsRepo.replaceForInstanceStatements', () => {
+  it('rolls the whole batch back when one INSERT fails', async () => {
+    const id1 = await seedInstance('https://home.example');
+    await seedMapping(id1, 'Videos', PL_A);
+    await seedMapping(id1, 'Talks', PL_B);
+
+    // Two identical rows hit the table's UNIQUE constraint on the second
+    // INSERT, after the DELETE and the first INSERT have run.
+    const row = {
+      minifluxInstanceId: id1,
+      minifluxCategory: 'New',
+      youtubePlaylistId: PL_NEW,
+      skipShorts: false,
+      createdAt: 1_700_000_100,
+      updatedAt: 1_700_000_100,
+    };
+    const repo = new MappingsRepo(db);
+    await expect(db.batch(repo.replaceForInstanceStatements(id1, [row, row]))).rejects.toThrow(
+      /UNIQUE/,
+    );
+
+    const rows = await repo.listByInstance(id1);
+    expect(rows.map((m) => m.minifluxCategory).sort()).toEqual(['Talks', 'Videos']);
+  });
+});
+
+describe('POST /api/mappings/history/:id/restore (empty instances)', () => {
+  it('restores an instance the snapshot lists with no mappings to none', async () => {
+    const id1 = await seedInstance('https://home.example');
+    const histId = await new MappingHistoryRepo(db).append({
+      snapshotJson: JSON.stringify({
+        instances: [{ id: id1, displayName: 'Home', url: 'https://home.example' }],
+        mappings: [],
+      }),
+      actor: 'ui',
+      createdAt: 1_700_000_050,
+    });
+    await seedMapping(id1, 'Current', PL_A);
+
+    const res = await app.fetch(
+      new Request(`http://d.test/api/mappings/history/${histId}/restore`, {
+        method: 'POST',
+        headers: { Cookie: await sessionCookie() },
+      }),
+      testEnv(),
+      {} as ExecutionContext,
+    );
+    expect(res.status).toBe(200);
+    expect(await new MappingsRepo(db).listByInstance(id1)).toEqual([]);
   });
 });

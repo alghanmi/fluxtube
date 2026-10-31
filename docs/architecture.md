@@ -197,7 +197,7 @@ Auth model:
 
 - **Auth**: `/api/auth/passkey/{register,authenticate}/{begin,finish}`, `/api/auth/recovery` (single-use hashed recovery code wipes `admin_passkey`), `/api/auth/logout`, `/api/me`
 - **YouTube OAuth**: `/api/auth/youtube` (302 to Google), `/api/auth/youtube/callback` (exchange + persist encrypted refresh_token, 302 to `/dashboard/oauth?state=connected|denied&reason=<code>`)
-- **Config**: `/api/miniflux/instances` (CRUD), `/api/miniflux/categories?instance_id=N` (live via decrypted token), `/api/youtube/playlists` (live), `/api/mappings` (grouped view + full-replace save), `/api/mappings/history` (last N snapshots + restore), `/api/config/rotate-keys` (re-encrypt under the current key; also accepts the operator Bearer)
+- **Config**: `/api/miniflux/instances` (CRUD), `/api/miniflux/categories?instance_id=N` (live via decrypted token), `/api/youtube/playlists` (live), `/api/mappings` (grouped view + full-replace save: the payload is every mapping, so an instance with no rows sent is cleared; duplicates and malformed playlist ids are a 400; the history snapshot and every write commit in one D1 batch), `/api/mappings/history` (last N snapshots + restore), `/api/config/rotate-keys` (re-encrypt under the current key; also accepts the operator Bearer)
 - **Ops**: `/api/sync/trigger` (invokes sync Worker via Service Binding), `/api/backup/{now,restore/:file,list}`, `/api/backup/:filename` (download)
 
 ### Cross-instance dedup
