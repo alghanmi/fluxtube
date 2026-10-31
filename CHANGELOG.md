@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.2.2](https://github.com/alghanmi/fluxtube/compare/v1.2.1...v1.2.2) (2026-10-31)
+
+
+### Bug Fixes
+
+* **alerts:** make backup-missing an absence rule that can fire ([#246](https://github.com/alghanmi/fluxtube/issues/246)) ([28797c2](https://github.com/alghanmi/fluxtube/commit/28797c21b6dc55388da40a27c8486a1c4e37242e)), closes [#232](https://github.com/alghanmi/fluxtube/issues/232)
+* **dashboard:** read the OAuth result in the browser, not at build time ([#241](https://github.com/alghanmi/fluxtube/issues/241)) ([5dfc7ca](https://github.com/alghanmi/fluxtube/commit/5dfc7ca9604ad3fd404f1bf7b7f5487b0cd8e0d3)), closes [#228](https://github.com/alghanmi/fluxtube/issues/228)
+* **dashboard:** replace every instance's mappings in one D1 batch ([#243](https://github.com/alghanmi/fluxtube/issues/243)) ([7410f78](https://github.com/alghanmi/fluxtube/commit/7410f784b9f4dd51f859b01350ac62306ff3d5c5)), closes [#230](https://github.com/alghanmi/fluxtube/issues/230)
+* **sync:** flush logs and metrics when a background POST /sync settles ([#244](https://github.com/alghanmi/fluxtube/issues/244)) ([18fe0f1](https://github.com/alghanmi/fluxtube/commit/18fe0f143c445ec3629f137f5c77a37ab55cf009)), closes [#231](https://github.com/alghanmi/fluxtube/issues/231)
+
 ## [1.2.1](https://github.com/alghanmi/fluxtube/compare/v1.2.0...v1.2.1) (2026-10-20)
 
 
