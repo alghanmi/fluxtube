@@ -122,7 +122,9 @@ Pinned versions — don't drift without explicit instruction:
 ├── dashboard/                         # dashboard.<instance>.<domain> — Astro PWA
 │   ├── astro.config.mjs
 │   ├── package.json                   # @fluxtube/dashboard-web
-│   └── src/                           # pages, Preact islands, Service Binding calls
+│   ├── vitest.config.ts               # happy-dom component tests for the islands
+│   ├── src/                           # pages, Preact islands, Service Binding calls
+│   └── test/
 └── workers/
     ├── sync/
     │   ├── package.json               # @fluxtube/sync
