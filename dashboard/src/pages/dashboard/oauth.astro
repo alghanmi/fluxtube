@@ -10,20 +10,21 @@
 //                                              re-enters /api/auth/youtube.
 //
 // The Worker's success path writes the encrypted refresh token to D1
-// before landing here, so this page is decorative only. Any error
-// reason is human-readable-ish; we surface it verbatim beneath the
-// hero headline.
+// before landing here, so this page is decorative only. The error
+// reason is mapped to fixed copy beneath the hero headline.
+//
+// Do not read Astro.url.searchParams here. The dashboard builds
+// statically, so frontmatter runs once at build time with no query
+// string, and whatever it picked would be baked into the HTML for
+// every visitor. OAuthSplash reads the query string in the browser
+// and sets the page title to match.
 
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { OAuthSplash } from '../../components/OAuthSplash';
-
-const url = Astro.url;
-const state = url.searchParams.get('state') === 'connected' ? 'connected' : 'denied';
-const reason = url.searchParams.get('reason') ?? undefined;
 ---
 
-<BaseLayout title={state === 'connected' ? 'YouTube connected' : 'YouTube consent declined'}>
-  <OAuthSplash client:load state={state} reason={reason} />
+<BaseLayout title="YouTube connection">
+  <OAuthSplash client:load />
 
   <script is:inline>
     (async () => {
