@@ -3,17 +3,23 @@
 // after 1.5s. Error variant shows a Try Again link back into the
 // OAuth flow.
 //
+// The variant comes from the query string, read in the browser. The
+// dashboard is built statically, so anything read from the URL at build
+// time (Astro frontmatter, or this island's server render) sees no query
+// string at all. The server render therefore shows a neutral pending
+// state, and the real variant is chosen once the island mounts.
+//
 // Per the Phase 10 design brief:
 //   Success: 56px filament-active + Fraunces "YouTube connected." +
 //            mono caption noting the auto-redirect.
 //   Error:   56px filament-error + ink-red "Consent declined." +
 //            explanatory line + Try Again link.
 
-import { useEffect } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import * as api from '../lib/api';
 import { TubeIcon } from './icon/TubeIcon';
 
-interface Props {
+export interface OAuthResult {
   state: 'connected' | 'denied';
   reason?: string;
 }
@@ -56,8 +62,32 @@ function describeReason(reason: string): string {
   }
 }
 
-export function OAuthSplash(props: Props): preact.JSX.Element {
-  const { state, reason } = props;
+// Anything other than an explicit `state=connected` is treated as a
+// failure, so a stripped or mangled callback URL never reports success.
+export function parseOAuthResult(search: string): OAuthResult {
+  const params = new URLSearchParams(search);
+  const state = params.get('state') === 'connected' ? 'connected' : 'denied';
+  const reason = params.get('reason') ?? undefined;
+  return reason === undefined ? { state } : { state, reason };
+}
+
+export function oauthTitle(state: OAuthResult['state']): string {
+  return state === 'connected' ? 'YouTube connected' : 'YouTube consent declined';
+}
+
+export function OAuthSplash(): preact.JSX.Element {
+  // null until mounted: the server render must not pick a variant.
+  const [result, setResult] = useState<OAuthResult | null>(null);
+
+  useEffect(() => {
+    const parsed = parseOAuthResult(window.location.search);
+    // Same shape BaseLayout renders: `<page> · fluxtube`.
+    document.title = `${oauthTitle(parsed.state)} · fluxtube`;
+    setResult(parsed);
+  }, []);
+
+  const state = result?.state;
+  const reason = result?.reason;
 
   useEffect(() => {
     if (state !== 'connected') return;
@@ -66,6 +96,15 @@ export function OAuthSplash(props: Props): preact.JSX.Element {
     }, REDIRECT_MS);
     return () => window.clearTimeout(t);
   }, [state]);
+
+  if (state === undefined) {
+    return (
+      <div class="oauth" aria-busy="true">
+        <TubeIcon name="filament-idle" size={56} />
+        <p class="oauth-caption">Finishing the YouTube connection…</p>
+      </div>
+    );
+  }
 
   if (state === 'connected') {
     return (

@@ -77,6 +77,7 @@ One workspace at a time:
 ```sh
 pnpm --filter @fluxtube/sync test
 pnpm --filter @fluxtube/dashboard test
+pnpm --filter @fluxtube/dashboard-web test   # Preact islands, under happy-dom
 pnpm --filter @fluxtube/sync test:watch
 ```
 
