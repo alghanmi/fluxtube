@@ -172,11 +172,11 @@ All gauges — Workers are stateless, so cumulative counters would need D1 round
 
 Dashboard-Worker-emitted (v1, Phase 8):
 
-| PromQL name                            | Notes                                                                          |
-| -------------------------------------- | ------------------------------------------------------------------------------ |
-| `fluxtube_backup_runs_total`           | One data point per backup attempt. Carries `outcome ∈ {success, failure}`.     |
-| `fluxtube_backup_last_success_seconds` | Unix seconds of the last successful backup. Powers the `backup-missing` alert. |
-| `fluxtube_backup_size_bytes`           | Size of the last successful backup payload.                                    |
+| PromQL name                            | Notes                                                                                                                                          |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fluxtube_backup_runs_total`           | One data point per backup attempt. Carries `outcome ∈ {success, failure}`. The `backup-missing` alert keys on the absence of `success` points. |
+| `fluxtube_backup_last_success_seconds` | Unix seconds of the last successful backup.                                                                                                    |
+| `fluxtube_backup_size_bytes`           | Size of the last successful backup payload.                                                                                                    |
 
 All metrics ship with resource attributes `service.name` (`fluxtube` for sync, `fluxtube-dashboard` for dashboard), `service.namespace=production`, `service.version=<VERSION>`, `service.instance.id=<run_id>` — plus `instance_id=<var.instance_id>` (Phase 8) so a single Grafana stack can filter by FluxTube instance via the dashboards' `instance_id` template variable. The Loki stream carries the same `instance_id` label.
 
@@ -264,17 +264,18 @@ Two systems own different parts of the alert surface. Keep both — each is good
 
 When in doubt: "go/no-go right now" → Healthchecks. "Has X been weird over time?" → Grafana.
 
-### Grafana rules — five starter alerts
+### Grafana rules — starter alerts
 
-One file per rule under `docs/grafana/alerts/`. Each rule has `for: 15m` debounce and tags `app=fluxtube, severity=warning`. Notification policy → your default email/integration.
+One file per rule under `docs/grafana/alerts/`. Each rule has `for: 15m` debounce and tags `app=fluxtube, severity=warning`, except **Backup missing** (`for: 30m`, `severity=critical`). Notification policy → your default email/integration.
 
-| Alert                        | PromQL                                                                                                           | When it triggers                                                                                                                         |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| **Pass 2 not draining**      | `sum_over_time(fluxtube_items_marked_read[3h]) == 0 AND sum_over_time(fluxtube_runs{outcome="success"}[3h]) > 3` | 3+ successful runs in 3h but zero mark-reads — backlog clearing has stopped. Audit endpoint is the next debugging step.                  |
-| **Sustained Pass 1 errors**  | `sum_over_time(fluxtube_errors_entry[1h]) > 3`                                                                   | More than 3 per-entry failures in 1h. Usually transient (YouTube rate limiting, weird entry shapes) — sustained means investigate.       |
-| **Sustained Pass 2 errors**  | `sum_over_time(fluxtube_errors_removal[1h]) > 2`                                                                 | More than 2 per-row removal failures in 1h. The mark-read-then-delete order means retries should self-heal; sustained means they aren't. |
-| **Quota burn rate too high** | `sum_over_time(fluxtube_quota_used[24h]) > 8000`                                                                 | Cumulative daily quota approaching the 10k cap. Softer trend warning to the per-run `quota_exhausted` Healthchecks alert.                |
-| **Run duration regression**  | `quantile_over_time(0.95, fluxtube_run_duration_seconds[6h]) > 25`                                               | p95 wall time within 5s of the 30s Worker cap. Upstream slowness or backlog explosion.                                                   |
+| Alert                        | PromQL                                                                                                                          | When it triggers                                                                                                                                                                                   |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Pass 2 not draining**      | `sum_over_time(fluxtube_items_marked_read[3h]) == 0 AND sum_over_time(fluxtube_runs{outcome="success"}[3h]) > 3`                | 3+ successful runs in 3h but zero mark-reads — backlog clearing has stopped. Audit endpoint is the next debugging step.                                                                            |
+| **Sustained Pass 1 errors**  | `sum_over_time(fluxtube_errors_entry[1h]) > 3`                                                                                  | More than 3 per-entry failures in 1h. Usually transient (YouTube rate limiting, weird entry shapes) — sustained means investigate.                                                                 |
+| **Sustained Pass 2 errors**  | `sum_over_time(fluxtube_errors_removal[1h]) > 2`                                                                                | More than 2 per-row removal failures in 1h. The mark-read-then-delete order means retries should self-heal; sustained means they aren't.                                                           |
+| **Quota burn rate too high** | `sum_over_time(fluxtube_quota_used[24h]) > 8000`                                                                                | Cumulative daily quota approaching the 10k cap. Softer trend warning to the per-run `quota_exhausted` Healthchecks alert.                                                                          |
+| **Run duration regression**  | `quantile_over_time(0.95, fluxtube_run_duration_seconds[6h]) > 25`                                                              | p95 wall time within 5s of the 30s Worker cap. Upstream slowness or backlog explosion.                                                                                                             |
+| **Backup missing**           | `absent_over_time(fluxtube_backup_runs_total{outcome="success"}[7d])`, per instance against `fluxtube_runs` (see the rule file) | No successful backup in 7 days for an instance that is still syncing, or no successful backup and no sync runs anywhere. An absence rule: an empty result means healthy, so `noDataState` is `OK`. |
 
 ### Importing the rules
 
@@ -287,6 +288,7 @@ You don't. `scripts/sync-grafana.ts` pushes them, run as part of each release de
 1. Decide whether Healthchecks owns it (binary "did this thing fail right now?") or Grafana (trend / correlation / history).
 2. For Grafana: write the PromQL in **Explore** first, iterate until it's a single boolean expression that returns 1 when alarming. Wrap with `$A > N` math expression in the rule definition.
 3. Add `for: 15m` to avoid flapping on transient spikes.
+   - A rule that fires when a series **disappears** cannot compare the series to zero: with nothing reported there is no series, Grafana sees NoData, and `noDataState: OK` keeps it silent. Write it as an absence query (`absent_over_time(…)`, or a reference series `unless` the expected one), which returns a row only when something is missing. An empty result is then the healthy state, so `noDataState` stays `OK`; setting it to `Alerting` would fire whenever things are fine. `backup-missing.json` is the example.
 4. Add a new file `docs/grafana/alerts/<slug>.json` matching the shape of the existing rules. The `uid` field is what makes the push idempotent — pick `fluxtube-<slug>`.
 5. Dry-run the push against your Grafana (see **Trying it locally** below), then open a PR. The next sync applies it.
 6. Update the table above and the rule's `summary` / `description` annotations.
