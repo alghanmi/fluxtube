@@ -18,7 +18,6 @@ on:
       tag:
         description: 'Tag to deploy (e.g. v1.2.1; a bare 1.2.1 also works)'
         required: true
-        default: 'v0.1.0'
         type: string
 
 permissions:

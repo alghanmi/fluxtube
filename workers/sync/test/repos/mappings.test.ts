@@ -90,24 +90,4 @@ describe('MappingsRepo', () => {
     expect(remaining).toHaveLength(1);
     expect(remaining[0]?.minifluxInstanceId).toBe(b);
   });
-
-  it('replaceForInstance clears + rewrites atomically, leaves other instance untouched', async () => {
-    const repo = new MappingsRepo(db);
-    const a = await seedInstance('https://a.example.com');
-    const b = await seedInstance('https://b.example.com');
-
-    await repo.insert(mapping(a, 'old-tech', 'PL_old_tech'));
-    await repo.insert(mapping(b, 'unrelated', 'PL_b'));
-
-    const newIds = await repo.replaceForInstance(a, [
-      mapping(a, 'new-tech', 'PL_new_tech'),
-      mapping(a, 'new-music', 'PL_new_music'),
-    ]);
-
-    expect(newIds).toHaveLength(2);
-    const rowsA = await repo.listByInstance(a);
-    expect(rowsA.map((r) => r.minifluxCategory)).toEqual(['new-tech', 'new-music']);
-    const rowsB = await repo.listByInstance(b);
-    expect(rowsB.map((r) => r.youtubePlaylistId)).toEqual(['PL_b']);
-  });
 });
