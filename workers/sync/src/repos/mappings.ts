@@ -83,22 +83,4 @@ export class MappingsRepo {
   async delete(id: number): Promise<void> {
     await this.db.prepare('DELETE FROM mappings WHERE id = ?').bind(id).run();
   }
-
-  /**
-   * Full-replacement save for a single Miniflux instance. Used by the
-   * dashboard's PUT /api/mappings when the user hits "Save" — the caller
-   * wraps this + a mapping_history snapshot in one D1 batch/transaction.
-   * Returns the ids of the newly-inserted rows.
-   */
-  async replaceForInstance(minifluxInstanceId: number, rows: MappingInsert[]): Promise<number[]> {
-    await this.db
-      .prepare('DELETE FROM mappings WHERE miniflux_instance_id = ?')
-      .bind(minifluxInstanceId)
-      .run();
-    const ids: number[] = [];
-    for (const row of rows) {
-      ids.push(await this.insert(row));
-    }
-    return ids;
-  }
 }
