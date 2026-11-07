@@ -16,15 +16,15 @@
   },
   "dependencies": {
     "@simplewebauthn/server": "^14.0.3",
-    "hono": "^4.13.14",
+    "hono": "^4.13.16",
     "zod": "^4.6.5"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.23.0",
-    "@cloudflare/workers-types": "^5.20261030.1",
+    "@cloudflare/workers-types": "^5.20261103.1",
     "typescript": "^6.0.3",
     "vite": "^8.3.5",
     "vitest": "~4.1.12",
-    "wrangler": "^4.156.0"
+    "wrangler": "^4.157.0"
   }
 }
