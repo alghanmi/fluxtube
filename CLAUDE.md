@@ -351,6 +351,11 @@ that they did not already know?"
 - **Dependencies:** resolve versions from the registry, never from memory.
   A held-back major gets an `ignore` rule in `.github/dependabot.yml` with
   the reason and an issue for the migration.
+- **Passkeys (WebAuthn):** ask for and enforce user verification. Set
+  `userVerification: 'required'` in both option calls, and pass
+  `requireUserVerification: true` explicitly to both verify calls rather than
+  relying on the library default. A challenge verifies once: record it when a
+  response verifies, and refuse a second use. Tests assert both.
 
 ### Issues
 
