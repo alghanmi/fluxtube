@@ -48,19 +48,19 @@ variable "sync_log_level" {
 }
 
 variable "heartbeat_url" {
-  description = "Healthchecks.io ping base URL — no trailing slash, no /fail suffix. Empty disables heartbeats."
+  description = "Deprecated: set the matching HEARTBEAT_URL* Worker secret instead; a value here is stored in Terraform state. Healthchecks.io ping base URL — no trailing slash, no /fail suffix. Empty disables heartbeats."
   type        = string
   default     = ""
 }
 
 variable "heartbeat_url_auth" {
-  description = "Healthchecks.io ping URL for invalid_grant FatalError. Empty disables auth-specific alert."
+  description = "Deprecated: set the matching HEARTBEAT_URL* Worker secret instead; a value here is stored in Terraform state. Healthchecks.io ping URL for invalid_grant FatalError. Empty disables auth-specific alert."
   type        = string
   default     = ""
 }
 
 variable "heartbeat_url_quota" {
-  description = "Healthchecks.io ping URL for quota_exhausted FatalError. Empty disables quota-specific alert."
+  description = "Deprecated: set the matching HEARTBEAT_URL* Worker secret instead; a value here is stored in Terraform state. Healthchecks.io ping URL for quota_exhausted FatalError. Empty disables quota-specific alert."
   type        = string
   default     = ""
 }

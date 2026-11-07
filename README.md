@@ -101,16 +101,17 @@ Terraform inputs are listed with placeholder values in [`terraform.tfvars.exampl
 
 Worker secrets, set with `wrangler secret put --name <worker>` on the Worker that reads them:
 
-| Secret                                       | Read by   | Why                                                                                             |
-| -------------------------------------------- | --------- | ----------------------------------------------------------------------------------------------- |
-| `MINIFLUX_API_TOKEN`                         | sync      | Read entries and mark them read                                                                 |
-| `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET` | both      | OAuth token exchange (sync) and the dashboard's YouTube sign-in                                 |
-| `YOUTUBE_REFRESH_TOKEN`                      | sync      | Only in env-managed mode; a claimed dashboard keeps it encrypted in D1                          |
-| `MANUAL_TRIGGER_TOKEN`                       | both      | Bearer token for `POST /sync`, `GET /audit` and the `/api/*` operator routes                    |
-| `D1_KEYCHAIN`                                | both      | `{ current, keys }` JSON for AES-GCM encryption of D1 columns. Must be the same on both Workers |
-| `SESSION_SIGNING_KEY`                        | dashboard | HMAC key for session cookies                                                                    |
-| `RP_ID`                                      | dashboard | WebAuthn relying-party ID: a registrable suffix of the dashboard host                           |
-| `GRAFANA_LOKI_TOKEN`, `GRAFANA_OTLP_TOKEN`   | both      | Optional: log and metric push                                                                   |
+| Secret                                                       | Read by   | Why                                                                                                                                                          |
+| ------------------------------------------------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `MINIFLUX_API_TOKEN`                                         | sync      | Read entries and mark them read                                                                                                                              |
+| `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET`                 | both      | OAuth token exchange (sync) and the dashboard's YouTube sign-in                                                                                              |
+| `YOUTUBE_REFRESH_TOKEN`                                      | sync      | Only in env-managed mode; a claimed dashboard keeps it encrypted in D1                                                                                       |
+| `MANUAL_TRIGGER_TOKEN`                                       | both      | Bearer token for `POST /sync`, `GET /audit` and the `/api/*` operator routes                                                                                 |
+| `D1_KEYCHAIN`                                                | both      | `{ current, keys }` JSON for AES-GCM encryption of D1 columns. Must be the same on both Workers                                                              |
+| `SESSION_SIGNING_KEY`                                        | dashboard | HMAC key for session cookies                                                                                                                                 |
+| `RP_ID`                                                      | dashboard | WebAuthn relying-party ID: a registrable suffix of the dashboard host                                                                                        |
+| `GRAFANA_LOKI_TOKEN`, `GRAFANA_OTLP_TOKEN`                   | both      | Optional: log and metric push                                                                                                                                |
+| `HEARTBEAT_URL`, `HEARTBEAT_URL_AUTH`, `HEARTBEAT_URL_QUOTA` | sync      | Optional Healthchecks.io ping URLs. A ping URL lets its holder ping the check, so it is a secret. Leave the `heartbeat_url*` inputs unset when you use these |
 
 Key rotation is in [`docs/encryption-keychain.md`](./docs/encryption-keychain.md).
 
@@ -166,12 +167,12 @@ The PR title is the release decision. `feat:` bumps the minor version, `fix:` th
 
 All four surfaces are optional; enable any subset.
 
-| Surface                | What                                                   | Configure via                                                 |
-| ---------------------- | ------------------------------------------------------ | ------------------------------------------------------------- |
-| **stdout JSON logs**   | Always on; view with `wrangler tail`                   | —                                                             |
-| **Healthchecks.io**    | Cron dead-man's switch, plus alerts per failure reason | `heartbeat_url`, `heartbeat_url_auth`, `heartbeat_url_quota`  |
-| **Grafana Cloud Loki** | Structured log shipping                                | `grafana_loki_url`, `grafana_loki_user`, `GRAFANA_LOKI_TOKEN` |
-| **Grafana Cloud OTLP** | Gauge metrics for each run, over OTLP/HTTP JSON        | `grafana_otlp_url`, `grafana_otlp_user`, `GRAFANA_OTLP_TOKEN` |
+| Surface                | What                                                   | Configure via                                                                 |
+| ---------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| **stdout JSON logs**   | Always on; view with `wrangler tail`                   | —                                                                             |
+| **Healthchecks.io**    | Cron dead-man's switch, plus alerts per failure reason | `HEARTBEAT_URL`, `HEARTBEAT_URL_AUTH`, `HEARTBEAT_URL_QUOTA` (Worker secrets) |
+| **Grafana Cloud Loki** | Structured log shipping                                | `grafana_loki_url`, `grafana_loki_user`, `GRAFANA_LOKI_TOKEN`                 |
+| **Grafana Cloud OTLP** | Gauge metrics for each run, over OTLP/HTTP JSON        | `grafana_otlp_url`, `grafana_otlp_user`, `GRAFANA_OTLP_TOKEN`                 |
 
 Every log line and metric carries `version` and `instance_id`, so one Grafana stack can serve several instances. [`docs/observability.md`](./docs/observability.md) has LogQL and PromQL recipes and the metric reference. The dashboards and alert rules are in `docs/grafana/`.
 
