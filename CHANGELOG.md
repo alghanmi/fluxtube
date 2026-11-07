@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.3](https://github.com/alghanmi/fluxtube/compare/v1.2.2...v1.2.3) (2026-11-07)
+
+
+### Bug Fixes
+
+* **site:** remove 'unsafe-inline' from the marketing site CSP ([#258](https://github.com/alghanmi/fluxtube/issues/258)) ([d67f454](https://github.com/alghanmi/fluxtube/commit/d67f454a13e9526530f1dfe5bed77aef09f6bd62))
+
 ## [1.2.2](https://github.com/alghanmi/fluxtube/compare/v1.2.1...v1.2.2) (2026-10-31)
 
 
