@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.4](https://github.com/alghanmi/fluxtube/compare/v1.2.3...v1.2.4) (2026-11-07)
+
+
+### Bug Fixes
+
+* **dashboard:** require passkey user verification and single-use challenges ([#259](https://github.com/alghanmi/fluxtube/issues/259)) ([9bdf9fe](https://github.com/alghanmi/fluxtube/commit/9bdf9fe86deebdb7531a72ca88779b429ad49f6f))
+
 ## [1.2.3](https://github.com/alghanmi/fluxtube/compare/v1.2.2...v1.2.3) (2026-11-07)
 
 
