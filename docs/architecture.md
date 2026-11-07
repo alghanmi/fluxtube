@@ -144,13 +144,16 @@ The sync Worker's `runtime_config.ts` picks between two config sources based on 
 
 ```ts
 async function isD1Managed(env: Env): Promise<boolean> {
-  const r = await env.DB.prepare('SELECT COUNT(*) AS n FROM admin_passkey').first<{ n: number }>();
-  return (r?.n ?? 0) > 0;
+  const mode = await new ConfigRepo(env.DB).getPlain('config_mode');
+  if (mode?.value === 'd1') return true;
+  return (await new AdminPasskeyRepo(env.DB).count()) > 0;
 }
 ```
 
-- **D1-managed** (a passkey has been claimed): mappings + Miniflux instances + the YouTube refresh token all read from D1 (`mappings`, `miniflux_instances`, `config.youtube_refresh_token` decrypted). **One Miniflux instance** per FluxTube instance: the dashboard refuses a second (`409 multi_instance_not_supported`), as does restoring a backup that contains two, because the sync loader does not implement multi-instance sync yet (#179). Env bindings for legacy fields are **ignored**.
-- **Env-managed** (no passkey row): fall back to `CATEGORY_PLAYLIST_MAPPING` + `MINIFLUX_*` env bindings. Single-Miniflux only. Same shape as v0.x.
+`config.config_mode = 'd1'` is written at first claim (migration `0003` backfills it), so a recovery wipe of `admin_passkey` does not change how sync is configured. The passkey-row fallback covers instances claimed before the flag existed.
+
+- **D1-managed** (the instance has been claimed): mappings + Miniflux instances + the YouTube refresh token all read from D1 (`mappings`, `miniflux_instances`, `config.youtube_refresh_token` decrypted). **One Miniflux instance** per FluxTube instance: the dashboard refuses a second (`409 multi_instance_not_supported`), as does restoring a backup that contains two, because the sync loader does not implement multi-instance sync yet (#179). Env bindings for legacy fields are **ignored**.
+- **Env-managed** (never claimed): fall back to `CATEGORY_PLAYLIST_MAPPING` + `MINIFLUX_*` env bindings. Single-Miniflux only. Same shape as v0.x.
 
 The env-managed path exists for cold-start / recovery — the first cron tick after `terraform apply` on a fresh instance is env-managed until the operator claims the passkey via the dashboard.
 
@@ -190,8 +193,10 @@ The dashboard Worker uses Hono. Full route map in `workers/dashboard/src/routes/
 Auth model:
 
 - **Passkey session** (signed cookie, 24h) is required on every data route. A session is only valid while its credential still exists in `admin_passkey`, so a recovery wipe ends every outstanding session.
-- **Operator Bearer** (`MANUAL_TRIGGER_TOKEN`) is accepted only on `/api/sync/trigger`, `/api/backup/now`, `/api/backups` and `/api/me` — not on restores, credential edits or mappings.
+- **Operator Bearer** (`MANUAL_TRIGGER_TOKEN`) is accepted only on `/api/sync/trigger`, `/api/backup/now`, `/api/backups`, `/api/config/rotate-keys` and `/api/me` — not on restores, credential edits or mappings.
 - **Claiming** (`register/begin`) requires the operator Bearer on a fresh instance, or the 15-minute claim-ticket cookie a successful `/api/auth/recovery` sets in that browser. An empty `admin_passkey` table alone is not permission to claim.
+- **User verification** is required on both passkey ceremonies (`userVerification: 'required'`, verified server-side), so a passkey is never accepted on possession alone.
+- **Single-use challenges**: each ceremony's challenge travels in a signed five-minute cookie. When a `/finish` response verifies, its challenge is recorded in `webauthn_challenge_used` (migration `0004`), and a challenge already recorded is refused with `challenge_already_used`. Only verified responses write a row, and rows are pruned once their cookie has expired. The signature counter can't do this job alone, because synced passkeys always report 0.
 - **Origin check**: POST/PUT/DELETE carrying an `Origin` other than `https://<RP_ID>` get 403.
 - Changing a Miniflux instance's URL requires re-entering its token, and instance URLs must be `https://`. A stored token is only ever sent to the URL it was entered for.
 

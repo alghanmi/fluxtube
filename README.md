@@ -93,6 +93,7 @@ Deployment happens outside this repository. Everything account-specific (the Clo
 - A Miniflux instance, and YouTube playlists (`PL…`; Watch Later is not available through the API).
 - A Google Cloud project with YouTube Data API v3 enabled, and an OAuth 2.0 _Web application_ client.
 - A domain for the dashboard. It becomes the WebAuthn relying-party ID.
+- A passkey that verifies you, with a device PIN, fingerprint or face unlock. The dashboard requires user verification when you register and every time you sign in, so a security key with no PIN set is refused. Phone and password-manager passkeys verify by default.
 - Optionally: Healthchecks.io checks and a Grafana Cloud stack.
 
 ### Inputs and secrets

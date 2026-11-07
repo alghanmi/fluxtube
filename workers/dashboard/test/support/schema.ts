@@ -10,6 +10,7 @@
 // Keep in sync with:
 //   workers/sync/migrations/0001_initial.sql  (queue table)
 //   workers/sync/migrations/0002_v1_init.sql  (v1 tables)
+//   workers/sync/migrations/0004_webauthn_challenge_used.sql
 
 export async function resetV1Schema(db: D1Database): Promise<void> {
   await db.prepare('DROP TABLE IF EXISTS mapping_history').run();
@@ -17,6 +18,7 @@ export async function resetV1Schema(db: D1Database): Promise<void> {
   await db.prepare('DROP TABLE IF EXISTS config').run();
   await db.prepare('DROP TABLE IF EXISTS miniflux_instances').run();
   await db.prepare('DROP TABLE IF EXISTS admin_passkey').run();
+  await db.prepare('DROP TABLE IF EXISTS webauthn_challenge_used').run();
 
   await db
     .prepare(
@@ -88,6 +90,16 @@ export async function resetV1Schema(db: D1Database): Promise<void> {
         recovery_used_at   INTEGER,
         created_at         INTEGER NOT NULL,
         last_used_at       INTEGER
+      )`,
+    )
+    .run();
+
+  await db
+    .prepare(
+      `CREATE TABLE webauthn_challenge_used (
+        challenge   TEXT    PRIMARY KEY,
+        purpose     TEXT    NOT NULL,
+        expires_at  INTEGER NOT NULL
       )`,
     )
     .run();

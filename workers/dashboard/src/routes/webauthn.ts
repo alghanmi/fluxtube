@@ -14,9 +14,15 @@
 //
 // Challenge flow: server generates a random challenge via
 // @simplewebauthn/server, signs it into `fluxtube_challenge` cookie (5m TTL),
-// and expects the same challenge back at /finish. The signed cookie is the
-// "server-side challenge store" that the spec calls for — no D1 hop needed
-// for a single-tenant single-user setup.
+// and expects the same challenge back at /finish. Once a /finish response
+// verifies, its challenge is recorded in `webauthn_challenge_used`, and a
+// challenge already recorded there is refused: each challenge is good for
+// one ceremony. The signature counter can't do that job on its own, because
+// synced passkeys always report 0. Nothing is written for a response that
+// fails to verify.
+//
+// User verification (PIN or biometric) is required on both ceremonies, so a
+// passkey is never accepted on possession alone.
 //
 // All ceremony crypto lives inside @simplewebauthn/server; this module is
 // glue: shape the options, thread the challenge through the cookie, land
@@ -31,6 +37,7 @@ import {
 } from '@simplewebauthn/server';
 import type { AuthenticationResponseJSON, RegistrationResponseJSON } from '@simplewebauthn/server';
 import {
+  CHALLENGE_MAX_AGE_SECONDS,
   CLAIM_MAX_AGE_SECONDS,
   challengeCookieHeader,
   clearChallengeCookieHeader,
@@ -44,6 +51,7 @@ import { isOperatorBearer } from '../auth/require_auth';
 import { sessionCookieHeader, signSession } from '../auth/session';
 import { AdminPasskeyRepo } from '../repos/admin_passkey';
 import { ConfigRepo } from '../repos/config';
+import { WebauthnChallengeRepo } from '../repos/webauthn_challenges';
 
 export interface WebauthnEnv {
   DB: D1Database;
@@ -87,7 +95,7 @@ export function attachWebauthnRoutes(app: Hono<{ Bindings: WebauthnEnv }>): void
       attestationType: 'none',
       authenticatorSelection: {
         residentKey: 'required',
-        userVerification: 'preferred',
+        userVerification: 'required',
       },
     });
 
@@ -134,7 +142,7 @@ export function attachWebauthnRoutes(app: Hono<{ Bindings: WebauthnEnv }>): void
         expectedChallenge: challenge,
         expectedOrigin: `https://${cfg.rpID}`,
         expectedRPID: cfg.rpID,
-        requireUserVerification: false,
+        requireUserVerification: true,
       });
     } catch (err) {
       return c.json(
@@ -147,6 +155,9 @@ export function attachWebauthnRoutes(app: Hono<{ Bindings: WebauthnEnv }>): void
     }
     if (!verification.verified || !verification.registrationInfo) {
       return c.json({ error: 'registration_not_verified' }, 400);
+    }
+    if (!(await consumeChallenge(c.env.DB, 'register', challenge))) {
+      return c.json({ error: 'challenge_already_used' }, 400);
     }
 
     const {
@@ -213,7 +224,7 @@ export function attachWebauthnRoutes(app: Hono<{ Bindings: WebauthnEnv }>): void
         id: r.credentialId,
         transports: (r.transports ?? undefined) as AuthenticatorTransportFuture[] | undefined,
       })),
-      userVerification: 'preferred',
+      userVerification: 'required',
     });
 
     const token = await signChallenge(
@@ -261,7 +272,7 @@ export function attachWebauthnRoutes(app: Hono<{ Bindings: WebauthnEnv }>): void
           publicKey: base64UrlToUint8(stored.publicKey),
           counter: stored.signCount,
         },
-        requireUserVerification: false,
+        requireUserVerification: true,
       });
     } catch (err) {
       return c.json(
@@ -275,8 +286,13 @@ export function attachWebauthnRoutes(app: Hono<{ Bindings: WebauthnEnv }>): void
     if (!verification.verified) {
       return c.json({ error: 'authentication_not_verified' }, 400);
     }
+    if (!(await consumeChallenge(c.env.DB, 'authenticate', challenge))) {
+      return c.json({ error: 'challenge_already_used' }, 400);
+    }
 
-    // Bump the sign_count so a replay of the same assertion fails next time.
+    // Record the new counter. For authenticators that count (most hardware
+    // keys) the library also rejects a counter that went backwards; synced
+    // passkeys report 0, so single-use challenges above are the replay guard.
     await repo.updateSignCount(
       stored.credentialId,
       verification.authenticationInfo.newCounter,
@@ -347,6 +363,28 @@ async function claimAuthorized(
     CLAIM_MAX_AGE_SECONDS,
   );
   return ticket !== null;
+}
+
+/**
+ * Marks a verified ceremony's challenge as used. False means it was used
+ * before, i.e. the same signed response is being presented again.
+ *
+ * The cookie carrying the challenge is valid for CHALLENGE_MAX_AGE_SECONDS
+ * from issue, and issue was no later than now, so keeping the row for that
+ * long from now outlives every cookie that could still carry it.
+ */
+async function consumeChallenge(
+  db: D1Database,
+  purpose: 'register' | 'authenticate',
+  challenge: string,
+): Promise<boolean> {
+  const now = nowSec();
+  return new WebauthnChallengeRepo(db).consume({
+    challenge,
+    purpose,
+    expiresAt: now + CHALLENGE_MAX_AGE_SECONDS,
+    now,
+  });
 }
 
 function nowSec(): number {
