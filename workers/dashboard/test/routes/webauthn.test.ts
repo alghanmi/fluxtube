@@ -71,6 +71,21 @@ async function resetPasskeyTable(): Promise<void> {
       )`,
     )
     .run();
+  await db.prepare('DROP TABLE IF EXISTS webauthn_challenge_used').run();
+  await db
+    .prepare(
+      `CREATE TABLE webauthn_challenge_used (
+        challenge TEXT PRIMARY KEY, purpose TEXT NOT NULL, expires_at INTEGER NOT NULL
+      )`,
+    )
+    .run();
+}
+
+async function usedChallenges(): Promise<{ challenge: string; purpose: string }[]> {
+  const r = await db
+    .prepare('SELECT challenge, purpose FROM webauthn_challenge_used ORDER BY challenge')
+    .all<{ challenge: string; purpose: string }>();
+  return r.results;
 }
 
 async function seedPasskey(
@@ -546,6 +561,215 @@ describe('challenge cookie signing (integration)', () => {
     expect(res.status).toBe(200);
   });
 });
+
+describe('user verification', () => {
+  it('register/begin asks the authenticator for user verification', async () => {
+    vi.mocked(generateRegistrationOptions).mockResolvedValue({
+      challenge: 'c',
+    } as unknown as Awaited<ReturnType<typeof generateRegistrationOptions>>);
+    const res = await app.fetch(
+      new Request('http://d.test/api/auth/passkey/register/begin', {
+        method: 'POST',
+        headers: OPERATOR_AUTH,
+      }),
+      testEnv() as unknown as Env,
+      {} as ExecutionContext,
+    );
+    expect(res.status).toBe(200);
+    const opts = vi.mocked(generateRegistrationOptions).mock.calls[0]?.[0];
+    expect(opts?.authenticatorSelection?.userVerification).toBe('required');
+  });
+
+  it('authenticate/begin asks the authenticator for user verification', async () => {
+    await seedPasskey();
+    vi.mocked(generateAuthenticationOptions).mockResolvedValue({
+      challenge: 'c',
+    } as unknown as Awaited<ReturnType<typeof generateAuthenticationOptions>>);
+    const res = await app.fetch(
+      new Request('http://d.test/api/auth/passkey/authenticate/begin', { method: 'POST' }),
+      testEnv() as unknown as Env,
+      {} as ExecutionContext,
+    );
+    expect(res.status).toBe(200);
+    const opts = vi.mocked(generateAuthenticationOptions).mock.calls[0]?.[0];
+    expect(opts?.userVerification).toBe('required');
+  });
+
+  it('register/finish and authenticate/finish both require user verification', async () => {
+    (verifyRegistrationResponse as unknown as Mock).mockResolvedValue({
+      verified: true,
+      registrationInfo: {
+        credential: { id: 'uv-cred', publicKey: new Uint8Array([1]), counter: 0 },
+        credentialBackedUp: false,
+      },
+    });
+    const reg = await app.fetch(
+      new Request('http://d.test/api/auth/passkey/register/finish', {
+        method: 'POST',
+        body: JSON.stringify({ id: 'uv-cred', rawId: 'uv-cred', response: {}, type: 'public-key' }),
+        headers: { Cookie: await challengeCookie('register', 'reg-uv') },
+      }),
+      testEnv() as unknown as Env,
+      {} as ExecutionContext,
+    );
+    expect(reg.status).toBe(200);
+    expect(vi.mocked(verifyRegistrationResponse).mock.calls[0]?.[0].requireUserVerification).toBe(
+      true,
+    );
+
+    (verifyAuthenticationResponse as unknown as Mock).mockResolvedValue({
+      verified: true,
+      authenticationInfo: { newCounter: 0 },
+    });
+    const auth = await app.fetch(
+      new Request('http://d.test/api/auth/passkey/authenticate/finish', {
+        method: 'POST',
+        body: JSON.stringify({ id: 'uv-cred', rawId: 'uv-cred', response: {}, type: 'public-key' }),
+        headers: { Cookie: await challengeCookie('authenticate', 'auth-uv') },
+      }),
+      testEnv() as unknown as Env,
+      {} as ExecutionContext,
+    );
+    expect(auth.status).toBe(200);
+    expect(vi.mocked(verifyAuthenticationResponse).mock.calls[0]?.[0].requireUserVerification).toBe(
+      true,
+    );
+  });
+});
+
+describe('single-use challenges', () => {
+  function authenticateFinish(cookie: string): Promise<Response> {
+    return Promise.resolve(
+      app.fetch(
+        new Request('http://d.test/api/auth/passkey/authenticate/finish', {
+          method: 'POST',
+          body: JSON.stringify({
+            id: 'cred-abc',
+            rawId: 'cred-abc',
+            response: {},
+            type: 'public-key',
+          }),
+          headers: { Cookie: cookie },
+        }),
+        testEnv() as unknown as Env,
+        {} as ExecutionContext,
+      ),
+    );
+  }
+
+  it('refuses a second sign-in with the same challenge', async () => {
+    await seedPasskey({ signCount: 0 });
+    // Synced passkeys always report a counter of 0, so the counter can't
+    // tell the two attempts apart.
+    (verifyAuthenticationResponse as unknown as Mock).mockResolvedValue({
+      verified: true,
+      authenticationInfo: { newCounter: 0 },
+    });
+    const cookie = await challengeCookie('authenticate', 'once-only');
+
+    const first = await authenticateFinish(cookie);
+    expect(first.status).toBe(200);
+    expect(await usedChallenges()).toEqual([{ challenge: 'once-only', purpose: 'authenticate' }]);
+
+    const second = await authenticateFinish(cookie);
+    expect(second.status).toBe(400);
+    expect(((await second.json()) as { error: string }).error).toBe('challenge_already_used');
+    expect(second.headers.getSetCookie().some((c) => c.startsWith('fluxtube_session='))).toBe(
+      false,
+    );
+  });
+
+  it('does not use up the challenge when verification fails', async () => {
+    await seedPasskey();
+    const cookie = await challengeCookie('authenticate', 'retry-ok');
+
+    (verifyAuthenticationResponse as unknown as Mock).mockResolvedValueOnce({
+      verified: false,
+      authenticationInfo: { newCounter: 0 },
+    });
+    expect((await authenticateFinish(cookie)).status).toBe(400);
+    expect(await usedChallenges()).toEqual([]);
+
+    (verifyAuthenticationResponse as unknown as Mock).mockResolvedValueOnce({
+      verified: true,
+      authenticationInfo: { newCounter: 4 },
+    });
+    expect((await authenticateFinish(cookie)).status).toBe(200);
+  });
+
+  it('does not write anything for a response that throws in verification', async () => {
+    await seedPasskey();
+    (verifyAuthenticationResponse as unknown as Mock).mockRejectedValue(new Error('bad sig'));
+    const res = await authenticateFinish(await challengeCookie('authenticate', 'bad'));
+    expect(res.status).toBe(400);
+    expect(await usedChallenges()).toEqual([]);
+  });
+
+  it('refuses a registration whose challenge was already used, storing nothing', async () => {
+    await db
+      .prepare(
+        `INSERT INTO webauthn_challenge_used (challenge, purpose, expires_at)
+         VALUES ('reg-used', 'register', ?)`,
+      )
+      .bind(Math.floor(Date.now() / 1000) + 300)
+      .run();
+    (verifyRegistrationResponse as unknown as Mock).mockResolvedValue({
+      verified: true,
+      registrationInfo: {
+        credential: { id: 'late-cred', publicKey: new Uint8Array([1]), counter: 0 },
+        credentialBackedUp: false,
+      },
+    });
+    const res = await app.fetch(
+      new Request('http://d.test/api/auth/passkey/register/finish', {
+        method: 'POST',
+        body: JSON.stringify({
+          id: 'late-cred',
+          rawId: 'late-cred',
+          response: {},
+          type: 'public-key',
+        }),
+        headers: { Cookie: await challengeCookie('register', 'reg-used') },
+      }),
+      testEnv() as unknown as Env,
+      {} as ExecutionContext,
+    );
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: string }).error).toBe('challenge_already_used');
+    expect(await new AdminPasskeyRepo(db).count()).toBe(0);
+    expect(await new ConfigRepo(db).getPlain('config_mode')).toBeNull();
+  });
+
+  it('prunes challenges whose cookies have expired', async () => {
+    await seedPasskey();
+    await db
+      .prepare(
+        `INSERT INTO webauthn_challenge_used (challenge, purpose, expires_at)
+         VALUES ('stale', 'authenticate', ?)`,
+      )
+      .bind(Math.floor(Date.now() / 1000) - 1)
+      .run();
+    (verifyAuthenticationResponse as unknown as Mock).mockResolvedValue({
+      verified: true,
+      authenticationInfo: { newCounter: 1 },
+    });
+    expect((await authenticateFinish(await challengeCookie('authenticate', 'fresh'))).status).toBe(
+      200,
+    );
+    expect(await usedChallenges()).toEqual([{ challenge: 'fresh', purpose: 'authenticate' }]);
+  });
+});
+
+async function challengeCookie(
+  purpose: 'register' | 'authenticate',
+  value: string,
+): Promise<string> {
+  const token = await signChallenge(
+    { purpose, value, issuedAt: Math.floor(Date.now() / 1000) },
+    HMAC_KEY,
+  );
+  return `fluxtube_challenge=${token}`;
+}
 
 // The test env in this file is a lightweight object; declare a compatible
 // Env so TS is happy passing it to app.fetch.

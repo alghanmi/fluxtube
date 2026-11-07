@@ -136,7 +136,8 @@ Pinned versions — don't drift without explicit instruction:
     │   │   ├── 0001_initial.sql       # queue table
     │   │   ├── 0002_v1_init.sql       # v1 tables: miniflux_instances, mappings, mapping_history,
     │   │   │                          #            config, admin_passkey
-    │   │   └── 0003_config_mode.sql   # durable D1-managed flag (survives recovery wipes)
+    │   │   ├── 0003_config_mode.sql   # durable D1-managed flag (survives recovery wipes)
+    │   │   └── 0004_webauthn_challenge_used.sql  # single-use passkey challenges (dashboard only)
     │   ├── src/
     │   │   ├── index.ts               # scheduled + fetch handlers
     │   │   ├── sync.ts                # core sync (returns RunSummary)

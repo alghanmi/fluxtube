@@ -12,7 +12,8 @@
 // SESSION_SIGNING_KEY signs both.
 
 const COOKIE_NAME = 'fluxtube_challenge';
-const MAX_AGE_SECONDS = 60 * 5; // 5m — enough for the user to touch the key
+export const CHALLENGE_MAX_AGE_SECONDS = 60 * 5; // 5m — enough for the user to touch the key
+const MAX_AGE_SECONDS = CHALLENGE_MAX_AGE_SECONDS;
 
 // 'claim' is not a WebAuthn challenge: it's the one-time ticket minted by a
 // successful POST /api/auth/recovery that authorises the next passkey
