@@ -21,7 +21,7 @@ Three checks, all optional but recommended:
 | `FluxTube — YouTube Auth`  | `HEARTBEAT_URL_AUTH`  | `invalid_grant` `FatalError` only. The 7-day OAuth refresh expiry. Configure as "Simple" with no expected period (manual pings only).                                         |
 | `FluxTube — YouTube Quota` | `HEARTBEAT_URL_QUOTA` | `quota_exhausted` `FatalError` only. Same configuration as the Auth check.                                                                                                    |
 
-All three URLs are Worker plain_text bindings (set via `TF_VAR_heartbeat_url*`). Per-reason checks are no-ops when the var is empty.
+Set all three as **Worker secrets** on the sync Worker (`wrangler secret put HEARTBEAT_URL --name <sync worker>`, and so on). A ping URL is a capability: whoever holds it can ping the check, keeping a dead cron looking healthy or raising false alarms. The module's `heartbeat_url*` inputs still work, but they become `plain_text` bindings, which Terraform stores in state; leave them unset, because a secret and a binding cannot share a name. Each check is a no-op when its URL is absent.
 
 ### Why three checks instead of one?
 

@@ -44,9 +44,12 @@ backup_retention_days   = 120
 # `wrangler secret put --name <worker>`.
 
 # ── Healthchecks.io ─────────────────────────────────────────────────────────
-heartbeat_url       = "https://hc-ping.com/00000000-0000-0000-0000-000000000000"
-heartbeat_url_auth  = "https://hc-ping.com/00000000-0000-0000-0000-000000000000"
-heartbeat_url_quota = "https://hc-ping.com/00000000-0000-0000-0000-000000000000"
+# Prefer the HEARTBEAT_URL, HEARTBEAT_URL_AUTH and HEARTBEAT_URL_QUOTA Worker
+# secrets: a ping URL is a credential, and a value here is stored in Terraform
+# state. These deprecated inputs stay unset when the secrets are used.
+# heartbeat_url       = "https://hc-ping.com/00000000-0000-0000-0000-000000000000"
+# heartbeat_url_auth  = "https://hc-ping.com/00000000-0000-0000-0000-000000000000"
+# heartbeat_url_quota = "https://hc-ping.com/00000000-0000-0000-0000-000000000000"
 
 # ── Grafana Cloud (optional — empty disables) ───────────────────────────────
 grafana_loki_url  = "https://logs-prod-006.grafana.net"
